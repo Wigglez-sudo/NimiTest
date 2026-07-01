@@ -1,13 +1,13 @@
-# NVIDIA AI Desktop
+# NViMi AI
 
-A Kimi/Qwen-Studio-style NVIDIA AI chat app that runs as a static site on **GitHub Pages** and talks to NVIDIA through a **Cloudflare Worker** proxy.
+A NVIDIA-powered, Kimi-style AI chat app that runs as a static site on **GitHub Pages** and talks to NVIDIA through a **Cloudflare Worker** proxy.
 
 - Frontend: `index.html`, `styles.css`, `app.js` (+ `sw.js`, `manifest.webmanifest`, `icon.svg`)
 - Backend: `worker/index.js` (one canonical Cloudflare Worker)
 - Live site: https://wigglez-sudo.github.io/nvidia-ai-desktop/
 - Worker: https://nvidia-ai-proxy.lukewai.workers.dev
 
-This is **v3.0.8**, an artifact/download and model-picker polish patch on top of the v3.0.7 splash/force-update baseline. The proven engine (streaming, model catalog, generated-file parsing, the Worker) was kept; the app was patched in place without a rewrite.
+This is **v3.0.9**, an iOS upload, thinking-panel, mobile model-picker, pinch-zoom, and brand patch on top of the v3.0.8 artifact baseline. The proven engine (streaming, model catalog, generated-file parsing, Free Endpoint model handling, and the Worker) was kept; the app was patched in place without a rewrite.
 
 ---
 
@@ -65,7 +65,7 @@ index.worker.js
 Commit and wait for Pages to deploy. Then open with a cache-buster:
 
 ```
-https://wigglez-sudo.github.io/nvidia-ai-desktop/?v=3.0.8
+https://wigglez-sudo.github.io/nvidia-ai-desktop/?v=3.0.9
 ```
 
 If you ever see a stale version again, just click **Clear cache & reload latest** in the Diagnostics panel (bottom-left of the sidebar).
@@ -74,7 +74,7 @@ If you ever see a stale version again, just click **Clear cache & reload latest*
 
 ## Deploy the Cloudflare Worker
 
-The Worker source is still a single file: **`worker/index.js`**. Its behaviour is unchanged in v3.0.8. **No Worker change is required for this patch** unless you want to redeploy the included copy for consistency.
+The Worker source is still a single file: **`worker/index.js`**. Its behaviour is unchanged in v3.0.9. **No Worker change is required for this patch** unless you want to redeploy the included copy for consistency.
 
 Copy it to your local Wrangler project and deploy:
 
@@ -118,12 +118,12 @@ Do **not** add `/v1/models`, `/v1/chat/completions`, etc. — the app appends pa
 
 ## Test checklist
 
-After uploading, open the site with `?v=3.0.8` and check:
+After uploading, open the site with `?v=3.0.9` and check:
 
 1. Startup splash appears with `Created by Wigglez + Claude + ChatGPT Codex`.
 2. Splash **Save, Load Models & Enter** saves the NVIDIA key and Worker URL, pulls models, and closes into the app.
 3. Top-right **Force update** clears service-worker/cache storage and reloads with a fresh cache-buster.
-4. Sidebar name/status (bottom-left) opens the **Diagnostics** panel; version badge shows `v3.0.8`.
+4. Sidebar name/status (bottom-left) opens the **Diagnostics** panel; version badge shows `v3.0.9`.
 5. Settings → **Test Connection** loads models.
 6. Model picker → **Refresh**; the **Free Endpoint** and **API Available** tabs have models.
 7. Send a message → a reply renders (this is the path that used to be broken).
@@ -133,10 +133,11 @@ After uploading, open the site with `?v=3.0.8` and check:
 11. Rename, pin, search, and delete chats in the sidebar.
 12. Diagnostics → **Probe Worker**, **Test chat completion**, **Test build catalog**; turn on Web Search and **Test web search**.
 13. Settings → **Export settings** / **Import settings**.
-14. On iPhone/Safari: the top toolbar sits below the status/dynamic-island area, the sidebar opens as a drawer with a backdrop, and the model picker sits above the keyboard.
-15. Enable **Stream Diagnostics** and send to a reasoning model (e.g. a Nemotron/DeepSeek/Qwen/GLM); the diagnostics block shows chunk/SSE/JSON/content/reasoning counters.
-16. Click **Regenerate** on an assistant reply, then click **Stop** while it is responding; the active regenerated request stops and keeps any partial text.
-17. Save Settings with an NVIDIA API key and Worker URL, refresh the page, then reopen Settings; both fields should still be populated.
+14. On iPhone/Safari: the top toolbar sits below the status/dynamic-island area, pinch zoom is blocked, the sidebar opens as a drawer with a backdrop, and the model picker opens as a compact bottom sheet with horizontally scrollable chips.
+15. On iPhone/Safari and desktop: tap/click the paperclip, choose a text/code file, and confirm an attachment chip appears before sending.
+16. Enable **Stream Diagnostics** and send to a reasoning model (e.g. a Nemotron/DeepSeek/Qwen/GLM); open the Thinking panel while it streams and confirm it stays open until you close it.
+17. Click **Regenerate** on an assistant reply, then click **Stop** while it is responding; the active regenerated request stops and keeps any partial text.
+18. Save Settings with an NVIDIA API key and Worker URL, refresh the page, then reopen Settings; both fields should still be populated.
 
 ---
 
@@ -223,4 +224,18 @@ No Cloudflare Worker change is required for this patch unless you want to redepl
 - Added model recommendation chips for coding, reasoning, free, and fast model selection.
 - Added a service-worker update banner that appears when a new frontend build is waiting.
 - Bumped the service-worker cache to `nvidia-ai-desktop-v3-0-8`.
+- No Cloudflare Worker change is required for this frontend-only patch.
+
+## v3.0.9 — iOS upload, thinking state, and NViMi branding
+
+- Rebranded the visible app to **NViMi AI**, keeping the NVIDIA/Kimi-style UI and existing GitHub Pages + Worker setup.
+- Removed the restrictive file-picker `accept` filter so iOS and desktop can open the full file picker instead of greying out files before the app can respond.
+- Fixed file selection by snapshotting the browser `FileList` before resetting the native input, which is more reliable on iOS/Safari.
+- Kept browser-side attachment safety: text/code/data files are read into the prompt; binary files such as PDFs/images still need real parsing or multimodal support before the model can use their contents.
+- Made the hidden native file input iOS-friendly instead of `display:none`.
+- Blocked iOS pinch/gesture zoom and kept 16px inputs to avoid focus zoom.
+- Made the mobile model picker cleaner with a compact bottom sheet, horizontal tab/recommendation chips, and horizontally scrollable capability badges.
+- Preserved the Free Endpoint model handling and did not change model catalog/free-model detection.
+- Remembered whether each Thinking panel is open so it stays open during streaming until the user collapses it.
+- Bumped the service-worker cache to `nvidia-ai-desktop-v3-0-9`.
 - No Cloudflare Worker change is required for this frontend-only patch.

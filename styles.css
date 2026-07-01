@@ -81,6 +81,7 @@ body {
   background: var(--nvidia-green);
   color: #000;
   font-weight: 800;
+  letter-spacing: -1px;
   margin-bottom: 16px;
 }
 .splash-kicker {
@@ -152,7 +153,7 @@ body {
 .logo-icon {
   width: 32px; height: 32px; background: var(--nvidia-green); border-radius: var(--radius-sm);
   display: flex; align-items: center; justify-content: center;
-  font-weight: 700; color: #000; font-size: 14px;
+  font-weight: 800; color: #000; font-size: 12px; letter-spacing: -1px;
 }
 .logo-text { font-weight: 600; font-size: 15px; letter-spacing: -0.3px; }
 .logo-sub { font-size: 11px; color: var(--text-muted); margin-top: -2px; }
@@ -761,9 +762,17 @@ body {
 
 
 /* GitHub Pages + iOS polish */
-html, body { min-height: 100%; min-height: 100dvh; }
+html, body { min-height: 100%; min-height: 100dvh; touch-action: pan-x pan-y; }
 body { -webkit-text-size-adjust: 100%; touch-action: manipulation; }
 button, input, textarea, select { font: inherit; }
+.file-input-native {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0.01;
+  pointer-events: none;
+  left: -9999px;
+}
 .input-box, .setting-input, .setting-select, .model-search input, .add-task-form input, .add-task-form textarea {
   font-size: 16px; /* avoids iOS zoom on focus */
 }
@@ -868,7 +877,40 @@ button, input, textarea, select { font: inherit; }
 @media (max-width: 768px) {
   body { min-height: 100dvh; }
   .input-area { padding-bottom: calc(14px + env(safe-area-inset-bottom)); }
-  .model-dropdown { position: fixed; left: 10px; right: 10px; bottom: 92px; width: auto; max-height: 60dvh; }
+  .model-dropdown {
+    position: fixed;
+    left: 10px;
+    right: 10px;
+    bottom: calc(86px + env(safe-area-inset-bottom));
+    width: auto;
+    max-height: min(52dvh, 460px);
+    border-radius: 12px;
+  }
+  .model-dropdown-header,
+  .model-recommendations {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .model-dropdown-header::-webkit-scrollbar,
+  .model-recommendations::-webkit-scrollbar,
+  .capability-bar::-webkit-scrollbar { display: none; }
+  .model-tab,
+  .model-recommendations button,
+  .capability-tag { flex: 0 0 auto; }
+  .model-search { padding: 9px 10px; }
+  .model-toolbar { gap: 6px; }
+  .model-list { overscroll-behavior: contain; }
+  .model-item { align-items: flex-start; padding: 10px; }
+  .model-item-desc code { word-break: break-all; }
+  .capability-bar {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    max-width: 100%;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
   .modal { max-height: 90dvh; }
   .top-bar {
     padding-top: env(safe-area-inset-top);
@@ -877,6 +919,9 @@ button, input, textarea, select { font: inherit; }
   }
 }
 .model-dropdown-header { flex-wrap: wrap; }
+@media (max-width: 768px) {
+  .model-dropdown-header { flex-wrap: nowrap; }
+}
 
 /* Real plugin settings */
 .plugin-item.disabled { opacity: .55; }

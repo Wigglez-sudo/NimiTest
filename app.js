@@ -1,6 +1,6 @@
 /* NVIDIA AI Desktop - GitHub Pages / Cloudflare Worker build */
-const APP_VERSION = '3.0.8';
-const BUILD_ID = '2026-07-artifacts-file-workspace';
+const APP_VERSION = '3.0.9';
+const BUILD_ID = '2026-07-ios-upload-thinking-brand';
 const NVIDIA_DIRECT_BASE = 'https://integrate.api.nvidia.com/v1';
 const DEFAULT_PROXY_URL = 'https://nvidia-ai-proxy.lukewai.workers.dev';
 const SETTINGS_KEY = 'nvidia_ai_desktop_settings_v8_plugins';
@@ -189,6 +189,7 @@ const state = {
   lastConnection: null,
   voiceRecognition: null,
   pendingAttachments: [],
+  openThinking: new Set(),
   chatSearch: '',
   loadedAt: '',
   diag: { swStatus: 'unknown', workerRoutes: [], workerVersion: '', lastStatus: '', lastContentType: '', lastEvents: null, lastError: '' }
@@ -302,9 +303,10 @@ function thinkingDetailsHtml(msg) {
   const summary = streamDebugSummary(msg) || (msg.loading ? 'working' : 'complete');
   const thinkingText = hasThinking ? `<div class="thinking-section-title">Public reasoning / plugin notes</div><div class="thinking-public-text">${escapeHtml(msg.thinking)}</div>` : '';
   const eventText = hasEvents ? `<div class="thinking-section-title">Event timeline</div>${streamEventsListHtml(msg)}` : '';
-  return `<details class="thinking-block thinking-details"><summary class="thinking-header"><span>🧠</span><div class="thinking-title">Thinking</div><span class="thinking-toggle">${escapeHtml(summary)}</span></summary><div class="thinking-body">${thinkingText}${eventText}</div></details>`;
+  const id = msg.id || '';
+  const openAttr = id && state.openThinking?.has(id) ? ' open' : '';
+  return `<details class="thinking-block thinking-details" data-thinking-id="${escapeAttr(id)}"${openAttr}><summary class="thinking-header"><span>🧠</span><div class="thinking-title">Thinking</div><span class="thinking-toggle">${escapeHtml(summary)}</span></summary><div class="thinking-body">${thinkingText}${eventText}</div></details>`;
 }
-
 function streamDebugHtml(msg) {
   // Kept as a compatibility alias for older call sites. The UI now shows only
   // the readable event timeline inside the collapsed Thinking block, not raw
@@ -779,7 +781,7 @@ function selectChat(id) {
 function welcomeHtml() {
   return `<div class="welcome-screen">
     <div class="welcome-logo">🟢</div>
-    <div class="welcome-title">NVIDIA AI Desktop</div>
+    <div class="welcome-title">NViMi AI</div>
     <div class="welcome-subtitle">Use your NVIDIA Build key with live model loading, favourites, streaming, modes, editing, regeneration and downloads.</div>
     <div class="welcome-cards">
       <div class="welcome-card" data-action="open-settings"><div class="welcome-card-title">1. Settings</div><div class="welcome-card-desc">Add API key and Worker URL.</div></div>
@@ -800,7 +802,7 @@ function renderMessages() {
 function messageHtml(m, idx) {
   const isUser = m.role === 'user';
   const avatar = isUser ? (state.settings.userName || 'U').slice(0, 1).toUpperCase() : '🟢';
-  const author = isUser ? (state.settings.userName || 'User') : 'NVIDIA AI';
+  const author = isUser ? (state.settings.userName || 'User') : 'NViMi AI';
   const visibleContent = isUser ? stripVisibleAttachmentBlocks(m.content || '') : (m.content || '');
   const content = m.loading && !visibleContent ? thinkingHtml(m.status || 'Thinking') : renderMarkdown(visibleContent);
   const generatedFiles = (!isUser && visibleContent && state.settings.plugins.downloadButtons) ? generatedFilesPanelHtml(visibleContent) : '';
@@ -1127,6 +1129,13 @@ function downloadBlob(filename, blob) {
   const a = document.createElement('a');
   a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1500);
+}
+
+function openFilePicker() {
+  const input = document.getElementById('fileInput');
+  if (!input) { showToast('File picker is not available.', 'error'); return; }
+  input.value = '';
+  input.click();
 }
 
 function copyAllEncodedFiles(input) {
@@ -2642,7 +2651,7 @@ async function addFilesToPending(fileList) {
 }
 
 function handleFileSelect(event) {
-  const files = event.target.files;
+  const files = Array.from(event.target.files || []);
   event.target.value = '';
   addFilesToPending(files);
 }
@@ -2711,7 +2720,7 @@ function exportToPDF() {
 }
 async function shareChat() {
   const text = state.currentChat?.messages.map(m => `${m.role.toUpperCase()}: ${m.role === 'user' ? stripVisibleAttachmentBlocks(m.content || '') : (m.content || '')}`).join('\n\n') || '';
-  if (navigator.share) await navigator.share({ title: state.currentChat?.title || 'NVIDIA AI Chat', text }).catch(() => {});
+  if (navigator.share) await navigator.share({ title: state.currentChat?.title || 'NViMi Chat', text }).catch(() => {});
   else { await navigator.clipboard?.writeText(text); showToast('Chat copied'); }
 }
 function toggleSidebar() {
@@ -2788,7 +2797,7 @@ const CLICK_ACTIONS = {
   'close-panel': () => closePanel(),
   'cancel-edit': () => cancelEdit(),
   'toggle-model-dropdown': () => toggleModelDropdown(),
-  'attach': () => document.getElementById('fileInput')?.click(),
+  'attach': () => openFilePicker(),
   'voice': () => toggleVoiceInput(),
   'send': () => sendMessage(),
   'stop-response': () => stopResponse(),
@@ -2858,6 +2867,21 @@ function registerDelegatedEvents() {
     else if (action === 'chat-search') { state.chatSearch = el.value; renderChatHistory(); }
     else if (action === 'temp-slider') { const out = document.getElementById('tempValue'); if (out) out.textContent = el.value; }
   });
+
+  document.addEventListener('toggle', (event) => {
+    const details = event.target?.closest?.('.thinking-details[data-thinking-id]');
+    const id = details?.dataset?.thinkingId;
+    if (!id) return;
+    if (details.open) state.openThinking.add(id);
+    else state.openThinking.delete(id);
+  }, true);
+}
+
+function registerIOSZoomGuards() {
+  const blockGesture = event => event.preventDefault();
+  document.addEventListener('gesturestart', blockGesture, { passive: false });
+  document.addEventListener('gesturechange', blockGesture, { passive: false });
+  document.addEventListener('gestureend', blockGesture, { passive: false });
 }
 
 function bindInputHandlers() {
@@ -2918,6 +2942,7 @@ function init() {
   if (verEl) verEl.textContent = `v${APP_VERSION}`;
   registerShortcuts();
   registerDelegatedEvents();
+  registerIOSZoomGuards();
   bindInputHandlers();
   registerFileDropZone();
   if (isMobile()) collapseSidebar();
