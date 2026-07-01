@@ -108,3 +108,43 @@ The app will not need the Brave key in the browser.
 ## File upload behaviour
 
 Uploaded text/code files now appear as attachment cards instead of dumping the whole file into the chat input. When File Reader is enabled, the file content is sent privately with the prompt to the model. The visible chat only shows the file name, type and size.
+
+
+## Patch notes - Agent Swarm and Help fixed
+
+- Agent Swarm and Help sidebar items now have explicit global handlers and fallback click listeners.
+- The side panel is created/repaired automatically if a cached/old DOM fails to include it.
+- Agent Swarm clearly explains that the selected agent adds a system prompt to every new message.
+- Help / What modes do opens the help panel reliably.
+
+After uploading, open your site with `?v=agentfix1` and hard refresh.
+
+
+## Patch notes: chat controls + file upload privacy
+
+This build fixes:
+- Delete single chats from the chat history with the × button.
+- Delete all chats from the bottom-left status panel.
+- Bottom-left status card now opens the Account/App Status panel and matches the NVIDIA green theme.
+- Uploaded files are shown as attachment cards only; old pasted `[Attached: ...]` blocks are hidden from chat display/editing.
+- Edit user messages and Regenerate assistant responses are exposed globally and should work reliably after cache clearing.
+
+After uploading, open the site with `?v=controlsfix1` and hard refresh.
+
+
+## Free Endpoint badges
+
+The model picker now has a **Free Endpoint** tab and shows a **🟢 Free Endpoint** badge where NVIDIA's live `/v1/models` metadata exposes or strongly indicates a free endpoint. If NVIDIA does not expose that metadata for a model, the app will not fake the badge.
+
+After uploading this build, click **Refresh Models** once so cached model metadata is re-normalized with the new badge rules.
+
+
+## Thinking / streaming display fix
+This build keeps the assistant bubble visible while waiting for NVIDIA, shows a clear status such as Thinking, Receiving response, or Streaming response, and can recover when a model/proxy returns one full JSON response instead of true SSE chunks.
+
+Upload these files to GitHub Pages and open the site with `?v=thinkingfix1` to avoid cached service-worker files.
+
+
+## Reasoning / Thinking traces
+
+This build can display public model reasoning when the API returns it, including `reasoning_content`, `reasoning`, `thinking`, `thought`, or visible `<think>...</think>` style blocks. It cannot force hidden chain-of-thought from models/providers that do not expose it. For those models, the app shows progress text and the final response only.

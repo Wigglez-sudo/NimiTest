@@ -708,7 +708,7 @@ button, input, textarea, select { font: inherit; }
 .capability-tag.coding { color: var(--accent-blue); border-color: rgba(74,158,255,.35); }
 .capability-tag.vision, .capability-tag.image { color: var(--accent-orange); border-color: rgba(249,115,22,.35); }
 .capability-tag.speech { color: var(--accent-pink); border-color: rgba(236,72,153,.35); }
-.capability-tag.fast, .capability-tag.live { color: var(--nvidia-green); border-color: rgba(118,185,0,.35); }
+.capability-tag.fast, .capability-tag.live, .capability-tag.free, .capability-tag.free_endpoint { color: var(--nvidia-green); border-color: rgba(118,185,0,.45); background: rgba(118,185,0,.08); }
 .capability-tag.long { color: var(--success); border-color: rgba(34,197,94,.35); }
 .connection-status { margin-top: 10px; padding: 10px; border-radius: var(--radius-sm); background: var(--bg-tertiary); border: 1px solid var(--border-color); font-size: 12px; color: var(--text-secondary); white-space: pre-wrap; }
 .connection-status.success { border-color: var(--success); color: var(--success); }
@@ -795,6 +795,32 @@ button, input, textarea, select { font: inherit; }
 }
 .message-attachment-card small { color: var(--text-muted); }
 
+
+/* Multi-fix patch: chat deletion, status card, attachment display */
+.chat-history-item { position: relative; padding-right: 34px; }
+.chat-history-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 1; }
+.chat-delete-btn {
+  position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+  width: 22px; height: 22px; border-radius: 6px; border: 1px solid transparent;
+  background: transparent; color: var(--text-muted); cursor: pointer; display: none;
+  align-items: center; justify-content: center; font-size: 16px; line-height: 1;
+}
+.chat-history-item:hover .chat-delete-btn { display: flex; }
+.chat-delete-btn:hover { color: var(--danger); border-color: rgba(239,68,68,0.35); background: rgba(239,68,68,0.12); }
+.status-card { appearance: none; -webkit-appearance: none; min-height: 54px; border-radius: 0; }
+.status-card .user-avatar, .user-avatar#statusAvatar {
+  background: var(--nvidia-green-dim) !important;
+  color: var(--nvidia-green) !important;
+  border: 1px solid rgba(118,185,0,0.35) !important;
+}
+.status-card:focus-visible { outline: 2px solid var(--nvidia-green); outline-offset: -2px; }
+.message-attachments { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+.message-attachment-card {
+  display: flex; align-items: center; gap: 10px; max-width: 420px;
+  background: var(--bg-secondary); border: 1px solid var(--border-color);
+  border-radius: var(--radius-md); padding: 10px 12px; color: var(--text-secondary);
+}
+
 </style>
 </head>
 <body>
@@ -817,15 +843,15 @@ button, input, textarea, select { font: inherit; }
       <div id="modeNav"></div>
       <div class="nav-divider"></div>
       <div class="nav-section">
-        <div class="nav-item" onclick="openPluginsPanel()">
+        <div class="nav-item" data-action="plugins" onclick="window.openPluginsPanel && window.openPluginsPanel()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6v6H9z"/></svg>
           Plugins
         </div>
-        <div class="nav-item" onclick="openAgentPanel()">
+        <div class="nav-item" data-action="agents" onclick="window.openAgentPanel && window.openAgentPanel()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
           Agent Swarm <span class="nav-badge" id="agentBadge">General</span>
         </div>
-        <div class="nav-item" onclick="openHelpPanel()">
+        <div class="nav-item" data-action="help" onclick="window.openHelpPanel && window.openHelpPanel()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.82 1c0 2-3 2-3 4"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
           Help / What modes do
         </div>
@@ -835,8 +861,8 @@ button, input, textarea, select { font: inherit; }
       <div id="chatHistory"></div>
     </nav>
 
-    <button class="sidebar-footer status-card" id="statusCard" onclick="openStatusPanel()">
-      <div class="user-avatar" id="statusAvatar">L</div>
+    <button type="button" class="sidebar-footer status-card" id="statusCard" onclick="openStatusPanel()" title="Open account and app status">
+      <div class="user-avatar" id="statusAvatar" style="background:rgba(118,185,0,0.15);color:#76B900;border:1px solid rgba(118,185,0,0.35);">L</div>
       <div class="user-info">
         <div class="user-name" id="statusName">Luke</div>
         <div class="user-plan" id="statusText">Disconnected</div>
@@ -900,6 +926,7 @@ button, input, textarea, select { font: inherit; }
                 <div class="model-dropdown-header">
                   <button class="model-tab active" onclick="switchModelTab('all', event)">All</button>
                   <button class="model-tab" onclick="switchModelTab('favorites', event)">Favorites</button>
+                  <button class="model-tab" onclick="switchModelTab('free_endpoint', event)">Free Endpoint</button>
                   <button class="model-tab" onclick="switchModelTab('reasoning', event)">Reasoning</button>
                   <button class="model-tab" onclick="switchModelTab('coding', event)">Coding</button>
                   <button class="model-tab" onclick="switchModelTab('vision', event)">Vision</button>
@@ -1094,7 +1121,67 @@ function nowTime() { return new Date().toLocaleTimeString([], { hour: '2-digit',
 function escapeHtml(text) { return String(text ?? '').replace(/[&<>'"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[c])); }
 function escapeAttr(text) { return escapeHtml(text).replace(/`/g, '&#96;'); }
 function escapeJsString(text) { return String(text ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n').replace(/\r/g, ''); }
+
+function stripVisibleAttachmentBlocks(text) {
+  let value = String(text || '');
+  // Older builds pasted uploads visibly as [Attached: file] followed by the full file/code.
+  // Hide that old pasted block from chat display and editing, while real attachments are
+  // still sent privately through attachmentPromptText().
+  value = value.replace(/\n?\s*\[Attached(?: file)?:[\s\S]*$/i, '').trim();
+  return value;
+}
 function stripSlash(url) { return String(url || '').trim().replace(/\/+$/, ''); }
+
+function appendPublicReasoning(msg, text) {
+  const value = contentToString(text);
+  if (!value) return false;
+  msg.thinking = (msg.thinking || '') + value;
+  return true;
+}
+
+function appendAssistantVisibleOrReasoning(msg, text) {
+  let chunk = contentToString(text);
+  if (!chunk) return false;
+
+  // Some reasoning models expose public reasoning inside <think>...</think>,
+  // <thinking>...</thinking>, or <reasoning>...</reasoning> tags instead of a
+  // separate reasoning_content field. Capture those into the Thinking panel.
+  let changed = false;
+  while (chunk) {
+    if (msg._reasoningTag) {
+      const closeRe = new RegExp(`</${msg._reasoningTag}>`, 'i');
+      const close = chunk.search(closeRe);
+      if (close === -1) {
+        msg.thinking = (msg.thinking || '') + chunk;
+        changed = true;
+        return changed;
+      }
+      msg.thinking = (msg.thinking || '') + chunk.slice(0, close);
+      const closeMatch = chunk.slice(close).match(closeRe);
+      chunk = chunk.slice(close + (closeMatch ? closeMatch[0].length : 0));
+      msg._reasoningTag = '';
+      changed = true;
+      continue;
+    }
+
+    const openMatch = chunk.match(/<(think|thinking|reasoning)>/i);
+    if (!openMatch) {
+      msg.content = (msg.content || '') + chunk;
+      changed = true;
+      return changed;
+    }
+
+    const before = chunk.slice(0, openMatch.index);
+    if (before) {
+      msg.content = (msg.content || '') + before;
+      changed = true;
+    }
+    msg._reasoningTag = openMatch[1].toLowerCase();
+    chunk = chunk.slice(openMatch.index + openMatch[0].length);
+  }
+  return changed;
+}
+
 
 function loadJson(key, fallback) {
   try { const value = JSON.parse(localStorage.getItem(key) || 'null'); return value ?? fallback; } catch { return fallback; }
@@ -1126,8 +1213,28 @@ function formatModelName(id) {
     .replace(/\bR1\b/g, 'R1').trim();
 }
 
+function rawModelText(raw = {}) {
+  try {
+    return JSON.stringify(raw, null, 0).toLowerCase();
+  } catch (_) {
+    return String(raw || '').toLowerCase();
+  }
+}
+
+function modelHasTruthy(raw = {}, keys = []) {
+  for (const key of keys) {
+    if (raw && Object.prototype.hasOwnProperty.call(raw, key)) {
+      const value = raw[key];
+      if (value === true || value === 'true' || value === 1 || value === '1') return true;
+      if (typeof value === 'string' && /free endpoint|free_endpoint|free-endpoint|free/.test(value.toLowerCase())) return true;
+    }
+  }
+  return false;
+}
+
 function inferCapabilities(id, raw = {}) {
-  const text = `${id} ${raw.id || ''} ${raw.name || ''} ${raw.description || ''} ${raw.owned_by || ''} ${raw.type || ''} ${raw.category || ''}`.toLowerCase();
+  // NVIDIA /v1/models can expose different metadata shapes over time, so inspect the full raw model object.
+  const text = `${id} ${raw.id || ''} ${raw.name || ''} ${raw.description || ''} ${raw.owned_by || ''} ${raw.type || ''} ${raw.category || ''} ${rawModelText(raw)}`.toLowerCase();
   const caps = new Set(['chat', 'live']);
   if (/deepseek|\br1\b|qwq|reason|thinking|nemotron|llama-3\.1-nemotron/.test(text)) caps.add('reasoning');
   if (/coder|coding|code|codestral|devstral|program|software/.test(text)) caps.add('coding');
@@ -1137,8 +1244,17 @@ function inferCapabilities(id, raw = {}) {
   if (/speech|audio|voice|whisper|parakeet|tts|asr/.test(text)) caps.add('speech');
   if (/128k|200k|256k|1m|million|long|kimi|context/.test(text)) caps.add('long');
   if (/nano|mini|small|fast|flash|7b|8b|9b|12b|phi|gemma-2b/.test(text)) caps.add('fast');
-  if (/free|free_endpoint|free endpoint/.test(text)) caps.add('free');
-  if (/paid|credit|partner|premium/.test(text)) caps.add('paid');
+
+  const explicitlyFreeEndpoint = modelHasTruthy(raw, [
+    'free_endpoint', 'freeEndpoint', 'is_free_endpoint', 'isFreeEndpoint',
+    'has_free_endpoint', 'hasFreeEndpoint', 'free', 'is_free', 'isFree'
+  ]) || /free[\s_-]*endpoint|free_endpoint|free-endpoint|free endpoint available|endpoint[^a-z0-9]+free|\bfree\b/.test(text);
+
+  if (explicitlyFreeEndpoint) {
+    caps.add('free_endpoint');
+    caps.add('free');
+  }
+  if (/paid|credit|partner|premium|pay-as-you-go|billing/.test(text)) caps.add('paid');
   if (/enterprise|private|sla/.test(text)) caps.add('enterprise');
   return [...caps];
 }
@@ -1164,13 +1280,13 @@ function getCurrentModel() {
 
 function badgeLabel(cap) {
   const map = {
-    chat: '💬 Chat', reasoning: '🧠 Reasoning', coding: '💻 Coding', research: '📚 Research', vision: '👁 Vision', image: '🖼️ Image', speech: '🎤 Speech', long: '📄 Long', fast: '⚡ Fast', free: '🟢 Free', paid: '💳 Paid', enterprise: '🏢 Enterprise', live: 'Live'
+    chat: '💬 Chat', reasoning: '🧠 Reasoning', coding: '💻 Coding', research: '📚 Research', vision: '👁 Vision', image: '🖼️ Image', speech: '🎤 Speech', long: '📄 Long', fast: '⚡ Fast', free_endpoint: '🟢 Free Endpoint', free: '🟢 Free', paid: '💳 Paid', enterprise: '🏢 Enterprise', live: 'Live'
   };
   return map[cap] || cap;
 }
 
 function capabilityHtml(model) {
-  const order = ['reasoning', 'coding', 'research', 'vision', 'image', 'speech', 'long', 'fast', 'free', 'paid', 'enterprise', 'live'];
+  const order = ['free_endpoint', 'reasoning', 'coding', 'research', 'vision', 'image', 'speech', 'long', 'fast', 'free', 'paid', 'enterprise', 'live'];
   const caps = order.filter(c => model.capabilities?.includes(c));
   return `<div class="capability-bar">${caps.map(c => `<span class="capability-tag ${escapeAttr(c)}">${escapeHtml(badgeLabel(c))}</span>`).join('')}</div>`;
 }
@@ -1244,11 +1360,43 @@ function renderChatHistory() {
   const el = document.getElementById('chatHistory');
   if (!el) return;
   if (!state.chats.length) { el.innerHTML = ''; return; }
-  el.innerHTML = state.chats.slice(0, 40).map(chat => `
-    <div class="chat-history-item ${state.currentChat?.id === chat.id ? 'active' : ''}" onclick="selectChat('${chat.id}')">
+  el.innerHTML = state.chats.slice(0, 60).map(chat => `
+    <div class="chat-history-item ${state.currentChat?.id === chat.id ? 'active' : ''}" onclick="selectChat('${chat.id}')" title="${escapeAttr(chat.title || 'New Chat')}">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-      ${escapeHtml(chat.title || 'New Chat')}
+      <span class="chat-history-title">${escapeHtml(chat.title || 'New Chat')}</span>
+      <button class="chat-delete-btn" onclick="deleteChat('${chat.id}', event)" title="Delete chat" aria-label="Delete chat">×</button>
     </div>`).join('');
+}
+
+function deleteChat(id, event) {
+  event?.preventDefault?.();
+  event?.stopPropagation?.();
+  const chat = state.chats.find(c => c.id === id);
+  if (!chat) return;
+  const title = chat.title || 'New Chat';
+  if (!confirm(`Delete chat "${title}"?`)) return;
+  state.chats = state.chats.filter(c => c.id !== id);
+  if (!state.chats.length) {
+    state.currentChat = createChat(false);
+    state.chats.unshift(state.currentChat);
+  } else if (state.currentChat?.id === id) {
+    state.currentChat = state.chats[0];
+  }
+  state.editingMessageId = null;
+  persistChats();
+  renderAll();
+  showToast('Chat deleted');
+}
+
+function clearAllChats() {
+  if (!confirm('Delete all chats? This cannot be undone.')) return;
+  state.chats = [];
+  state.currentChat = createChat(false);
+  state.chats.unshift(state.currentChat);
+  state.editingMessageId = null;
+  persistChats();
+  renderAll();
+  showToast('All chats deleted');
 }
 
 function selectChat(id) {
@@ -1285,7 +1433,8 @@ function messageHtml(m, idx) {
   const isUser = m.role === 'user';
   const avatar = isUser ? (state.settings.userName || 'U').slice(0, 1).toUpperCase() : '🟢';
   const author = isUser ? (state.settings.userName || 'User') : 'NVIDIA AI';
-  const content = m.loading && !m.content ? thinkingHtml() : renderMarkdown(m.content || '');
+  const visibleContent = isUser ? stripVisibleAttachmentBlocks(m.content || '') : (m.content || '');
+  const content = m.loading && !visibleContent ? thinkingHtml(m.status || 'Thinking') : renderMarkdown(visibleContent);
   const attachments = isUser ? attachmentSummaryHtml(m.attachments || []) : '';
   const thinking = m.thinking ? `<div class="thinking-block expanded"><div class="thinking-header"><span>🧠</span><div class="thinking-title">Thinking</div></div><div class="thinking-body" style="display:block;">${escapeHtml(m.thinking)}</div></div>` : '';
   return `<div class="message" id="msg_${escapeAttr(m.id)}">
@@ -1298,9 +1447,9 @@ function messageHtml(m, idx) {
   </div>`;
 }
 
-function thinkingHtml() {
-  if (!state.settings.showThinking) return '';
-  return `<span class="thinking-line">Thinking <span class="thinking-dots"><span></span><span></span><span></span></span></span>`;
+function thinkingHtml(label = 'Thinking') {
+  const safeLabel = state.settings.showThinking ? label : 'Generating response';
+  return `<span class="thinking-line">${escapeHtml(safeLabel)} <span class="thinking-dots"><span></span><span></span><span></span></span></span>`;
 }
 
 function messageActions(m, idx) {
@@ -1537,6 +1686,7 @@ function buildConversationMessages(extraSystemContext = '') {
   const systemParts = [
     mode.key === 'custom' ? state.settings.customPrompt : mode.prompt,
     agent.prompt,
+    state.settings.plugins.thinkingDisplay ? 'If you expose public reasoning via the API, put it in the provider reasoning field. If not, do not reveal hidden chain-of-thought; include a concise reasoning summary only when useful.' : '',
     extraSystemContext
   ].filter(Boolean);
   const messages = [];
@@ -1544,7 +1694,7 @@ function buildConversationMessages(extraSystemContext = '') {
   for (const m of state.currentChat.messages) {
     if (m.loading) continue;
     if (m.role === 'user' || m.role === 'assistant') {
-      let content = m.content || '';
+      let content = m.role === 'user' ? stripVisibleAttachmentBlocks(m.content || '') : (m.content || '');
       if (m.role === 'user' && Array.isArray(m.attachments) && m.attachments.length) content += attachmentPromptText(m.attachments);
       messages.push({ role: m.role, content });
     }
@@ -1573,15 +1723,17 @@ async function maybeBuildWebSearchContext(assistantId) {
   const text = latestUserText();
   if (!shouldSearchWeb(text)) return '';
   const msg = getMessage(assistantId);
-  if (msg && state.settings.showThinking) {
-    msg.thinking += `Web Search plugin: searching ${state.settings.plugins.webSearchProvider} for current results...\n`;
+  if (msg) {
+    msg.status = 'Searching the web';
+    if (state.settings.showThinking) msg.thinking += `Web Search plugin: searching ${state.settings.plugins.webSearchProvider} for current results...\n`;
     updateAssistantDom(msg);
   }
   try {
     const results = await runWebSearch(text);
     if (!results.length) return 'WEB SEARCH PLUGIN: Search ran but returned no useful results. Tell the user that live search produced no useful result and answer cautiously.';
-    if (msg && state.settings.showThinking) {
-      msg.thinking += `Web Search plugin: found ${results.length} result(s).\n`;
+    if (msg) {
+      msg.status = 'Building answer from web results';
+      if (state.settings.showThinking) msg.thinking += `Web Search plugin: found ${results.length} result(s).\n`;
       updateAssistantDom(msg);
     }
     return formatWebSearchContext(text, results);
@@ -1624,6 +1776,8 @@ function formatWebSearchContext(query, results) {
 
 async function requestAssistantResponse(assistantId) {
   const model = getCurrentModel();
+  const startMsg = getMessage(assistantId);
+  if (startMsg) { startMsg.status = 'Thinking'; updateAssistantDom(startMsg); }
   const webContext = await maybeBuildWebSearchContext(assistantId);
   const payload = {
     model: model.id,
@@ -1632,6 +1786,8 @@ async function requestAssistantResponse(assistantId) {
     max_tokens: Number(state.settings.maxTokens || 2048),
     stream: !!state.settings.stream
   };
+  const responseMsg = getMessage(assistantId);
+  if (responseMsg) { responseMsg.status = payload.stream ? 'Streaming response' : 'Waiting for response'; updateAssistantDom(responseMsg); }
   const response = await fetchWithTimeout(buildApiUrl('/chat/completions'), {
     method: 'POST', headers: apiHeaders(payload.stream), body: JSON.stringify(payload)
   }, 120000);
@@ -1658,7 +1814,7 @@ async function readJsonResponse(response, assistantId) {
   const data = await response.json();
   const content = data?.choices?.[0]?.message?.content || data?.choices?.[0]?.text || data?.output_text || JSON.stringify(data, null, 2);
   const msg = getMessage(assistantId); if (!msg) return;
-  msg.content += content;
+  appendAssistantVisibleOrReasoning(msg, content);
   updateAssistantDom(msg);
 }
 
@@ -1666,52 +1822,147 @@ async function readStream(response, assistantId, mayFail = false) {
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let buffer = '';
+  let rawText = '';
   let sawChunk = false;
+
+  const msgAtStart = getMessage(assistantId);
+  if (msgAtStart) {
+    msgAtStart.status = 'Streaming response';
+    updateAssistantDom(msgAtStart);
+  }
+
+  const applyDelta = (delta) => {
+    if (!delta.content && !delta.thinking) return false;
+    const msg = getMessage(assistantId);
+    if (!msg) return false;
+    if (delta.thinking && state.settings.showThinking) appendPublicReasoning(msg, delta.thinking);
+    if (delta.content) appendAssistantVisibleOrReasoning(msg, delta.content);
+    if (delta.content || delta.thinking) msg.status = delta.thinking && !delta.content ? 'Receiving public reasoning' : 'Writing response';
+    updateAssistantDom(msg);
+    return true;
+  };
+
+  const tryJsonPayload = (payload) => {
+    const clean = String(payload || '').trim();
+    if (!clean || clean === '[DONE]' || clean.startsWith('event:')) return false;
+    try {
+      const json = JSON.parse(clean);
+      return applyDelta(extractDelta(json));
+    } catch (_) {
+      return false;
+    }
+  };
+
+  const processLine = (line) => {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith(':') || trimmed.startsWith('event:')) return;
+    if (trimmed.startsWith('data:')) {
+      const payload = trimmed.slice(5).trim();
+      if (tryJsonPayload(payload)) sawChunk = true;
+      return;
+    }
+    if (tryJsonPayload(trimmed)) {
+      sawChunk = true;
+      return;
+    }
+    if (!mayFail) {
+      const msg = getMessage(assistantId);
+      if (msg && trimmed && trimmed !== '[DONE]') {
+        appendAssistantVisibleOrReasoning(msg, trimmed);
+        msg.status = 'Writing response';
+        updateAssistantDom(msg);
+        sawChunk = true;
+      }
+    }
+  };
+
   while (true) {
     const { value, done } = await reader.read();
     if (done) break;
-    buffer += decoder.decode(value, { stream: true });
+    const text = decoder.decode(value, { stream: true });
+    rawText += text;
+    buffer += text;
+
+    const waitingMsg = getMessage(assistantId);
+    if (waitingMsg && !waitingMsg.content) {
+      waitingMsg.status = sawChunk ? 'Writing response' : 'Receiving response';
+      updateAssistantDom(waitingMsg);
+    }
+
     const lines = buffer.split(/\r?\n/);
     buffer = lines.pop() || '';
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith(':')) continue;
-      const payload = trimmed.startsWith('data:') ? trimmed.slice(5).trim() : trimmed;
-      if (!payload || payload === '[DONE]') continue;
-      try {
-        const json = JSON.parse(payload);
-        const delta = extractDelta(json);
-        if (delta.content || delta.thinking) {
-          sawChunk = true;
-          const msg = getMessage(assistantId); if (!msg) continue;
-          if (delta.thinking) msg.thinking += delta.thinking;
-          if (delta.content) msg.content += delta.content;
+    for (const line of lines) processLine(line);
+  }
+
+  if (buffer.trim()) processLine(buffer);
+
+  if (!sawChunk) {
+    // Some proxies/models ignore streaming and send one full JSON object through a readable body.
+    try {
+      const json = JSON.parse(rawText.trim());
+      const content = extractFullResponse(json);
+      if (content) {
+        const msg = getMessage(assistantId);
+        if (msg) {
+          appendAssistantVisibleOrReasoning(msg, content);
+          msg.status = 'Done';
           updateAssistantDom(msg);
+          sawChunk = true;
         }
-      } catch (_) {
-        if (!mayFail) {
-          const msg = getMessage(assistantId); if (msg) { msg.content += payload; updateAssistantDom(msg); sawChunk = true; }
+      }
+    } catch (_) {
+      if (!mayFail && rawText.trim()) {
+        const msg = getMessage(assistantId);
+        if (msg) {
+          appendAssistantVisibleOrReasoning(msg, rawText.trim());
+          msg.status = 'Done';
+          updateAssistantDom(msg);
+          sawChunk = true;
         }
       }
     }
   }
+
   return sawChunk;
+}
+
+function contentToString(value) {
+  if (!value) return '';
+  if (typeof value === 'string') return value;
+  if (Array.isArray(value)) return value.map(part => {
+    if (typeof part === 'string') return part;
+    return part.text || part.content || part.value || '';
+  }).join('');
+  if (typeof value === 'object') return value.text || value.content || value.value || '';
+  return String(value);
+}
+
+function extractFullResponse(json) {
+  const choice = json?.choices?.[0] || {};
+  return contentToString(choice?.message?.content) || contentToString(choice?.text) || contentToString(json?.output_text) || contentToString(json?.content);
+}
+
+function extractFullReasoning(json) {
+  const choice = json?.choices?.[0] || {};
+  const msg = choice?.message || choice || {};
+  return contentToString(msg.reasoning_content) || contentToString(msg.reasoning) || contentToString(msg.thinking) || contentToString(msg.thought) || contentToString(json?.reasoning_content) || contentToString(json?.reasoning);
 }
 
 function extractDelta(json) {
   const choice = json?.choices?.[0] || {};
   const delta = choice.delta || choice.message || choice;
   return {
-    content: delta.content || delta.text || json.output_text || '',
-    thinking: delta.reasoning_content || delta.reasoning || delta.thinking || delta.thought || ''
+    content: contentToString(delta.content) || contentToString(delta.text) || contentToString(json.output_text),
+    thinking: contentToString(delta.reasoning_content) || contentToString(delta.reasoning) || contentToString(delta.thinking) || contentToString(delta.thought) || contentToString(json.reasoning_content) || contentToString(json.reasoning)
   };
 }
 
 function updateAssistantDom(msg) {
   const body = document.getElementById(`body_${msg.id}`);
   if (body) {
-    const thinking = msg.thinking ? `<div class="thinking-block expanded"><div class="thinking-header"><span>🧠</span><div class="thinking-title">Thinking</div></div><div class="thinking-body" style="display:block;">${escapeHtml(msg.thinking)}</div></div>` : '';
-    body.innerHTML = thinking + (msg.content ? renderMarkdown(msg.content) : thinkingHtml());
+    const thinking = (state.settings.showThinking && msg.thinking) ? `<div class="thinking-block expanded"><div class="thinking-header"><span>🧠</span><div class="thinking-title">Thinking</div></div><div class="thinking-body" style="display:block;">${escapeHtml(msg.thinking)}</div></div>` : '';
+    const progress = msg.loading && !msg.content ? thinkingHtml(msg.status || 'Thinking') : '';
+    body.innerHTML = thinking + (msg.content ? renderMarkdown(msg.content) : progress);
   }
   scrollToBottom(true);
 }
@@ -1719,7 +1970,7 @@ function updateAssistantDom(msg) {
 function editUserMessage(id) {
   const msg = getMessage(id); if (!msg || msg.role !== 'user') return;
   const input = document.getElementById('inputBox');
-  input.value = msg.content;
+  input.value = stripVisibleAttachmentBlocks(msg.content || '');
   state.pendingAttachments = Array.isArray(msg.attachments) ? msg.attachments.map(a => ({ ...a, id: uid('att') })) : [];
   renderPendingAttachments();
   autoResize(input);
@@ -1907,13 +2158,63 @@ function updateStatus() {
   const avatar = document.getElementById('statusAvatar');
   const connected = !!state.settings.apiKey && !!state.liveModels.length;
   if (name) name.textContent = state.settings.userName || 'User';
-  if (avatar) avatar.textContent = (state.settings.userName || 'U').slice(0, 1).toUpperCase();
+  if (avatar) {
+    avatar.textContent = (state.settings.userName || 'U').slice(0, 1).toUpperCase();
+    avatar.style.background = 'rgba(118,185,0,0.15)';
+    avatar.style.color = '#76B900';
+    avatar.style.border = '1px solid rgba(118,185,0,0.35)';
+  }
+  const card = document.getElementById('statusCard');
+  if (card) card.title = 'Open account and app status';
   if (status) status.textContent = connected ? `🟢 ${state.liveModels.length} live models` : state.settings.apiKey ? '🟡 Key saved' : '🔴 Disconnected';
   const agentBadge = document.getElementById('agentBadge'); if (agentBadge) agentBadge.textContent = getAgent().name;
 }
 
-function openPanel(title, html) { document.getElementById('panelTitle').textContent = title; document.getElementById('panelBody').innerHTML = html; document.getElementById('panelOverlay').classList.add('open'); document.getElementById('sidePanel').classList.add('open'); }
-function closePanel() { document.getElementById('panelOverlay').classList.remove('open'); document.getElementById('sidePanel').classList.remove('open'); }
+function ensurePanelElements() {
+  let overlay = document.getElementById('panelOverlay');
+  let panel = document.getElementById('sidePanel');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'panelOverlay';
+    overlay.className = 'panel-overlay';
+    overlay.addEventListener('click', closePanel);
+    document.body.appendChild(overlay);
+  }
+  if (!panel) {
+    panel = document.createElement('div');
+    panel.id = 'sidePanel';
+    panel.className = 'side-panel';
+    panel.innerHTML = '<div class="panel-header"><div class="panel-title" id="panelTitle">Panel</div><button class="panel-close" onclick="closePanel()">×</button></div><div class="panel-body" id="panelBody"></div>';
+    document.body.appendChild(panel);
+  }
+  if (!document.getElementById('panelTitle')) {
+    panel.innerHTML = '<div class="panel-header"><div class="panel-title" id="panelTitle">Panel</div><button class="panel-close" onclick="closePanel()">×</button></div><div class="panel-body" id="panelBody"></div>';
+  }
+}
+
+function openPanel(title, html) {
+  ensurePanelElements();
+  const titleEl = document.getElementById('panelTitle');
+  const bodyEl = document.getElementById('panelBody');
+  const overlay = document.getElementById('panelOverlay');
+  const panel = document.getElementById('sidePanel');
+  if (titleEl) titleEl.textContent = title;
+  if (bodyEl) bodyEl.innerHTML = html;
+  overlay?.classList.add('open');
+  panel?.classList.add('open');
+  // Inline fallback makes the panel appear even if an old/cached CSS file is still loaded.
+  if (overlay) overlay.style.display = 'block';
+  if (panel) panel.style.transform = 'translateX(0)';
+}
+
+function closePanel() {
+  const overlay = document.getElementById('panelOverlay');
+  const panel = document.getElementById('sidePanel');
+  overlay?.classList.remove('open');
+  panel?.classList.remove('open');
+  if (overlay) overlay.style.display = '';
+  if (panel) panel.style.transform = '';
+}
 
 
 function boolText(value) { return value ? 'On' : 'Off'; }
@@ -1996,19 +2297,23 @@ async function testWebSearchPlugin() {
 }
 
 function openAgentPanel() {
-  openPanel('Agent Swarm', `<p style="font-size:12px;color:var(--text-secondary);line-height:1.5;margin-bottom:12px;">Agents are real now: the selected agent adds an extra system prompt to every message.</p>${AGENTS.map(a => `<div class="agent-card ${state.settings.currentAgent === a.key ? 'selected' : ''}" onclick="selectAgent('${a.key}')"><div class="agent-header"><div class="agent-avatar">${a.emoji}</div><div><div class="agent-name">${escapeHtml(a.name)}</div><div class="agent-role">${escapeHtml(a.role)}</div></div></div><div class="agent-desc">${escapeHtml(a.prompt || 'No extra prompt. Balanced default behaviour.')}</div></div>`).join('')}`);
+  const cards = AGENTS.map(a => `<div class="agent-card ${state.settings.currentAgent === a.key ? 'selected' : ''}" onclick="selectAgent('${a.key}')">
+    <div class="agent-header"><div class="agent-avatar">${a.emoji}</div><div><div class="agent-name">${escapeHtml(a.name)}</div><div class="agent-role">${escapeHtml(a.role)}</div></div></div>
+    <div class="agent-desc">${escapeHtml(a.prompt || 'No extra prompt. Balanced default behaviour.')}</div>
+  </div>`).join('');
+  openPanel('Agent Swarm', `<div class="mode-help-card"><h3>Agent Swarm is active</h3><p>Pick one agent below. The selected agent is added to the system prompt for every new message, so it changes how the model answers. Current agent: <strong>${escapeHtml(getAgent().name)}</strong>.</p></div>${cards}`);
 }
 function selectAgent(key) { state.settings.currentAgent = key; persistSettings(); openAgentPanel(); updateStatus(); showToast(`Agent: ${getAgent().name}`); }
 
 function openHelpPanel() {
   const modes = MODES.map(m => `<div class="mode-help-card"><h3>${m.icon} ${escapeHtml(m.label)}</h3><p>${escapeHtml(m.short)}</p><p style="margin-top:6px;color:var(--text-muted);">Changes the system prompt sent to the model.</p></div>`).join('');
-  const badges = ['reasoning','coding','research','vision','image','speech','long','fast','free','paid','enterprise','live'].map(c => `<span class="capability-tag ${c}">${escapeHtml(badgeLabel(c))}</span>`).join(' ');
-  openPanel('Help / Modes and Badges', `${modes}<div class="mode-help-card"><h3>Model capability badges</h3><p>Badges are inferred from NVIDIA live model metadata and model names. They help you pick models, but the app will not fake pricing or capabilities when NVIDIA does not expose them.</p><div class="capability-bar" style="margin-top:10px;">${badges}</div></div><div class="mode-help-card"><h3>Streaming</h3><p>The app sends stream: true, shows Thinking… immediately, then parses NVIDIA streaming chunks. If a model or endpoint returns full JSON instead, it falls back to the full response.</p></div><div class="mode-help-card"><h3>Plugins</h3><p>Web Search is real when enabled: the app calls your Worker, the Worker calls Brave/Tavily, then the results are injected into the model prompt. File Reader, Download Buttons, Thinking Display and Long Context also change app behaviour. Code Interpreter is shown as disabled because browser-only GitHub Pages cannot safely run Python.</p></div>`);
+  const badges = ['free_endpoint','reasoning','coding','research','vision','image','speech','long','fast','free','paid','enterprise','live'].map(c => `<span class="capability-tag ${c}">${escapeHtml(badgeLabel(c))}</span>`).join(' ');
+  openPanel('Help / Modes and Badges', `${modes}<div class="mode-help-card"><h3>Model capability badges</h3><p>Badges are inferred from NVIDIA live model metadata and model names. They help you pick models, but the app will not fake pricing or capabilities when NVIDIA does not expose them.</p><div class="capability-bar" style="margin-top:10px;">${badges}</div></div><div class="mode-help-card"><h3>Reasoning / Thinking</h3><p>The app shows public reasoning only when the selected model/provider actually returns it, such as reasoning_content fields or visible &lt;think&gt; blocks. It cannot force hidden private chain-of-thought from models that do not expose it. If no reasoning trace is returned, it shows normal Thinking… progress and the final answer.</p></div><div class="mode-help-card"><h3>Plugins</h3><p>Web Search is real when enabled: the app calls your Worker, the Worker calls Brave/Tavily, then the results are injected into the model prompt. File Reader, Download Buttons, Thinking Display and Long Context also change app behaviour. Code Interpreter is shown as disabled because browser-only GitHub Pages cannot safely run Python.</p></div>`);
 }
 
 function openStatusPanel() {
   const model = getCurrentModel();
-  openPanel('Account / App Status', `<div class="status-grid-card"><h3>Connection</h3><p>${state.settings.apiKey ? 'API key saved locally.' : 'No API key saved.'}<br>Proxy: ${escapeHtml(state.settings.proxyUrl || 'Direct NVIDIA call')}<br>Live models: ${state.liveModels.length}<br>Favorites: ${state.favourites.size}</p></div><div class="status-grid-card"><h3>Current setup</h3><p>Model: ${escapeHtml(model?.name || 'None')}<br>Mode: ${escapeHtml(getMode().label)}<br>Agent: ${escapeHtml(getAgent().name)}<br>Streaming: ${state.settings.stream ? 'On' : 'Off'}<br>Web Search: ${state.settings.plugins.webSearch ? 'On' : 'Off'}<br>Long Context: ${state.settings.plugins.longContext ? 'On' : 'Off'}</p></div><div class="btn-row"><button class="btn btn-secondary" onclick="testConnection()">Test Connection</button><button class="btn btn-secondary" onclick="refreshModelsFromNvidia(true)">Refresh Models</button><button class="btn btn-danger" onclick="clearApiKey(); closePanel();">Clear API Key</button></div>`);
+  openPanel('Account / App Status', `<div class="status-grid-card"><h3>Connection</h3><p>${state.settings.apiKey ? 'API key saved locally.' : 'No API key saved.'}<br>Proxy: ${escapeHtml(state.settings.proxyUrl || 'Direct NVIDIA call')}<br>Live models: ${state.liveModels.length}<br>Favorites: ${state.favourites.size}<br>Chats: ${state.chats.length}</p></div><div class="status-grid-card"><h3>Current setup</h3><p>Model: ${escapeHtml(model?.name || 'None')}<br>Mode: ${escapeHtml(getMode().label)}<br>Agent: ${escapeHtml(getAgent().name)}<br>Streaming: ${state.settings.stream ? 'On' : 'Off'}<br>Web Search: ${state.settings.plugins.webSearch ? 'On' : 'Off'}<br>Long Context: ${state.settings.plugins.longContext ? 'On' : 'Off'}</p></div><div class="btn-row"><button class="btn btn-secondary" onclick="testConnection()">Test Connection</button><button class="btn btn-secondary" onclick="refreshModelsFromNvidia(true)">Refresh Models</button><button class="btn btn-secondary" onclick="newChat(); closePanel();">New Chat</button><button class="btn btn-danger" onclick="clearAllChats(); closePanel();">Delete All Chats</button><button class="btn btn-danger" onclick="clearApiKey(); closePanel();">Clear API Key</button></div>`);
 }
 
 
@@ -2060,11 +2365,11 @@ function toggleVoiceInput() {
 
 function exportToPDF() {
   if (!state.currentChat?.messages.length) { showToast('No chat to export.', 'error'); return; }
-  const html = `<html><head><title>${escapeHtml(state.currentChat.title)}</title><style>body{font-family:Arial,sans-serif;padding:32px;line-height:1.5}pre{white-space:pre-wrap;background:#f2f2f2;padding:12px;border-radius:8px}.role{font-weight:bold;margin-top:18px}</style></head><body><h1>${escapeHtml(state.currentChat.title)}</h1>${state.currentChat.messages.map(m => `<div class="role">${escapeHtml(m.role)}</div><div>${renderMarkdown(m.content || '')}</div>`).join('')}<script>print()<\/script></body></html>`;
+  const html = `<html><head><title>${escapeHtml(state.currentChat.title)}</title><style>body{font-family:Arial,sans-serif;padding:32px;line-height:1.5}pre{white-space:pre-wrap;background:#f2f2f2;padding:12px;border-radius:8px}.role{font-weight:bold;margin-top:18px}</style></head><body><h1>${escapeHtml(state.currentChat.title)}</h1>${state.currentChat.messages.map(m => `<div class="role">${escapeHtml(m.role)}</div><div>${renderMarkdown(m.role === 'user' ? stripVisibleAttachmentBlocks(m.content || '') : (m.content || ''))}</div>`).join('')}<script>print()<\/script></body></html>`;
   const w = window.open('', '_blank'); if (w) { w.document.write(html); w.document.close(); } else showToast('Popup blocked. Allow popups to export PDF.', 'error');
 }
 async function shareChat() {
-  const text = state.currentChat?.messages.map(m => `${m.role.toUpperCase()}: ${m.content}`).join('\n\n') || '';
+  const text = state.currentChat?.messages.map(m => `${m.role.toUpperCase()}: ${m.role === 'user' ? stripVisibleAttachmentBlocks(m.content || '') : (m.content || '')}`).join('\n\n') || '';
   if (navigator.share) await navigator.share({ title: state.currentChat?.title || 'NVIDIA AI Chat', text }).catch(() => {});
   else { await navigator.clipboard?.writeText(text); showToast('Chat copied'); }
 }
@@ -2095,8 +2400,44 @@ function init() {
   if (!state.currentChat) state.currentChat = createChat(false);
   if (!state.chats.includes(state.currentChat)) state.chats.unshift(state.currentChat);
   registerShortcuts(); renderAll();
+  const statusCard = document.getElementById('statusCard');
+  if (statusCard) statusCard.addEventListener('click', (event) => { event.preventDefault(); openStatusPanel(); });
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 }
+
+
+// Explicitly expose UI actions for inline onclick handlers and older browser/cache edge cases.
+Object.assign(window, {
+  openPanel,
+  closePanel,
+  openPluginsPanel,
+  openAgentPanel,
+  openHelpPanel,
+  openStatusPanel,
+  selectAgent,
+  setMode,
+  togglePlugin,
+  setPluginSetting,
+  testWebSearchPlugin,
+  deleteChat,
+  clearAllChats,
+  editUserMessage,
+  regenerateResponse,
+  copyMessage,
+  downloadMessage,
+  toggleSidebar,
+  newChat,
+});
+
+document.addEventListener('click', (event) => {
+  const item = event.target.closest('[data-action]');
+  if (!item) return;
+  event.preventDefault();
+  const action = item.getAttribute('data-action');
+  if (action === 'plugins') openPluginsPanel();
+  if (action === 'agents') openAgentPanel();
+  if (action === 'help') openHelpPanel();
+});
 
 window.addEventListener('load', init);
 

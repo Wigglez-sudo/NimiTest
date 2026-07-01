@@ -33,15 +33,15 @@
       <div id="modeNav"></div>
       <div class="nav-divider"></div>
       <div class="nav-section">
-        <div class="nav-item" onclick="openPluginsPanel()">
+        <div class="nav-item" data-action="plugins" onclick="window.openPluginsPanel && window.openPluginsPanel()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6v6H9z"/></svg>
           Plugins
         </div>
-        <div class="nav-item" onclick="openAgentPanel()">
+        <div class="nav-item" data-action="agents" onclick="window.openAgentPanel && window.openAgentPanel()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
           Agent Swarm <span class="nav-badge" id="agentBadge">General</span>
         </div>
-        <div class="nav-item" onclick="openHelpPanel()">
+        <div class="nav-item" data-action="help" onclick="window.openHelpPanel && window.openHelpPanel()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.82 1c0 2-3 2-3 4"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
           Help / What modes do
         </div>
@@ -51,8 +51,8 @@
       <div id="chatHistory"></div>
     </nav>
 
-    <button class="sidebar-footer status-card" id="statusCard" onclick="openStatusPanel()">
-      <div class="user-avatar" id="statusAvatar">L</div>
+    <button type="button" class="sidebar-footer status-card" id="statusCard" onclick="openStatusPanel()" title="Open account and app status">
+      <div class="user-avatar" id="statusAvatar" style="background:rgba(118,185,0,0.15);color:#76B900;border:1px solid rgba(118,185,0,0.35);">L</div>
       <div class="user-info">
         <div class="user-name" id="statusName">Luke</div>
         <div class="user-plan" id="statusText">Disconnected</div>
@@ -116,6 +116,7 @@
                 <div class="model-dropdown-header">
                   <button class="model-tab active" onclick="switchModelTab('all', event)">All</button>
                   <button class="model-tab" onclick="switchModelTab('favorites', event)">Favorites</button>
+                  <button class="model-tab" onclick="switchModelTab('free_endpoint', event)">Free Endpoint</button>
                   <button class="model-tab" onclick="switchModelTab('reasoning', event)">Reasoning</button>
                   <button class="model-tab" onclick="switchModelTab('coding', event)">Coding</button>
                   <button class="model-tab" onclick="switchModelTab('vision', event)">Vision</button>
