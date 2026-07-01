@@ -1,12 +1,15 @@
 /* NVIDIA AI Desktop - GitHub Pages / Cloudflare Worker build */
-const APP_VERSION = '3.0.1';
-const BUILD_ID = '2025-06-consolidated';
+const APP_VERSION = '3.0.3';
+const BUILD_ID = '2025-07-stop-response';
 const NVIDIA_DIRECT_BASE = 'https://integrate.api.nvidia.com/v1';
 const SETTINGS_KEY = 'nvidia_ai_desktop_settings_v8_plugins';
 const MODEL_CACHE_KEY = 'nvidia_ai_desktop_live_models_v8_plugins';
 const FAV_KEY = 'nvidia_ai_desktop_favourites_v8_plugins';
 const CHATS_KEY = 'nvidia_ai_desktop_chats_v8_plugins';
 const CURRENT_CHAT_KEY = 'nvidia_ai_desktop_current_chat_v8_plugins';
+
+const SEND_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>';
+const STOP_ICON = '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="7" y="7" width="10" height="10" rx="2"/></svg>';
 
 // Older key versions we migrate settings/chats/favourites forward from, so a
 // version bump never silently wipes a returning user's data.
@@ -174,6 +177,9 @@ const state = {
   chats: [],
   modelTab: 'all',
   isBusy: false,
+  activeAbortController: null,
+  activeAssistantId: null,
+  stopRequested: false,
   editingMessageId: null,
   lastConnection: null,
   voiceRecognition: null,
@@ -559,9 +565,28 @@ function apiHeaders(stream = false) {
 
 async function fetchWithTimeout(url, options = {}, timeoutMs = 45000) {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try { return await fetch(url, { ...options, signal: controller.signal }); }
-  finally { clearTimeout(timer); }
+  const externalSignal = options.signal;
+  const abortFromExternal = () => controller.abort(externalSignal?.reason || 'Request aborted');
+  if (externalSignal?.aborted) abortFromExternal();
+  else externalSignal?.addEventListener?.('abort', abortFromExternal, { once: true });
+  const timer = setTimeout(() => controller.abort('Request timed out'), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+    externalSignal?.removeEventListener?.('abort', abortFromExternal);
+  }
+}
+
+function currentRequestSignal() {
+  return state.activeAbortController?.signal;
+}
+function makeAbortError(message = 'Stopped by user') {
+  try { return new DOMException(message, 'AbortError'); }
+  catch (_) { const err = new Error(message); err.name = 'AbortError'; return err; }
+}
+function isAbortLike(err) {
+  return err?.name === 'AbortError' || /abort|aborted|stopped by user|request aborted/i.test(err?.message || String(err || ''));
 }
 
 function createChat(persist = true) {
@@ -1169,9 +1194,23 @@ function updateSendButton() {
   const input = document.getElementById('inputBox');
   const btn = document.getElementById('sendBtn');
   if (!btn || !input) return;
+  if (state.isBusy) {
+    btn.disabled = false;
+    btn.dataset.action = 'stop-response';
+    btn.classList.add('stop');
+    btn.setAttribute('aria-label', 'Stop response');
+    btn.title = 'Stop response';
+    btn.innerHTML = STOP_ICON;
+    return;
+  }
   const hasText = !!input.value.trim();
   const hasFiles = state.pendingAttachments.length > 0;
-  btn.disabled = state.isBusy || (!hasText && !hasFiles) || !state.settings.apiKey || !getCurrentModel();
+  btn.dataset.action = 'send';
+  btn.classList.remove('stop');
+  btn.setAttribute('aria-label', 'Send message');
+  btn.title = 'Send message';
+  btn.innerHTML = SEND_ICON;
+  btn.disabled = (!hasText && !hasFiles) || !state.settings.apiKey || !getCurrentModel();
 }
 
 function handleKeydown(event) {
@@ -1179,6 +1218,27 @@ function handleKeydown(event) {
 }
 function autoResize(el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 200) + 'px'; }
 function scrollToBottom(smooth = true) { const c = document.getElementById('chatContainer'); if (c) c.scrollTo({ top: c.scrollHeight, behavior: smooth ? 'smooth' : 'auto' }); }
+
+function stopResponse() {
+  if (!state.isBusy && !state.activeAbortController) return;
+  state.stopRequested = true;
+  try { state.activeAbortController?.abort('Stopped by user'); } catch (_) {}
+  const msg = state.activeAssistantId ? getMessage(state.activeAssistantId) : null;
+  if (msg) {
+    msg.loading = false;
+    msg.status = 'Stopped';
+    if (!msg.content && !msg.thinking) msg.content = 'Stopped by user.';
+    try { recordStreamEvent(msg, 'Stopped by user'); } catch (_) {}
+    updateAssistantDom(msg);
+  }
+  state.isBusy = false;
+  state.activeAbortController = null;
+  state.activeAssistantId = null;
+  persistChats();
+  renderMessages();
+  updateSendButton();
+  showToast('Stopped response');
+}
 
 async function sendMessage(overrideText = null) {
   if (state.isBusy) return;
@@ -1214,6 +1274,9 @@ async function sendMessage(overrideText = null) {
   state.currentChat.messages.push(assistantMsg);
   persistChats();
   state.isBusy = true;
+  state.stopRequested = false;
+  state.activeAbortController = new AbortController();
+  state.activeAssistantId = assistantMsg.id;
   renderAll();
   updateSendButton();
 
@@ -1221,14 +1284,27 @@ async function sendMessage(overrideText = null) {
     await requestAssistantResponse(assistantMsg.id);
   } catch (err) {
     const msg = getMessage(assistantMsg.id);
-    if (msg) msg.content = `Error: ${friendlyError(err)}`;
-    state.diag.lastError = friendlyError(err);
-    showToast('Request failed', 'error');
+    if (state.stopRequested || isAbortLike(err)) {
+      if (msg) {
+        msg.status = 'Stopped';
+        if (!msg.content && !msg.thinking) msg.content = 'Stopped by user.';
+        try { recordStreamEvent(msg, 'Stopped by user'); } catch (_) {}
+      }
+      state.diag.lastError = 'Stopped by user';
+    } else {
+      if (msg) msg.content = `Error: ${friendlyError(err)}`;
+      state.diag.lastError = friendlyError(err);
+      showToast('Request failed', 'error');
+    }
   } finally {
     const msg = getMessage(assistantMsg.id);
     if (msg) msg.loading = false;
     if (msg && msg.debug) state.diag.lastEvents = (msg.debug.counters.sseEvents || 0) + (msg.debug.counters.jsonEvents || 0);
     state.isBusy = false;
+    if (state.activeAssistantId === assistantMsg.id) {
+      state.activeAbortController = null;
+      state.activeAssistantId = null;
+    }
     persistChats();
     renderMessages();
     updateSendButton();
@@ -1236,6 +1312,7 @@ async function sendMessage(overrideText = null) {
 }
 
 function friendlyError(err) {
+  if (isAbortLike(err)) return 'Stopped by user.';
   const raw = err?.message || String(err);
   if (/failed to fetch/i.test(raw)) return 'Failed to fetch. Check your Cloudflare Worker proxy URL, internet connection, and CORS.';
   if (/401/.test(raw)) return 'HTTP 401. Check your NVIDIA API key.';
@@ -1302,6 +1379,7 @@ async function maybeBuildWebSearchContext(assistantId) {
     }
     return formatWebSearchContext(text, results);
   } catch (err) {
+    if (state.stopRequested || isAbortLike(err)) throw err;
     if (msg) {
       msg.thinking += `Web Search plugin failed: ${friendlyError(err)}\n`;
       updateAssistantDom(msg);
@@ -1324,7 +1402,8 @@ async function runWebSearch(query) {
       provider: p.webSearchProvider || 'brave',
       count: Number(p.webSearchResults || 6),
       safe: p.webSearchSafe || 'moderate'
-    })
+    }),
+    signal: state.isBusy ? currentRequestSignal() : undefined
   }, 45000);
   if (!response.ok) throw new Error(await errorFromResponse(response));
   const data = await response.json();
@@ -1343,6 +1422,7 @@ async function requestAssistantResponse(assistantId) {
   const startMsg = getMessage(assistantId);
   if (startMsg) { startMsg.status = 'Thinking'; ensureStreamDebug(startMsg); recordStreamEvent(startMsg, 'Prompt queued'); updateAssistantDom(startMsg); }
   const webContext = await maybeBuildWebSearchContext(assistantId);
+  if (state.stopRequested) throw makeAbortError();
   const basePayload = {
     model: model.id,
     messages: buildConversationMessages(webContext),
@@ -1376,7 +1456,7 @@ async function requestAssistantResponse(assistantId) {
 
     try {
       const response = await fetchWithTimeout(buildApiUrl('/chat/completions'), {
-        method: 'POST', headers: apiHeaders(bodyPayload.stream), body: JSON.stringify(bodyPayload)
+        method: 'POST', headers: apiHeaders(bodyPayload.stream), body: JSON.stringify(bodyPayload), signal: currentRequestSignal()
       }, 120000);
       clearInterval(ticker);
       const msg = getMessage(assistantId);
@@ -1513,6 +1593,7 @@ async function readStream(response, assistantId, mayFail = false) {
   };
 
   while (true) {
+    if (state.stopRequested) { try { await reader.cancel(); } catch (_) {} throw makeAbortError(); }
     const { value, done } = await reader.read();
     if (done) break;
     const text = decoder.decode(value, { stream: true });
@@ -2454,6 +2535,7 @@ const CLICK_ACTIONS = {
   'attach': () => document.getElementById('fileInput')?.click(),
   'voice': () => toggleVoiceInput(),
   'send': () => sendMessage(),
+  'stop-response': () => stopResponse(),
   'model-tab': (el) => switchModelTab(el.dataset.tab, el),
   'set-mode': (el) => { setMode(el.dataset.mode); maybeCollapseSidebarMobile(); },
   'select-chat': (el) => { selectChat(el.dataset.chatId); maybeCollapseSidebarMobile(); },
@@ -2586,7 +2668,7 @@ function init() {
 // Kept on window for console/debugging convenience and maximum backward safety.
 // The app itself is wired entirely through data-action delegation above.
 Object.assign(window, {
-  newChat, selectChat, deleteChat, clearAllChats, pinChat, renameChat,
+  newChat, selectChat, deleteChat, clearAllChats, pinChat, renameChat, stopResponse,
   openPluginsPanel, openAgentPanel, openHelpPanel, openStatusPanel, closePanel,
   setMode, selectAgent, togglePlugin, setPluginSetting, testWebSearchPlugin,
   editUserMessage, regenerateResponse, copyMessage, downloadMessage,

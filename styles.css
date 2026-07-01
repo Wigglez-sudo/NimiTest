@@ -389,8 +389,11 @@ body {
   transition: var(--transition); flex-shrink: 0;
 }
 .send-btn:hover { background: var(--nvidia-green-hover); transform: scale(1.05); }
+.send-btn.stop { background: var(--danger); color: #fff; box-shadow: 0 0 0 3px rgba(239,68,68,0.12); }
+.send-btn.stop:hover { background: #f87171; transform: scale(1.05); }
 .send-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
 .send-btn svg { width: 16px; height: 16px; }
+.send-btn.stop svg { width: 15px; height: 15px; }
 
 .typing-indicator { display: flex; gap: 4px; padding: 8px 0; }
 .typing-indicator span {

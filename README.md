@@ -7,7 +7,7 @@ A Kimi/Qwen-Studio-style NVIDIA AI chat app that runs as a static site on **GitH
 - Live site: https://wigglez-sudo.github.io/nvidia-ai-desktop/
 - Worker: https://nvidia-ai-proxy.lukewai.workers.dev
 
-This is **v3.0.1**, a consolidation/stability pass. The proven engine (streaming, model catalog, generated-file parsing, the Worker) was kept; the app was hardened and cleaned up, and the crash that was breaking the chat was fixed.
+This is **v3.0.3**, a consolidation/stability pass. The proven engine (streaming, model catalog, generated-file parsing, the Worker) was kept; the app was hardened and cleaned up, and the crash that was breaking the chat was fixed.
 
 ---
 
@@ -120,7 +120,7 @@ Do **not** add `/v1/models`, `/v1/chat/completions`, etc. — the app appends pa
 
 After uploading + deploying, open the site with `?v=thinking-compact` and check:
 
-1. Sidebar name/status (bottom-left) opens the **Diagnostics** panel; version badge shows `v3.0.1`.
+1. Sidebar name/status (bottom-left) opens the **Diagnostics** panel; version badge shows `v3.0.3`.
 2. Settings → **Test Connection** loads models.
 3. Model picker → **Refresh**; the **Free Endpoint** and **API Available** tabs have models.
 4. Send a message → a reply renders (this is the path that used to be broken).
@@ -166,3 +166,12 @@ This patch improves model-generated files and code downloads:
 - Multi-file outputs still support `Copy all` and `Download all as ZIP`.
 
 No Cloudflare Worker change is required for this patch unless you want to redeploy the included Worker copy for consistency.
+
+
+## v3.0.3 — Stop response button
+
+- The send button now becomes a red **Stop** button while NVIDIA is responding.
+- Clicking Stop aborts the active web-search/chat request using `AbortController`.
+- Partial streamed text is kept in the chat.
+- If nothing was returned yet, the assistant message is marked `Stopped by user.`
+- No Cloudflare Worker change is required for this frontend-only control.
