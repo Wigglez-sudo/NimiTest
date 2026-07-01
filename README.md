@@ -153,3 +153,16 @@ After uploading + deploying, open the site with `?v=thinking-compact` and check:
 - The Worker accepts either `Authorization: Bearer nvapi-...` or `X-Nvidia-Api-Key: nvapi-...`.
 - For production you can tighten CORS in `worker/index.js` to your Pages origin (`https://wigglez-sudo.github.io`).
 - Model output is escaped before rendering; generated files download as blobs and are never executed.
+
+## v3.0.2 — generated-file download reliability
+
+This patch improves model-generated files and code downloads:
+
+- Models are now instructed more strongly to output full downloadable files using `filename: path/file.ext` as the first line inside each code block.
+- Code blocks without an explicit filename are still turned into copy/download cards using safe inferred names like `response.js`, `response-2.css`, etc.
+- Copy/Download buttons no longer store huge code payloads directly inside HTML attributes. Large generated files are stored in an in-memory payload registry and buttons reference a short payload id, which is more reliable for big app files.
+- Added support for filename comments such as `/* filename: styles.css */` as well as `// filename: app.js`, `# filename: README.md`, and `<!-- filename: index.html -->`.
+- Single-file outputs now show clearer `Copy code` and `Download file` buttons.
+- Multi-file outputs still support `Copy all` and `Download all as ZIP`.
+
+No Cloudflare Worker change is required for this patch unless you want to redeploy the included Worker copy for consistency.

@@ -9,7 +9,6 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="NVIDIA AI">
   <title>NVIDIA AI Desktop</title>
-  <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -2092,6 +2091,7 @@ function parseGeneratedFilesFromMarkdown(text, options = {}) {
   const includeInferred = !!options.includeInferred;
   const files = [];
   const seen = new Set();
+  const usedNames = new Map();
   const fenceRe = /```([^\n`]*)\n([\s\S]*?)(?:```|$)/g;
   let match;
   while ((match = fenceRe.exec(src))) {
@@ -2101,11 +2101,12 @@ function parseGeneratedFilesFromMarkdown(text, options = {}) {
     const meta = extractCodeBlockMeta(langRaw, code, before);
     code = meta.code;
     if (!code.trim()) continue;
-    const filename = meta.filename || (includeInferred ? inferFilename(meta.lang) : '');
-    if (!filename) continue;
-    const key = `${filename.toLowerCase()}::${hashString(code)}`;
+    const rawFilename = meta.filename || (includeInferred ? inferFilename(meta.lang, files.length + 1) : '');
+    if (!rawFilename) continue;
+    const key = `${rawFilename.toLowerCase()}::${hashString(code)}`;
     if (seen.has(key)) continue;
     seen.add(key);
+    const filename = uniqueGeneratedFilename(rawFilename, usedNames);
     files.push({ filename, lang: meta.lang, code, explicit: meta.explicit });
   }
   return files;
@@ -2127,6 +2128,7 @@ function extractCodeBlockMeta(langRaw, codeRaw, before = '') {
   const lines = code.split(/\r?\n/);
   const firstLine = lines[0] || '';
   const fileLine = firstLine.match(/^\s*(?:(?:\/\/|#|--|;)\s*)?(?:filename|file|path)\s*[:=]\s*(.+?)\s*(?:\*\/|-->|\*)?\s*$/i)
+    || firstLine.match(/^\s*\/\*\s*(?:filename|file|path)\s*[:=]\s*(.+?)\s*\*\/\s*$/i)
     || firstLine.match(/^\s*<!--\s*(?:filename|file|path)\s*[:=]\s*(.+?)\s*-->\s*$/i);
   if (!filename && fileLine) {
     filename = cleanFilename(fileLine[1]);
@@ -2150,21 +2152,29 @@ function extractCodeBlockMeta(langRaw, codeRaw, before = '') {
 }
 
 function generatedFilesPanelHtml(text) {
-  const files = parseGeneratedFilesFromMarkdown(text, { includeInferred: false });
+  // Use inferred filenames too. Many models output plain fenced code blocks even when
+  // asked for files; this still gives Luke copy/download cards instead of doing nothing.
+  const files = parseGeneratedFilesFromMarkdown(text, { includeInferred: true });
   if (!files.length) return '';
-  const encoded = encodePayload(files.map(f => ({ filename: f.filename, code: f.code, lang: f.lang })));
+  const allPayload = files.map(f => ({ filename: f.filename, code: f.code, lang: f.lang }));
+  const allPayloadId = storeGeneratedPayload(allPayload);
+  const explicitCount = files.filter(f => f.explicit).length;
+  const label = explicitCount ? 'Generated files' : 'Copyable code files';
+  const sublabel = explicitCount
+    ? `${files.length} file${files.length === 1 ? '' : 's'} detected from the model response`
+    : `${files.length} code block${files.length === 1 ? '' : 's'} made downloadable with safe filenames`;
   const cards = files.map(f => {
-    const single = encodePayload({ filename: f.filename, code: f.code, lang: f.lang });
-    return `<div class="generated-file-card">
-      <div class="generated-file-icon">📄</div>
-      <div class="generated-file-info"><div class="generated-file-name">${escapeHtml(f.filename)}</div><div class="generated-file-meta">${escapeHtml(f.lang)} · ${formatBytes(new Blob([f.code]).size)}</div></div>
-      <div class="generated-file-actions"><button class="file-btn" data-action="copy-code" data-payload="${single}">Copy</button><button class="file-btn primary" data-action="download-code" data-payload="${single}">Download</button></div>
+    const singlePayloadId = storeGeneratedPayload({ filename: f.filename, code: f.code, lang: f.lang });
+    return `<div class="generated-file-card ${f.explicit ? '' : 'inferred-file'}">
+      <div class="generated-file-icon">${f.explicit ? '📄' : '💻'}</div>
+      <div class="generated-file-info"><div class="generated-file-name">${escapeHtml(f.filename)}</div><div class="generated-file-meta">${escapeHtml(f.lang)} · ${formatBytes(new Blob([f.code]).size)}${f.explicit ? '' : ' · inferred filename'}</div></div>
+      <div class="generated-file-actions"><button class="file-btn" data-action="copy-code" data-payload-id="${singlePayloadId}">Copy code</button><button class="file-btn primary" data-action="download-code" data-payload-id="${singlePayloadId}">Download file</button></div>
     </div>`;
   }).join('');
   const multi = files.length > 1
-    ? `<button class="file-btn" data-action="copy-all-files" data-payload="${encoded}">Copy all</button><button class="file-btn primary" data-action="download-zip" data-payload="${encoded}">Download all as ZIP</button>`
-    : `<button class="file-btn primary" data-action="download-all-files" data-payload="${encoded}">Download</button>`;
-  return `<div class="generated-files-panel"><div class="generated-files-header"><div><strong>Generated files</strong><span>${files.length} file${files.length === 1 ? '' : 's'} detected from the model response</span></div><div class="generated-files-buttons">${multi}</div></div>${cards}</div>`;
+    ? `<button class="file-btn" data-action="copy-all-files" data-payload-id="${allPayloadId}">Copy all</button><button class="file-btn primary" data-action="download-zip" data-payload-id="${allPayloadId}">Download all as ZIP</button>`
+    : `<button class="file-btn primary" data-action="download-all-files" data-payload-id="${allPayloadId}">Download file</button>`;
+  return `<div class="generated-files-panel"><div class="generated-files-header"><div><strong>${label}</strong><span>${sublabel}</span></div><div class="generated-files-buttons">${multi}</div></div>${cards}</div>`;
 }
 
 function renderMarkdown(text) {
@@ -2199,15 +2209,37 @@ function inferLanguageFromFilename(filename) {
   return ({ js:'javascript', jsx:'javascript', ts:'typescript', tsx:'typescript', py:'python', html:'html', htm:'html', css:'css', scss:'css', json:'json', md:'markdown', markdown:'markdown', sh:'bash', bash:'bash', ps1:'powershell', sql:'sql', csv:'csv', yml:'yaml', yaml:'yaml', xml:'xml', toml:'toml', txt:'text', dockerfile:'dockerfile' })[ext] || 'text';
 }
 
-function inferFilename(lang) {
-  const ext = { javascript: 'js', js: 'js', typescript: 'ts', ts: 'ts', python: 'py', py: 'py', html: 'html', css: 'css', json: 'json', markdown: 'md', md: 'md', bash: 'sh', shell: 'sh', powershell: 'ps1', ps1: 'ps1', sql: 'sql', csv: 'csv', text: 'txt', yaml: 'yml', dockerfile: 'Dockerfile' }[String(lang || '').toLowerCase()] || 'txt';
-  return ext === 'Dockerfile' ? 'Dockerfile' : `response.${ext}`;
+function inferFilename(lang, index = 1) {
+  const ext = { javascript: 'js', js: 'js', typescript: 'ts', ts: 'ts', python: 'py', py: 'py', html: 'html', css: 'css', json: 'json', markdown: 'md', md: 'md', bash: 'sh', shell: 'sh', powershell: 'ps1', ps1: 'ps1', sql: 'sql', csv: 'csv', text: 'txt', yaml: 'yml', yml: 'yml', dockerfile: 'Dockerfile' }[String(lang || '').toLowerCase()] || 'txt';
+  const suffix = index > 1 ? `-${index}` : '';
+  return ext === 'Dockerfile' ? `Dockerfile${suffix}` : `response${suffix}.${ext}`;
+}
+
+function uniqueGeneratedFilename(filename, usedNames) {
+  let clean = cleanFilename(filename) || 'response.txt';
+  const lower = clean.toLowerCase();
+  const count = (usedNames.get(lower) || 0) + 1;
+  usedNames.set(lower, count);
+  if (count === 1) return clean;
+  const slash = clean.lastIndexOf('/');
+  const dir = slash >= 0 ? clean.slice(0, slash + 1) : '';
+  const base = slash >= 0 ? clean.slice(slash + 1) : clean;
+  const dot = base.lastIndexOf('.');
+  if (dot > 0) return `${dir}${base.slice(0, dot)}-${count}${base.slice(dot)}`;
+  return `${dir}${base}-${count}`;
 }
 
 function cleanFilename(value) {
-  let name = String(value || '').trim().replace(/^['"`]+|['"`]+$/g, '').replace(/[<>:"|?*]/g, '-').replace(/\\/g, '/');
-  name = name.split('/').filter(Boolean).join('/');
-  if (!name || name.length > 140) return '';
+  let name = String(value || '')
+    .trim()
+    .replace(/^[-*•\s]+/, '')
+    .replace(/^['"`]+|['"`]+$/g, '')
+    .replace(/^[([]+|[)\]]+$/g, '')
+    .replace(/\s*[:：]\s*$/, '')
+    .replace(/[<>:"|?*]/g, '-')
+    .replace(/\\/g, '/');
+  name = name.split('/').map(x => x.trim()).filter(Boolean).join('/');
+  if (!name || name.length > 160) return '';
   return name;
 }
 
@@ -2230,10 +2262,36 @@ function decodePayload(encoded) {
   return JSON.parse(decodeURIComponent(escape(atob(encoded))));
 }
 
+// Large code/file payloads should not live inside HTML attributes.
+// Full generated app files can be huge, and very large data-payload attributes
+// can make Copy/Download buttons unreliable in some browsers. Store the payloads
+// in memory and pass a short payload id through the DOM instead.
+const GENERATED_PAYLOADS = new Map();
+function storeGeneratedPayload(data) {
+  const id = `payload_${hashString(JSON.stringify(data)).slice(0, 10)}_${GENERATED_PAYLOADS.size + 1}`;
+  GENERATED_PAYLOADS.set(id, data);
+  if (GENERATED_PAYLOADS.size > 750) {
+    const first = GENERATED_PAYLOADS.keys().next().value;
+    if (first) GENERATED_PAYLOADS.delete(first);
+  }
+  return id;
+}
+function readGeneratedPayloadFromElement(el) {
+  const id = el?.dataset?.payloadId;
+  if (id && GENERATED_PAYLOADS.has(id)) return GENERATED_PAYLOADS.get(id);
+  const encoded = el?.dataset?.payload;
+  return encoded ? decodePayload(encoded) : null;
+}
+function decodePayloadInput(input) {
+  if (!input) return null;
+  if (typeof input === 'string') return decodePayload(input);
+  return input;
+}
+
 function codeBlockHtml(block) {
   if (!block) return '';
-  const encoded = encodePayload({ code: block.code, filename: block.filename, lang: block.lang });
-  const actions = `<div class="code-actions"><button class="code-action-btn" data-action="copy-code" data-payload="${encoded}">Copy</button>${state.settings.plugins.downloadButtons ? `<button class="code-action-btn" data-action="download-code" data-payload="${encoded}">Download</button>` : ''}</div>`;
+  const payloadId = storeGeneratedPayload({ code: block.code, filename: block.filename, lang: block.lang });
+  const actions = `<div class="code-actions"><button class="code-action-btn" data-action="copy-code" data-payload-id="${payloadId}">Copy code</button>${state.settings.plugins.downloadButtons ? `<button class="code-action-btn" data-action="download-code" data-payload-id="${payloadId}">Download file</button>` : ''}</div>`;
   const header = `<div class="code-block-header"><div><span class="code-lang">${escapeHtml(block.lang)}</span><span class="code-download-name">${escapeHtml(block.filename)}</span></div>${actions}</div>`;
   if (block.explicit) {
     return `<details class="code-block-wrapper generated-code-block"><summary>${header}<span class="preview-hint">Preview code</span></summary><pre><code>${escapeHtml(block.code)}</code></pre></details>`;
@@ -2253,17 +2311,19 @@ function downloadMessage(id) {
   const m = getMessage(id); if (!m) return;
   downloadText(`${m.role}-message.md`, m.content || '');
 }
-function copyEncodedCode(encoded) {
-  const data = decodePayload(encoded);
+function copyEncodedCode(input) {
+  const data = decodePayloadInput(input);
+  if (!data) return;
   navigator.clipboard?.writeText(data.code || '');
   showToast('Code copied');
 }
-function downloadEncodedCode(encoded) {
-  const data = decodePayload(encoded);
+function downloadEncodedCode(input) {
+  const data = decodePayloadInput(input);
+  if (!data) return;
   downloadText(data.filename || 'response.txt', data.code || '');
 }
-function downloadAllEncodedFiles(encoded) {
-  const files = decodePayload(encoded);
+function downloadAllEncodedFiles(input) {
+  const files = decodePayloadInput(input);
   if (!Array.isArray(files) || !files.length) return;
   files.forEach((file, index) => {
     setTimeout(() => downloadText(file.filename || `response-${index + 1}.txt`, file.code || ''), index * 250);
@@ -2281,16 +2341,16 @@ function downloadBlob(filename, blob) {
   setTimeout(() => URL.revokeObjectURL(url), 1500);
 }
 
-function copyAllEncodedFiles(encoded) {
-  const files = decodePayload(encoded);
+function copyAllEncodedFiles(input) {
+  const files = decodePayloadInput(input);
   if (!Array.isArray(files) || !files.length) return;
   const joined = files.map(f => `/* ===== ${f.filename} ===== */\n${f.code}`).join('\n\n');
   navigator.clipboard?.writeText(joined);
   showToast(`Copied ${files.length} file${files.length === 1 ? '' : 's'} to clipboard`);
 }
 
-function downloadFilesAsZip(encoded) {
-  const files = decodePayload(encoded);
+function downloadFilesAsZip(input) {
+  const files = decodePayloadInput(input);
   if (!Array.isArray(files) || !files.length) return;
   try {
     const blob = buildZipBlob(files.map(f => ({ name: f.filename || 'file.txt', content: String(f.code || '') })));
@@ -2299,7 +2359,7 @@ function downloadFilesAsZip(encoded) {
     showToast(`Downloaded ${files.length} file${files.length === 1 ? '' : 's'} as ZIP`);
   } catch (err) {
     showToast('ZIP failed, downloading files individually instead.', 'error');
-    downloadAllEncodedFiles(encoded);
+    downloadAllEncodedFiles(files);
   }
 }
 
@@ -2520,7 +2580,7 @@ function buildConversationMessages(extraSystemContext = '') {
     mode.key === 'custom' ? state.settings.customPrompt : mode.prompt,
     agent.prompt,
     state.settings.plugins.thinkingDisplay ? 'If you expose public reasoning via the API, put it in the provider reasoning field. If not, do not reveal hidden chain-of-thought; include a concise reasoning summary only when useful.' : '',
-    state.settings.plugins.downloadButtons ? 'When the user asks for files, fixes, patches, full updated files, or downloadable code, output each complete file in its own fenced code block. Put a filename line as the first line inside each block, exactly like: filename: app.js. Do not only describe changes; include the full changed file content when requested.' : '',
+    state.settings.plugins.downloadButtons ? 'IMPORTANT for downloadable files: When the user asks for files, fixes, patches, full updated files, uploadable files, or downloadable code, you MUST output each complete file in its own fenced code block. The FIRST line inside every code block MUST be exactly filename: path/file.ext. Do not only describe changes. Do not use partial diffs unless the user asks for a diff. Include the full changed file content. The app will turn those code blocks into Copy and Download buttons.' : '',
     extraSystemContext
   ].filter(Boolean);
   const messages = [];
@@ -3734,11 +3794,11 @@ const CLICK_ACTIONS = {
   'copy-message': (el) => copyMessage(el.dataset.id),
   'regenerate': (el) => regenerateResponse(el.dataset.id),
   'download-message': (el) => downloadMessage(el.dataset.id),
-  'copy-code': (el) => copyEncodedCode(el.dataset.payload),
-  'download-code': (el) => downloadEncodedCode(el.dataset.payload),
-  'download-all-files': (el) => downloadAllEncodedFiles(el.dataset.payload),
-  'download-zip': (el) => downloadFilesAsZip(el.dataset.payload),
-  'copy-all-files': (el) => copyAllEncodedFiles(el.dataset.payload),
+  'copy-code': (el) => copyEncodedCode(readGeneratedPayloadFromElement(el)),
+  'download-code': (el) => downloadEncodedCode(readGeneratedPayloadFromElement(el)),
+  'download-all-files': (el) => downloadAllEncodedFiles(readGeneratedPayloadFromElement(el)),
+  'download-zip': (el) => downloadFilesAsZip(readGeneratedPayloadFromElement(el)),
+  'copy-all-files': (el) => copyAllEncodedFiles(readGeneratedPayloadFromElement(el)),
   'remove-attachment': (el) => removePendingAttachment(el.dataset.attId),
   'toggle-fav': (el, ev) => toggleFavourite(el.dataset.modelId, ev),
   'select-model': (el) => selectModel(el.dataset.modelId),
