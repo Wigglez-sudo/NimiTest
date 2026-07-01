@@ -608,7 +608,6 @@ body {
 }
 
 @media (max-width: 768px) {
-  .sidebar { position: absolute; height: 100%; }
   .welcome-cards { grid-template-columns: 1fr; }
   .model-dropdown { width: 280px; left: auto; right: 0; }
   .side-panel { width: 100%; }
@@ -661,8 +660,8 @@ button, input, textarea, select { font: inherit; }
   .modal { width: 94vw; max-height: 88dvh; }
   .modal-body { padding: 14px; }
   .modal-footer { padding: 12px 14px; }
-  .sidebar { width: min(82vw, 300px); box-shadow: var(--shadow); }
-  .sidebar.collapsed { transform: translateX(-100%); width: min(82vw, 300px); border-right: 1px solid var(--border-color); }
+  .sidebar { position: fixed; top: 0; left: 0; bottom: 0; height: 100dvh; width: min(84vw, 320px); box-shadow: var(--shadow); z-index: 300; transition: transform .25s ease; transform: translateX(0); }
+  .sidebar.collapsed { transform: translateX(-100%); width: min(84vw, 320px); border-right: 1px solid var(--border-color); overflow: hidden; }
   .file-card { align-items: flex-start; }
   .file-actions { flex-direction: column; }
 }
@@ -923,4 +922,82 @@ body.dragging-files::after {
   background: var(--bg-primary);
   border: 1px solid var(--border-color);
   font-size: 11px;
+}
+
+/* ============================================================= */
+/* Consolidated additions (v3.0.0): version badge, chat search,  */
+/* chat actions, pins, diagnostics panel, mobile drawer backdrop */
+/* ============================================================= */
+
+/* App version badge in the sidebar footer */
+.status-card { position: relative; }
+.app-version-badge {
+  position: absolute; top: 6px; right: 8px;
+  font-size: 9px; font-weight: 600; letter-spacing: .3px;
+  color: var(--text-muted); background: var(--bg-tertiary);
+  border: 1px solid var(--border-color); border-radius: 999px;
+  padding: 1px 6px; pointer-events: none;
+}
+
+/* Chat search box */
+.chat-search-wrap {
+  display: flex; align-items: center; gap: 6px;
+  margin: 2px 8px 8px; padding: 6px 8px;
+  background: var(--bg-tertiary); border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+}
+.chat-search-wrap svg { width: 13px; height: 13px; color: var(--text-muted); flex-shrink: 0; }
+.chat-search-input {
+  flex: 1; min-width: 0; background: transparent; border: none; outline: none;
+  color: var(--text-primary); font-size: 12px;
+}
+.chat-search-input::placeholder { color: var(--text-muted); }
+.chat-history-empty { padding: 10px 12px; font-size: 12px; color: var(--text-muted); }
+
+/* Chat history row actions (pin / rename / delete) */
+.chat-history-item { position: relative; }
+.chat-history-glyph { width: 14px; height: 14px; flex-shrink: 0; opacity: .5; }
+.chat-history-item.pinned .chat-history-glyph { opacity: .9; color: var(--nvidia-green); }
+.chat-history-actions {
+  margin-left: auto; display: flex; align-items: center; gap: 2px;
+  opacity: 0; transition: opacity .15s ease; flex-shrink: 0;
+}
+.chat-history-item:hover .chat-history-actions,
+.chat-history-item.active .chat-history-actions { opacity: 1; }
+.chat-mini-btn {
+  background: transparent; border: none; cursor: pointer;
+  color: var(--text-muted); font-size: 13px; line-height: 1;
+  padding: 3px 5px; border-radius: 4px; transition: var(--transition);
+}
+.chat-mini-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+.chat-mini-btn.danger:hover { background: rgba(239,68,68,0.15); color: var(--danger); }
+/* Touch devices: always show the actions since there is no hover */
+@media (hover: none) {
+  .chat-history-actions { opacity: 1; }
+}
+
+/* Generated files: multiple buttons in the header */
+.generated-files-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* Diagnostics panel */
+.panel-section-label {
+  margin: 16px 0 8px; font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: .5px; color: var(--text-muted);
+}
+.status-grid-card code { color: var(--nvidia-green); font-size: 11px; word-break: break-all; }
+
+/* Mobile drawer backdrop */
+.sidebar-backdrop { display: none; }
+@media (max-width: 768px) {
+  .sidebar-backdrop {
+    display: block; position: fixed; inset: 0; z-index: 250;
+    background: rgba(0,0,0,0.55); opacity: 0; visibility: hidden;
+    transition: opacity .25s ease, visibility .25s ease;
+    -webkit-backdrop-filter: blur(1px); backdrop-filter: blur(1px);
+  }
+  body.sidebar-open .sidebar-backdrop { opacity: 1; visibility: visible; }
+  /* Larger, thumb-friendly hit targets on mobile */
+  .top-btn { padding: 8px; }
+  .chat-mini-btn { padding: 6px 8px; font-size: 15px; }
+  .model-tab { padding: 8px 10px; }
 }
