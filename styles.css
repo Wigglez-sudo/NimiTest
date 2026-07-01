@@ -806,3 +806,121 @@ button, input, textarea, select { font: inherit; }
   background: var(--bg-secondary); border: 1px solid var(--border-color);
   border-radius: var(--radius-md); padding: 10px 12px; color: var(--text-secondary);
 }
+
+/* Drag-and-drop attachment support */
+.input-wrapper.drag-over {
+  border-color: var(--nvidia-green) !important;
+  box-shadow: 0 0 0 3px var(--nvidia-green-dim), inset 0 0 0 1px var(--nvidia-green-dim);
+}
+body.dragging-files::after {
+  content: 'Drop files to attach';
+  position: fixed;
+  inset: 12px;
+  z-index: 3000;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed var(--nvidia-green);
+  border-radius: var(--radius-lg);
+  background: rgba(13,13,13,0.72);
+  color: var(--nvidia-green);
+  font-size: 18px;
+  font-weight: 700;
+  backdrop-filter: blur(2px);
+}
+.pending-attachments { max-height: 120px; overflow-y: auto; }
+
+/* Generated file cards from model responses */
+.generated-files-panel {
+  margin: 12px 0 14px;
+  padding: 12px;
+  border: 1px solid rgba(118,185,0,0.35);
+  background: var(--nvidia-green-dim);
+  border-radius: var(--radius-md);
+}
+.generated-files-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.generated-files-header strong { display: block; font-size: 13px; color: var(--nvidia-green); }
+.generated-files-header span { display: block; font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.generated-file-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  margin-top: 8px;
+}
+.generated-file-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.generated-file-info { flex: 1; min-width: 0; }
+.generated-file-name { font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.generated-file-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.generated-file-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.generated-code-block summary { list-style: none; cursor: pointer; }
+.generated-code-block summary::-webkit-details-marker { display: none; }
+.generated-code-block .code-block-header { border-bottom: none; }
+.generated-code-block[open] .code-block-header { border-bottom: 1px solid var(--border-color); }
+.preview-hint {
+  display: block;
+  padding: 0 12px 10px;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+.generated-code-block[open] .preview-hint { display: none; }
+@media (max-width: 768px) {
+  .generated-files-header, .generated-file-card { align-items: flex-start; }
+  .generated-file-actions { flex-direction: column; }
+}
+
+.stream-debug-block {
+  margin: 10px 0 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+  overflow: hidden;
+}
+.stream-debug-block summary {
+  cursor: pointer;
+  padding: 10px 12px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+}
+.stream-debug-inner {
+  padding: 12px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+.stream-debug-inner h4 {
+  margin: 8px 0 6px;
+  font-size: 12px;
+  color: var(--nvidia-green);
+}
+.stream-debug-inner pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 240px;
+  overflow: auto;
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  font-size: 11px;
+}

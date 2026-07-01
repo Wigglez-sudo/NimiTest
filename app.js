@@ -147,6 +147,8 @@ const state = {
     maxTokens: 2048,
     stream: true,
     showThinking: true,
+    streamDiagnostics: true,
+    forceReasoning: true,
     theme: 'dark',
     customPrompt: '',
     plugins: { ...DEFAULT_PLUGINS },
@@ -181,6 +183,88 @@ function stripVisibleAttachmentBlocks(text) {
   return value;
 }
 function stripSlash(url) { return String(url || '').trim().replace(/\/+$/, ''); }
+
+function shortText(value, max = 1200) {
+  const text = String(value ?? '');
+  return text.length > max ? text.slice(0, max) + `… [truncated ${text.length - max} chars]` : text;
+}
+
+function modelSupportsReasoning(model) {
+  if (!model) return false;
+  const id = `${model.id || ''} ${model.name || ''}`.toLowerCase();
+  const caps = model.capabilities || [];
+  return caps.includes('reasoning') || /reason|thinking|deepseek|qwen|qwq|glm|nemotron|kimi|gemma-3|gpt-oss/.test(id);
+}
+
+function reasoningExtrasForModel(model) {
+  if (!state.settings.forceReasoning || !state.settings.showThinking || !modelSupportsReasoning(model)) return {};
+  const id = `${model.id || ''} ${model.name || ''}`.toLowerCase();
+  const kwargs = { enable_thinking: true };
+  // Some NVIDIA-hosted reasoning models expose extra template flags. Unknown flags can fail on some models,
+  // so requestAssistantResponse retries once without these extras if NVIDIA rejects the request.
+  if (/glm/.test(id)) kwargs.clear_thinking = false;
+  if (/deepseek/.test(id) || /kimi/.test(id)) kwargs.thinking = true;
+  const extras = {
+    include_reasoning: true,
+    chat_template_kwargs: kwargs
+  };
+  if (/nemotron-3|nemotron/.test(id)) extras.thinking_token_budget = Math.min(4096, Math.max(512, Math.floor(Number(state.settings.maxTokens || 4096) / 2)));
+  return extras;
+}
+
+function ensureStreamDebug(msg, payload = null) {
+  if (!msg || !state.settings.streamDiagnostics) return null;
+  if (!msg.debug) {
+    msg.debug = {
+      startedAt: Date.now(),
+      request: payload ? { model: payload.model, stream: payload.stream, max_tokens: payload.max_tokens, has_reasoning_params: !!payload.chat_template_kwargs || !!payload.include_reasoning, chat_template_kwargs: payload.chat_template_kwargs || null, include_reasoning: payload.include_reasoning || false } : {},
+      http: {},
+      counters: { chunks: 0, sseEvents: 0, jsonEvents: 0, contentDeltas: 0, reasoningDeltas: 0, emptyDeltas: 0 },
+      events: [],
+      rawSamples: []
+    };
+  }
+  return msg.debug;
+}
+
+function recordStreamEvent(msg, label, details = '') {
+  const debug = ensureStreamDebug(msg);
+  if (!debug) return;
+  const elapsed = ((Date.now() - debug.startedAt) / 1000).toFixed(1) + 's';
+  debug.events.push({ t: elapsed, label, details: shortText(details, 700) });
+  if (debug.events.length > 40) debug.events.shift();
+}
+
+function recordRawStreamSample(msg, sample) {
+  const debug = ensureStreamDebug(msg);
+  if (!debug) return;
+  const text = shortText(sample, 900);
+  if (text.trim()) debug.rawSamples.push(text);
+  if (debug.rawSamples.length > 12) debug.rawSamples.shift();
+}
+
+function streamDebugHtml(msg) {
+  if (!state.settings.streamDiagnostics || !msg.debug) return '';
+  const d = msg.debug;
+  const c = d.counters || {};
+  const http = d.http || {};
+  const elapsed = ((Date.now() - (d.startedAt || Date.now())) / 1000).toFixed(1) + 's';
+  const summary = [
+    `elapsed ${elapsed}`,
+    http.status ? `HTTP ${http.status}` : 'waiting for headers',
+    http.contentType ? `type ${http.contentType}` : '',
+    `chunks ${c.chunks || 0}`,
+    `SSE ${c.sseEvents || 0}`,
+    `JSON ${c.jsonEvents || 0}`,
+    `text Δ ${c.contentDeltas || 0}`,
+    `thinking Δ ${c.reasoningDeltas || 0}`,
+    `empty Δ ${c.emptyDeltas || 0}`
+  ].filter(Boolean).join(' • ');
+  const req = d.request ? `<pre>${escapeHtml(JSON.stringify(d.request, null, 2))}</pre>` : '';
+  const events = (d.events || []).map(e => `<div><strong>${escapeHtml(e.t)}</strong> ${escapeHtml(e.label)}${e.details ? ` — ${escapeHtml(e.details)}` : ''}</div>`).join('') || '<div>No events yet.</div>';
+  const raw = (d.rawSamples || []).map((r, i) => `<details><summary>Raw sample ${i + 1}</summary><pre>${escapeHtml(r)}</pre></details>`).join('') || '<div>No raw stream samples yet.</div>';
+  return `<details class="stream-debug-block" open><summary>🔎 Stream / reasoning diagnostics — ${escapeHtml(summary)}</summary><div class="stream-debug-inner"><h4>Request</h4>${req}<h4>Events</h4>${events}<h4>Raw chunks / SSE payloads</h4>${raw}</div></details>`;
+}
 
 function appendPublicReasoning(msg, text) {
   const value = contentToString(text);
@@ -543,13 +627,14 @@ function messageHtml(m, idx) {
   const author = isUser ? (state.settings.userName || 'User') : 'NVIDIA AI';
   const visibleContent = isUser ? stripVisibleAttachmentBlocks(m.content || '') : (m.content || '');
   const content = m.loading && !visibleContent ? thinkingHtml(m.status || 'Thinking') : renderMarkdown(visibleContent);
+  const generatedFiles = (!isUser && visibleContent && state.settings.plugins.downloadButtons) ? generatedFilesPanelHtml(visibleContent) : '';
   const attachments = isUser ? attachmentSummaryHtml(m.attachments || []) : '';
   const thinking = m.thinking ? `<div class="thinking-block expanded"><div class="thinking-header"><span>🧠</span><div class="thinking-title">Thinking</div></div><div class="thinking-body" style="display:block;">${escapeHtml(m.thinking)}</div></div>` : '';
   return `<div class="message" id="msg_${escapeAttr(m.id)}">
     <div class="message-avatar ${isUser ? 'user' : 'assistant'}">${escapeHtml(avatar)}</div>
     <div class="message-content">
       <div class="message-header"><div class="message-author">${escapeHtml(author)}</div><div class="message-time">${escapeHtml(m.time || '')}</div>${m.model ? `<div class="message-time">${escapeHtml(m.model)}</div>` : ''}</div>
-      <div class="message-body" id="body_${escapeAttr(m.id)}">${thinking}${content}${attachments}</div>
+      <div class="message-body" id="body_${escapeAttr(m.id)}">${thinking}${debug}${generatedFiles}${content}${attachments}</div>
       ${messageActions(m, idx)}
     </div>
   </div>`;
@@ -575,23 +660,91 @@ function messageActions(m, idx) {
   </div>`;
 }
 
+function parseGeneratedFilesFromMarkdown(text, options = {}) {
+  const src = String(text || '');
+  const includeInferred = !!options.includeInferred;
+  const files = [];
+  const seen = new Set();
+  const fenceRe = /```([^\n`]*)\n([\s\S]*?)(?:```|$)/g;
+  let match;
+  while ((match = fenceRe.exec(src))) {
+    const langRaw = (match[1] || '').trim();
+    let code = (match[2] || '').replace(/\n$/, '');
+    const before = src.slice(Math.max(0, match.index - 260), match.index);
+    const meta = extractCodeBlockMeta(langRaw, code, before);
+    code = meta.code;
+    if (!code.trim()) continue;
+    const filename = meta.filename || (includeInferred ? inferFilename(meta.lang) : '');
+    if (!filename) continue;
+    const key = `${filename.toLowerCase()}::${hashString(code)}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    files.push({ filename, lang: meta.lang, code, explicit: meta.explicit });
+  }
+  return files;
+}
+
+function extractCodeBlockMeta(langRaw, codeRaw, before = '') {
+  let lang = (langRaw || '').trim() || 'text';
+  let code = String(codeRaw || '').replace(/\n$/, '');
+  let filename = '';
+  let explicit = false;
+
+  const langFile = lang.match(/(?:filename|file|path)\s*[:=]\s*([\w.\-@/\\() ]+)/i) || lang.match(/([\w.\-@/\\()]+\.[a-z0-9]{1,8})/i);
+  if (langFile) {
+    filename = cleanFilename(langFile[1]);
+    lang = lang.replace(langFile[0], '').trim() || inferLanguageFromFilename(filename) || 'text';
+    explicit = true;
+  }
+
+  const lines = code.split(/\r?\n/);
+  const firstLine = lines[0] || '';
+  const fileLine = firstLine.match(/^\s*(?:(?:\/\/|#|--|;)\s*)?(?:filename|file|path)\s*[:=]\s*(.+?)\s*(?:\*\/|-->|\*)?\s*$/i)
+    || firstLine.match(/^\s*<!--\s*(?:filename|file|path)\s*[:=]\s*(.+?)\s*-->\s*$/i);
+  if (!filename && fileLine) {
+    filename = cleanFilename(fileLine[1]);
+    code = lines.slice(1).join('\n');
+    explicit = true;
+  }
+
+  if (!filename) {
+    const beforeLines = before.split(/\r?\n/).map(x => x.trim()).filter(Boolean).slice(-4).reverse();
+    for (const line of beforeLines) {
+      const m = line.match(/(?:^|[\s>*_`-])(?:filename|file|path)\s*[:=]\s*`?([^`\n]+?)`?\s*$/i)
+        || line.match(/^#{1,6}\s+`?([^`\n]+\.[a-z0-9]{1,8})`?\s*$/i)
+        || line.match(/^\*\*`?([^`\n]+\.[a-z0-9]{1,8})`?\*\*\s*:?$/i)
+        || line.match(/^`?([^`\n]+\.[a-z0-9]{1,8})`?\s*:?$/i);
+      if (m && looksLikeFilename(m[1])) { filename = cleanFilename(m[1]); explicit = true; break; }
+    }
+  }
+
+  if (filename && (!lang || lang === 'text')) lang = inferLanguageFromFilename(filename) || lang || 'text';
+  return { lang: normaliseLang(lang), filename, code, explicit };
+}
+
+function generatedFilesPanelHtml(text) {
+  const files = parseGeneratedFilesFromMarkdown(text, { includeInferred: false });
+  if (!files.length) return '';
+  const encoded = encodePayload(files.map(f => ({ filename: f.filename, code: f.code, lang: f.lang })));
+  const cards = files.map(f => {
+    const single = encodePayload({ filename: f.filename, code: f.code, lang: f.lang });
+    return `<div class="generated-file-card">
+      <div class="generated-file-icon">📄</div>
+      <div class="generated-file-info"><div class="generated-file-name">${escapeHtml(f.filename)}</div><div class="generated-file-meta">${escapeHtml(f.lang)} · ${formatBytes(new Blob([f.code]).size)}</div></div>
+      <div class="generated-file-actions"><button class="file-btn" onclick="copyEncodedCode('${single}')">Copy</button><button class="file-btn primary" onclick="downloadEncodedCode('${single}')">Download</button></div>
+    </div>`;
+  }).join('');
+  return `<div class="generated-files-panel"><div class="generated-files-header"><div><strong>Generated files</strong><span>${files.length} file${files.length === 1 ? '' : 's'} detected from the model response</span></div><button class="file-btn" onclick="downloadAllEncodedFiles('${encoded}')">Download all</button></div>${cards}</div>`;
+}
+
 function renderMarkdown(text) {
   let src = String(text || '');
   const codeBlocks = [];
-  src = src.replace(/```([^\n`]*)\n([\s\S]*?)```/g, (_, langRaw, codeRaw) => {
-    const lang = (langRaw || '').trim() || 'text';
-    let code = codeRaw.replace(/\n$/, '');
-    let filename = '';
-    const firstLine = code.split(/\r?\n/)[0] || '';
-    const match = firstLine.match(/^\s*(?:filename|file|path)\s*:\s*(.+?)\s*$/i);
-    if (match) {
-      filename = match[1].trim();
-      code = code.split(/\r?\n/).slice(1).join('\n');
-    } else {
-      filename = inferFilename(lang);
-    }
+  src = src.replace(/```([^\n`]*)\n([\s\S]*?)(?:```|$)/g, (full, langRaw, codeRaw, offset) => {
+    const before = src.slice(Math.max(0, offset - 260), offset);
+    const meta = extractCodeBlockMeta(langRaw, codeRaw, before);
     const id = uid('code');
-    codeBlocks.push({ id, lang, code, filename });
+    codeBlocks.push({ id, lang: meta.lang, code: meta.code, filename: meta.filename || inferFilename(meta.lang), explicit: meta.explicit });
     return `@@CODEBLOCK_${codeBlocks.length - 1}@@`;
   });
   let html = escapeHtml(src)
@@ -606,18 +759,56 @@ function renderMarkdown(text) {
   return html;
 }
 
+function normaliseLang(lang) {
+  const raw = String(lang || 'text').trim().toLowerCase();
+  return raw.replace(/[^a-z0-9+#.-]/g, '') || 'text';
+}
+
+function inferLanguageFromFilename(filename) {
+  const ext = String(filename || '').split('.').pop().toLowerCase();
+  return ({ js:'javascript', jsx:'javascript', ts:'typescript', tsx:'typescript', py:'python', html:'html', htm:'html', css:'css', scss:'css', json:'json', md:'markdown', markdown:'markdown', sh:'bash', bash:'bash', ps1:'powershell', sql:'sql', csv:'csv', yml:'yaml', yaml:'yaml', xml:'xml', toml:'toml', txt:'text', dockerfile:'dockerfile' })[ext] || 'text';
+}
+
 function inferFilename(lang) {
-  const ext = { javascript: 'js', js: 'js', typescript: 'ts', ts: 'ts', python: 'py', py: 'py', html: 'html', css: 'css', json: 'json', markdown: 'md', md: 'md', bash: 'sh', shell: 'sh', powershell: 'ps1', ps1: 'ps1', sql: 'sql', csv: 'csv', text: 'txt' }[String(lang || '').toLowerCase()] || 'txt';
-  return `response.${ext}`;
+  const ext = { javascript: 'js', js: 'js', typescript: 'ts', ts: 'ts', python: 'py', py: 'py', html: 'html', css: 'css', json: 'json', markdown: 'md', md: 'md', bash: 'sh', shell: 'sh', powershell: 'ps1', ps1: 'ps1', sql: 'sql', csv: 'csv', text: 'txt', yaml: 'yml', dockerfile: 'Dockerfile' }[String(lang || '').toLowerCase()] || 'txt';
+  return ext === 'Dockerfile' ? 'Dockerfile' : `response.${ext}`;
+}
+
+function cleanFilename(value) {
+  let name = String(value || '').trim().replace(/^['"`]+|['"`]+$/g, '').replace(/[<>:"|?*]/g, '-').replace(/\\/g, '/');
+  name = name.split('/').filter(Boolean).join('/');
+  if (!name || name.length > 140) return '';
+  return name;
+}
+
+function looksLikeFilename(value) {
+  const name = cleanFilename(value);
+  return !!name && (/^[\w .@()\-\/]+\.[a-z0-9]{1,8}$/i.test(name) || /(^|\/)Dockerfile$/i.test(name) || /(^|\/)README$/i.test(name));
+}
+
+function hashString(text) {
+  let h = 0;
+  for (let i = 0; i < text.length; i++) h = ((h << 5) - h + text.charCodeAt(i)) | 0;
+  return String(h >>> 0);
+}
+
+function encodePayload(data) {
+  return btoa(unescape(encodeURIComponent(JSON.stringify(data))));
+}
+
+function decodePayload(encoded) {
+  return JSON.parse(decodeURIComponent(escape(atob(encoded))));
 }
 
 function codeBlockHtml(block) {
   if (!block) return '';
-  const encoded = btoa(unescape(encodeURIComponent(JSON.stringify({ code: block.code, filename: block.filename }))));
-  return `<div class="code-block-wrapper">
-    <div class="code-block-header"><div><span class="code-lang">${escapeHtml(block.lang)}</span><span class="code-download-name">${escapeHtml(block.filename)}</span></div><div class="code-actions"><button class="code-action-btn" onclick="copyEncodedCode('${encoded}')">Copy</button>${state.settings.plugins.downloadButtons ? `<button class="code-action-btn" onclick="downloadEncodedCode('${encoded}')">Download</button>` : ''}</div></div>
-    <pre><code>${escapeHtml(block.code)}</code></pre>
-  </div>`;
+  const encoded = encodePayload({ code: block.code, filename: block.filename, lang: block.lang });
+  const actions = `<div class="code-actions"><button class="code-action-btn" onclick="copyEncodedCode('${encoded}')">Copy</button>${state.settings.plugins.downloadButtons ? `<button class="code-action-btn" onclick="downloadEncodedCode('${encoded}')">Download</button>` : ''}</div>`;
+  const header = `<div class="code-block-header"><div><span class="code-lang">${escapeHtml(block.lang)}</span><span class="code-download-name">${escapeHtml(block.filename)}</span></div>${actions}</div>`;
+  if (block.explicit) {
+    return `<details class="code-block-wrapper generated-code-block"><summary>${header}<span class="preview-hint">Preview code</span></summary><pre><code>${escapeHtml(block.code)}</code></pre></details>`;
+  }
+  return `<div class="code-block-wrapper">${header}<pre><code>${escapeHtml(block.code)}</code></pre></div>`;
 }
 
 function getMessage(id) { return state.currentChat?.messages.find(m => m.id === id); }
@@ -633,13 +824,21 @@ function downloadMessage(id) {
   downloadText(`${m.role}-message.md`, m.content || '');
 }
 function copyEncodedCode(encoded) {
-  const data = JSON.parse(decodeURIComponent(escape(atob(encoded))));
+  const data = decodePayload(encoded);
   navigator.clipboard?.writeText(data.code || '');
   showToast('Code copied');
 }
 function downloadEncodedCode(encoded) {
-  const data = JSON.parse(decodeURIComponent(escape(atob(encoded))));
+  const data = decodePayload(encoded);
   downloadText(data.filename || 'response.txt', data.code || '');
+}
+function downloadAllEncodedFiles(encoded) {
+  const files = decodePayload(encoded);
+  if (!Array.isArray(files) || !files.length) return;
+  files.forEach((file, index) => {
+    setTimeout(() => downloadText(file.filename || `response-${index + 1}.txt`, file.code || ''), index * 250);
+  });
+  showToast(`Downloading ${files.length} file${files.length === 1 ? '' : 's'}`);
 }
 function downloadText(filename, text) {
   const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
@@ -795,6 +994,7 @@ function buildConversationMessages(extraSystemContext = '') {
     mode.key === 'custom' ? state.settings.customPrompt : mode.prompt,
     agent.prompt,
     state.settings.plugins.thinkingDisplay ? 'If you expose public reasoning via the API, put it in the provider reasoning field. If not, do not reveal hidden chain-of-thought; include a concise reasoning summary only when useful.' : '',
+    state.settings.plugins.downloadButtons ? 'When the user asks for files, fixes, patches, full updated files, or downloadable code, output each complete file in its own fenced code block. Put a filename line as the first line inside each block, exactly like: filename: app.js. Do not only describe changes; include the full changed file content when requested.' : '',
     extraSystemContext
   ].filter(Boolean);
   const messages = [];
@@ -885,30 +1085,88 @@ function formatWebSearchContext(query, results) {
 async function requestAssistantResponse(assistantId) {
   const model = getCurrentModel();
   const startMsg = getMessage(assistantId);
-  if (startMsg) { startMsg.status = 'Thinking'; updateAssistantDom(startMsg); }
+  if (startMsg) { startMsg.status = 'Thinking'; ensureStreamDebug(startMsg); recordStreamEvent(startMsg, 'Prompt queued'); updateAssistantDom(startMsg); }
   const webContext = await maybeBuildWebSearchContext(assistantId);
-  const payload = {
+  const basePayload = {
     model: model.id,
     messages: buildConversationMessages(webContext),
     temperature: Number(state.settings.temperature || 0.7),
-    max_tokens: Number(state.settings.maxTokens || 2048),
+    max_tokens: Math.max(Number(state.settings.maxTokens || 2048), modelSupportsReasoning(model) && state.settings.showThinking ? 4096 : 1),
     stream: !!state.settings.stream
   };
-  const responseMsg = getMessage(assistantId);
-  if (responseMsg) { responseMsg.status = payload.stream ? 'Streaming response' : 'Waiting for response'; updateAssistantDom(responseMsg); }
-  const response = await fetchWithTimeout(buildApiUrl('/chat/completions'), {
-    method: 'POST', headers: apiHeaders(payload.stream), body: JSON.stringify(payload)
-  }, 120000);
-  if (!response.ok) throw new Error(await errorFromResponse(response));
-  const contentType = response.headers.get('content-type') || '';
-  if (payload.stream && response.body && /text\/event-stream|application\/x-ndjson|text\/plain/i.test(contentType + response.headers.get('transfer-encoding'))) {
-    await readStream(response, assistantId);
-  } else if (payload.stream && response.body) {
-    // Try streaming anyway; NVIDIA often returns SSE even when content-type is changed by proxies.
-    const streamed = await readStream(response, assistantId, true);
-    if (!streamed) await readJsonResponse(response, assistantId);
-  } else {
-    await readJsonResponse(response, assistantId);
+  const payload = { ...basePayload, ...reasoningExtrasForModel(model) };
+
+  const sendPayload = async (bodyPayload, retryLabel = '') => {
+    const responseMsg = getMessage(assistantId);
+    if (responseMsg) {
+      responseMsg.status = bodyPayload.stream ? `Waiting for NVIDIA stream${retryLabel}` : `Waiting for NVIDIA response${retryLabel}`;
+      responseMsg.debug = null;
+      ensureStreamDebug(responseMsg, bodyPayload);
+      recordStreamEvent(responseMsg, 'Request started', `${bodyPayload.model} stream=${bodyPayload.stream}${bodyPayload.chat_template_kwargs ? ' reasoning params on' : ''}`);
+      updateAssistantDom(responseMsg);
+    }
+
+    let seconds = 0;
+    const ticker = setInterval(() => {
+      const m = getMessage(assistantId);
+      if (!m || !m.loading) { clearInterval(ticker); return; }
+      seconds += 1;
+      if (!m.content) {
+        m.status = `Waiting for first token (${seconds}s)`;
+        recordStreamEvent(m, 'Still waiting', `${seconds}s since request start`);
+        updateAssistantDom(m);
+      }
+    }, 1000);
+
+    try {
+      const response = await fetchWithTimeout(buildApiUrl('/chat/completions'), {
+        method: 'POST', headers: apiHeaders(bodyPayload.stream), body: JSON.stringify(bodyPayload)
+      }, 120000);
+      clearInterval(ticker);
+      const msg = getMessage(assistantId);
+      if (msg) {
+        ensureStreamDebug(msg, bodyPayload);
+        msg.debug.http = {
+          status: response.status,
+          statusText: response.statusText,
+          contentType: response.headers.get('content-type') || '',
+          transferEncoding: response.headers.get('transfer-encoding') || ''
+        };
+        recordStreamEvent(msg, 'Response headers received', `${response.status} ${msg.debug.http.contentType}`);
+        updateAssistantDom(msg);
+      }
+      if (!response.ok) throw new Error(await errorFromResponse(response));
+      const contentType = response.headers.get('content-type') || '';
+      if (bodyPayload.stream && response.body && /text\/event-stream|application\/x-ndjson|text\/plain/i.test(contentType + response.headers.get('transfer-encoding'))) {
+        await readStream(response, assistantId);
+      } else if (bodyPayload.stream && response.body) {
+        const streamed = await readStream(response, assistantId, true);
+        if (!streamed) await readJsonResponse(response, assistantId);
+      } else {
+        await readJsonResponse(response, assistantId);
+      }
+    } catch (err) {
+      clearInterval(ticker);
+      throw err;
+    }
+  };
+
+  try {
+    await sendPayload(payload);
+  } catch (err) {
+    const text = err?.message || String(err);
+    if ((payload.chat_template_kwargs || payload.include_reasoning || payload.thinking_token_budget) && /HTTP (400|422|500)|invalid|unsupported|chat_template|thinking|reasoning/i.test(text)) {
+      const msg = getMessage(assistantId);
+      if (msg) {
+        msg.content = '';
+        msg.thinking += `Reasoning params were rejected by NVIDIA for this model, retrying without extra thinking flags. Original error: ${text}\n`;
+        recordStreamEvent(msg, 'Retrying without reasoning parameters', text);
+        updateAssistantDom(msg);
+      }
+      await sendPayload(basePayload, ' (retry without reasoning flags)');
+    } else {
+      throw err;
+    }
   }
 }
 
@@ -920,9 +1178,15 @@ async function errorFromResponse(response) {
 
 async function readJsonResponse(response, assistantId) {
   const data = await response.json();
-  const content = data?.choices?.[0]?.message?.content || data?.choices?.[0]?.text || data?.output_text || JSON.stringify(data, null, 2);
   const msg = getMessage(assistantId); if (!msg) return;
+  ensureStreamDebug(msg);
+  recordStreamEvent(msg, 'Non-stream JSON parsed');
+  recordRawStreamSample(msg, JSON.stringify(data, null, 2));
+  const reasoning = extractFullReasoning(data);
+  if (reasoning && state.settings.showThinking) appendPublicReasoning(msg, reasoning);
+  const content = extractFullResponse(data) || JSON.stringify(data, null, 2);
   appendAssistantVisibleOrReasoning(msg, content);
+  msg.status = 'Done';
   updateAssistantDom(msg);
 }
 
@@ -940,11 +1204,12 @@ async function readStream(response, assistantId, mayFail = false) {
   }
 
   const applyDelta = (delta) => {
-    if (!delta.content && !delta.thinking) return false;
     const msg = getMessage(assistantId);
     if (!msg) return false;
-    if (delta.thinking && state.settings.showThinking) appendPublicReasoning(msg, delta.thinking);
-    if (delta.content) appendAssistantVisibleOrReasoning(msg, delta.content);
+    const debug = ensureStreamDebug(msg);
+    if (!delta.content && !delta.thinking) { if (debug) debug.counters.emptyDeltas++; return false; }
+    if (delta.thinking && state.settings.showThinking) { appendPublicReasoning(msg, delta.thinking); if (debug) debug.counters.reasoningDeltas++; recordStreamEvent(msg, 'Reasoning delta', shortText(delta.thinking, 160)); }
+    if (delta.content) { appendAssistantVisibleOrReasoning(msg, delta.content); if (debug) debug.counters.contentDeltas++; recordStreamEvent(msg, 'Content delta', shortText(delta.content, 160)); }
     if (delta.content || delta.thinking) msg.status = delta.thinking && !delta.content ? 'Receiving public reasoning' : 'Writing response';
     updateAssistantDom(msg);
     return true;
@@ -955,6 +1220,8 @@ async function readStream(response, assistantId, mayFail = false) {
     if (!clean || clean === '[DONE]' || clean.startsWith('event:')) return false;
     try {
       const json = JSON.parse(clean);
+      const msg = getMessage(assistantId);
+      if (msg) { const debug = ensureStreamDebug(msg); if (debug) debug.counters.jsonEvents++; }
       return applyDelta(extractDelta(json));
     } catch (_) {
       return false;
@@ -966,6 +1233,8 @@ async function readStream(response, assistantId, mayFail = false) {
     if (!trimmed || trimmed.startsWith(':') || trimmed.startsWith('event:')) return;
     if (trimmed.startsWith('data:')) {
       const payload = trimmed.slice(5).trim();
+      const msg = getMessage(assistantId);
+      if (msg) { const debug = ensureStreamDebug(msg); if (debug) debug.counters.sseEvents++; recordRawStreamSample(msg, payload); }
       if (tryJsonPayload(payload)) sawChunk = true;
       return;
     }
@@ -990,6 +1259,8 @@ async function readStream(response, assistantId, mayFail = false) {
     const text = decoder.decode(value, { stream: true });
     rawText += text;
     buffer += text;
+    const chunkMsg = getMessage(assistantId);
+    if (chunkMsg) { const debug = ensureStreamDebug(chunkMsg); if (debug) { debug.counters.chunks++; recordRawStreamSample(chunkMsg, text); } }
 
     const waitingMsg = getMessage(assistantId);
     if (waitingMsg && !waitingMsg.content) {
@@ -1035,33 +1306,38 @@ async function readStream(response, assistantId, mayFail = false) {
 }
 
 function contentToString(value) {
-  if (!value) return '';
+  if (value === null || value === undefined || value === false) return '';
   if (typeof value === 'string') return value;
-  if (Array.isArray(value)) return value.map(part => {
-    if (typeof part === 'string') return part;
-    return part.text || part.content || part.value || '';
-  }).join('');
-  if (typeof value === 'object') return value.text || value.content || value.value || '';
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  if (Array.isArray(value)) return value.map(part => contentToString(part)).join('');
+  if (typeof value === 'object') {
+    if (typeof value.text === 'string') return value.text;
+    if (typeof value.content === 'string') return value.content;
+    if (Array.isArray(value.content)) return contentToString(value.content);
+    if (typeof value.value === 'string') return value.value;
+    if (typeof value.output_text === 'string') return value.output_text;
+  }
   return String(value);
 }
 
 function extractFullResponse(json) {
   const choice = json?.choices?.[0] || {};
-  return contentToString(choice?.message?.content) || contentToString(choice?.text) || contentToString(json?.output_text) || contentToString(json?.content);
+  const msg = choice?.message || choice || {};
+  return contentToString(msg.content) || contentToString(choice?.text) || contentToString(json?.output_text) || contentToString(json?.content) || contentToString(json?.response);
 }
 
 function extractFullReasoning(json) {
   const choice = json?.choices?.[0] || {};
   const msg = choice?.message || choice || {};
-  return contentToString(msg.reasoning_content) || contentToString(msg.reasoning) || contentToString(msg.thinking) || contentToString(msg.thought) || contentToString(json?.reasoning_content) || contentToString(json?.reasoning);
+  return contentToString(msg.reasoning_content) || contentToString(msg.reasoning) || contentToString(msg.thinking) || contentToString(msg.thought) || contentToString(msg.reasoning_details) || contentToString(json?.reasoning_content) || contentToString(json?.reasoning) || contentToString(json?.thinking);
 }
 
 function extractDelta(json) {
   const choice = json?.choices?.[0] || {};
   const delta = choice.delta || choice.message || choice;
   return {
-    content: contentToString(delta.content) || contentToString(delta.text) || contentToString(json.output_text),
-    thinking: contentToString(delta.reasoning_content) || contentToString(delta.reasoning) || contentToString(delta.thinking) || contentToString(delta.thought) || contentToString(json.reasoning_content) || contentToString(json.reasoning)
+    content: contentToString(delta.content) || contentToString(delta.text) || contentToString(json.output_text) || contentToString(json.content),
+    thinking: contentToString(delta.reasoning_content) || contentToString(delta.reasoning) || contentToString(delta.thinking) || contentToString(delta.thought) || contentToString(delta.reasoning_details) || contentToString(json.reasoning_content) || contentToString(json.reasoning) || contentToString(json.thinking)
   };
 }
 
@@ -1069,8 +1345,10 @@ function updateAssistantDom(msg) {
   const body = document.getElementById(`body_${msg.id}`);
   if (body) {
     const thinking = (state.settings.showThinking && msg.thinking) ? `<div class="thinking-block expanded"><div class="thinking-header"><span>🧠</span><div class="thinking-title">Thinking</div></div><div class="thinking-body" style="display:block;">${escapeHtml(msg.thinking)}</div></div>` : '';
+    const debug = streamDebugHtml(msg);
     const progress = msg.loading && !msg.content ? thinkingHtml(msg.status || 'Thinking') : '';
-    body.innerHTML = thinking + (msg.content ? renderMarkdown(msg.content) : progress);
+    const generatedFiles = (msg.content && state.settings.plugins.downloadButtons) ? generatedFilesPanelHtml(msg.content) : '';
+    body.innerHTML = thinking + debug + generatedFiles + (msg.content ? renderMarkdown(msg.content) : progress);
   }
   scrollToBottom(true);
 }
@@ -1299,6 +1577,8 @@ function openSettings() {
   document.getElementById('maxTokensSelect').value = String(state.settings.maxTokens);
   document.getElementById('streamSelect').value = state.settings.stream ? 'yes' : 'no';
   document.getElementById('thinkingSelect').value = state.settings.plugins.thinkingDisplay ? 'yes' : 'no';
+  const diagSelect = document.getElementById('diagnosticsSelect'); if (diagSelect) diagSelect.value = state.settings.streamDiagnostics ? 'yes' : 'no';
+  const forceReasoningSelect = document.getElementById('forceReasoningSelect'); if (forceReasoningSelect) forceReasoningSelect.value = state.settings.forceReasoning ? 'yes' : 'no';
   document.getElementById('themeSelect').value = state.settings.theme || 'dark';
   document.getElementById('customPromptInput').value = state.settings.customPrompt || '';
   document.getElementById('settingsModal').classList.add('open');
@@ -1313,6 +1593,8 @@ function saveSettings() {
   state.settings.stream = document.getElementById('streamSelect').value === 'yes';
   state.settings.plugins.thinkingDisplay = document.getElementById('thinkingSelect').value === 'yes';
   state.settings.showThinking = state.settings.plugins.thinkingDisplay;
+  const diagSelect = document.getElementById('diagnosticsSelect'); if (diagSelect) state.settings.streamDiagnostics = diagSelect.value === 'yes';
+  const forceReasoningSelect = document.getElementById('forceReasoningSelect'); if (forceReasoningSelect) state.settings.forceReasoning = forceReasoningSelect.value === 'yes';
   state.settings.theme = document.getElementById('themeSelect').value;
   state.settings.customPrompt = document.getElementById('customPromptInput').value;
   persistSettings(); applyTheme(); updateStatus(); updateSendButton(); renderMessages();
@@ -1493,7 +1775,7 @@ function selectAgent(key) { state.settings.currentAgent = key; persistSettings()
 function openHelpPanel() {
   const modes = MODES.map(m => `<div class="mode-help-card"><h3>${m.icon} ${escapeHtml(m.label)}</h3><p>${escapeHtml(m.short)}</p><p style="margin-top:6px;color:var(--text-muted);">Changes the system prompt sent to the model.</p></div>`).join('');
   const badges = ['free_endpoint','reasoning','coding','research','vision','image','speech','long','fast','free','paid','enterprise','live'].map(c => `<span class="capability-tag ${c}">${escapeHtml(badgeLabel(c))}</span>`).join(' ');
-  openPanel('Help / Modes and Badges', `${modes}<div class="mode-help-card"><h3>Model capability badges</h3><p>Badges are inferred from NVIDIA live model metadata and model names. They help you pick models, but the app will not fake pricing or capabilities when NVIDIA does not expose them.</p><div class="capability-bar" style="margin-top:10px;">${badges}</div></div><div class="mode-help-card"><h3>Reasoning / Thinking</h3><p>The app shows public reasoning only when the selected model/provider actually returns it, such as reasoning_content fields or visible &lt;think&gt; blocks. It cannot force hidden private chain-of-thought from models that do not expose it. If no reasoning trace is returned, it shows normal Thinking… progress and the final answer.</p></div><div class="mode-help-card"><h3>Plugins</h3><p>Web Search is real when enabled: the app calls your Worker, the Worker calls Brave/Tavily, then the results are injected into the model prompt. File Reader, Download Buttons, Thinking Display and Long Context also change app behaviour. Code Interpreter is shown as disabled because browser-only GitHub Pages cannot safely run Python.</p></div>`);
+  openPanel('Help / Modes and Badges', `${modes}<div class="mode-help-card"><h3>Model capability badges</h3><p>Badges are inferred from NVIDIA live model metadata and model names. They help you pick models, but the app will not fake pricing or capabilities when NVIDIA does not expose them.</p><div class="capability-bar" style="margin-top:10px;">${badges}</div></div><div class="mode-help-card"><h3>Reasoning / Thinking</h3><p>The app now requests NVIDIA thinking fields for reasoning-capable models when Thinking Display is on. It shows public reasoning only when NVIDIA returns it, such as reasoning, reasoning_content or visible &lt;think&gt; blocks. Stream Diagnostics shows raw chunks/counters so you can tell whether NVIDIA sent reasoning, sent only final text, or sent nothing yet.</p></div><div class="mode-help-card"><h3>Plugins</h3><p>Web Search is real when enabled: the app calls your Worker, the Worker calls Brave/Tavily, then the results are injected into the model prompt. File Reader, Download Buttons, Thinking Display and Long Context also change app behaviour. Code Interpreter is shown as disabled because browser-only GitHub Pages cannot safely run Python.</p></div>`);
 }
 
 function openStatusPanel() {
@@ -1502,33 +1784,133 @@ function openStatusPanel() {
 }
 
 
-function handleFileSelect(event) {
-  const file = event.target.files?.[0];
-  event.target.value = '';
-  if (!file) return;
-  if (!state.settings.plugins.fileReader) { showToast('File Reader plugin is off. Enable it in Plugins first.', 'error'); return; }
-  if (!isSupportedTextFile(file)) { showToast('This app currently reads text/code files only. PDFs/images need a separate parser or vision flow.', 'error'); return; }
-  if (file.size > 2 * 1024 * 1024) { showToast('File is over 2 MB. Split it or upload a smaller text file.', 'error'); return; }
+const MAX_ATTACHMENT_BYTES = 2 * 1024 * 1024;
+const MAX_PENDING_ATTACHMENTS = 10;
 
-  const reader = new FileReader();
-  reader.onload = () => {
-    const name = file.name || 'attachment.txt';
-    const ext = (name.split('.').pop() || 'txt').toLowerCase();
-    const languageMap = { js: 'javascript', jsx: 'javascript', ts: 'typescript', tsx: 'typescript', py: 'python', md: 'markdown', html: 'html', css: 'css', json: 'json', csv: 'csv', txt: 'text', ps1: 'powershell', sh: 'bash', sql: 'sql', yml: 'yaml', yaml: 'yaml' };
-    state.pendingAttachments.push({
-      id: uid('att'),
-      name,
-      size: file.size,
-      type: file.type || 'text/plain',
-      language: languageMap[ext] || ext || 'text',
-      content: String(reader.result || '')
-    });
-    renderPendingAttachments();
-    updateSendButton();
-    showToast(`Attached ${name}. It will be sent privately with your prompt, not pasted into chat.`);
+function attachmentLanguageForFile(name) {
+  const ext = (String(name || '').split('.').pop() || 'txt').toLowerCase();
+  const languageMap = {
+    js: 'javascript', jsx: 'javascript', mjs: 'javascript', cjs: 'javascript',
+    ts: 'typescript', tsx: 'typescript', py: 'python', md: 'markdown', markdown: 'markdown',
+    html: 'html', htm: 'html', css: 'css', scss: 'scss', json: 'json', csv: 'csv', tsv: 'tsv',
+    txt: 'text', log: 'text', ps1: 'powershell', bat: 'batch', cmd: 'batch', sh: 'bash',
+    sql: 'sql', yml: 'yaml', yaml: 'yaml', toml: 'toml', xml: 'xml', java: 'java',
+    c: 'c', cpp: 'cpp', h: 'c', hpp: 'cpp', cs: 'csharp', go: 'go', rs: 'rust',
+    php: 'php', rb: 'ruby', swift: 'swift', kt: 'kotlin', env: 'env'
   };
-  reader.onerror = () => showToast(`Could not read ${file.name}`, 'error');
-  reader.readAsText(file);
+  return languageMap[ext] || ext || 'text';
+}
+
+function readFileAsTextPromise(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(reader.error || new Error(`Could not read ${file?.name || 'file'}`));
+    reader.readAsText(file);
+  });
+}
+
+async function addFilesToPending(fileList) {
+  const files = Array.from(fileList || []).filter(Boolean);
+  if (!files.length) return;
+
+  if (!state.settings.plugins.fileReader) {
+    showToast('File Reader plugin is off. Enable it in Plugins first.', 'error');
+    return;
+  }
+
+  let added = 0;
+  const skipped = [];
+
+  for (const file of files) {
+    const name = file.name || 'attachment.txt';
+
+    if (state.pendingAttachments.length >= MAX_PENDING_ATTACHMENTS) {
+      skipped.push(`${name} (maximum ${MAX_PENDING_ATTACHMENTS} attachments)`);
+      continue;
+    }
+
+    if (!isSupportedTextFile(file)) {
+      skipped.push(`${name} (unsupported file type)`);
+      continue;
+    }
+
+    if (file.size > MAX_ATTACHMENT_BYTES) {
+      skipped.push(`${name} (over 2 MB)`);
+      continue;
+    }
+
+    try {
+      const content = await readFileAsTextPromise(file);
+      state.pendingAttachments.push({
+        id: uid('att'),
+        name,
+        size: file.size,
+        type: file.type || 'text/plain',
+        language: attachmentLanguageForFile(name),
+        content
+      });
+      added++;
+    } catch (err) {
+      skipped.push(`${name} (could not read)`);
+    }
+  }
+
+  renderPendingAttachments();
+  updateSendButton();
+
+  if (added) {
+    showToast(`Attached ${added} file${added === 1 ? '' : 's'}. Content will be sent privately with your prompt.`);
+  }
+  if (skipped.length) {
+    showToast(`Skipped ${skipped.length} file${skipped.length === 1 ? '' : 's'}: ${skipped.slice(0, 3).join(', ')}${skipped.length > 3 ? '…' : ''}`, 'error');
+  }
+}
+
+function handleFileSelect(event) {
+  const files = event.target.files;
+  event.target.value = '';
+  addFilesToPending(files);
+}
+
+function eventHasFiles(event) {
+  return Array.from(event.dataTransfer?.types || []).includes('Files');
+}
+
+function setDragActive(active) {
+  document.body.classList.toggle('dragging-files', !!active);
+  document.querySelector('.input-wrapper')?.classList.toggle('drag-over', !!active);
+}
+
+function registerFileDropZone() {
+  let dragDepth = 0;
+
+  document.addEventListener('dragenter', event => {
+    if (!eventHasFiles(event)) return;
+    event.preventDefault();
+    dragDepth++;
+    setDragActive(true);
+  });
+
+  document.addEventListener('dragover', event => {
+    if (!eventHasFiles(event)) return;
+    event.preventDefault();
+    if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
+  });
+
+  document.addEventListener('dragleave', event => {
+    if (!eventHasFiles(event)) return;
+    dragDepth = Math.max(0, dragDepth - 1);
+    if (!dragDepth) setDragActive(false);
+  });
+
+  document.addEventListener('drop', event => {
+    if (!eventHasFiles(event)) return;
+    event.preventDefault();
+    dragDepth = 0;
+    setDragActive(false);
+    addFilesToPending(event.dataTransfer?.files);
+  });
 }
 
 
@@ -1584,7 +1966,7 @@ function init() {
   loadState();
   if (!state.currentChat) state.currentChat = createChat(false);
   if (!state.chats.includes(state.currentChat)) state.chats.unshift(state.currentChat);
-  registerShortcuts(); renderAll();
+  registerShortcuts(); registerFileDropZone(); renderAll();
   const statusCard = document.getElementById('statusCard');
   if (statusCard) statusCard.addEventListener('click', (event) => { event.preventDefault(); openStatusPanel(); });
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
@@ -1610,7 +1992,14 @@ Object.assign(window, {
   regenerateResponse,
   copyMessage,
   downloadMessage,
+  copyEncodedCode,
+  downloadEncodedCode,
+  downloadAllEncodedFiles,
   toggleSidebar,
+  handleFileSelect,
+  addFilesToPending,
+  removePendingAttachment,
+  clearPendingAttachments,
   newChat,
 });
 

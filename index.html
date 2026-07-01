@@ -102,7 +102,7 @@
             <button class="input-tool-btn" id="attachBtn" title="Attach file" onclick="document.getElementById('fileInput').click()">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
             </button>
-            <input type="file" id="fileInput" style="display:none" accept="text/*,image/*,.md,.json,.csv,.py,.js,.html,.css" onchange="handleFileSelect(event)">
+            <input type="file" id="fileInput" style="display:none" multiple accept="text/*,.txt,.md,.markdown,.json,.csv,.tsv,.py,.js,.jsx,.ts,.tsx,.html,.css,.scss,.xml,.yaml,.yml,.toml,.ini,.cfg,.conf,.log,.ps1,.bat,.cmd,.sh,.sql,.java,.c,.cpp,.h,.hpp,.cs,.go,.rs,.php,.rb,.swift,.kt,.env" onchange="handleFileSelect(event)">
             <button class="input-tool-btn" id="voiceBtn" title="Voice input" onclick="toggleVoiceInput()">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
             </button>
@@ -202,6 +202,22 @@
           <label class="setting-label">Show Thinking Indicator</label>
           <select class="setting-select" id="thinkingSelect">
             <option value="yes" selected>Yes - show Thinking… while waiting</option>
+            <option value="no">No</option>
+          </select>
+        </div>
+        <div class="setting-group">
+          <label class="setting-label">Request Model Thinking</label>
+          <div class="setting-desc">When a model appears to support reasoning, send NVIDIA thinking parameters and show any public reasoning fields returned by the API.</div>
+          <select class="setting-select" id="forceReasoningSelect">
+            <option value="yes" selected>Yes - request public reasoning when supported</option>
+            <option value="no">No - do not add reasoning parameters</option>
+          </select>
+        </div>
+        <div class="setting-group">
+          <label class="setting-label">Stream Diagnostics</label>
+          <div class="setting-desc">Shows raw stream counters, response headers, and raw SSE/JSON samples under each assistant response so you can see what NVIDIA actually returned.</div>
+          <select class="setting-select" id="diagnosticsSelect">
+            <option value="yes" selected>Yes - show stream diagnostics</option>
             <option value="no">No</option>
           </select>
         </div>

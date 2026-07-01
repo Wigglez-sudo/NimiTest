@@ -1,125 +1,73 @@
-# NVIDIA AI Desktop — Model Picker Catalog Fix
+# NVIDIA AI Desktop
 
-This build fixes the model picker so it can show both:
+GitHub Pages frontend + Cloudflare Worker proxy for NVIDIA Build/NIM models.
 
-1. **NVIDIA API models** from `GET /v1/models` — these are the models your API key can actually call.
-2. **NVIDIA Build catalog models** from `https://build.nvidia.com/models` via the Cloudflare Worker route `GET /v1/build-models`.
+## This build fixes generated file downloads
 
-The model picker now includes:
+When a model replies with complete files, the app now detects fenced code blocks that include a filename and creates **Generated files** cards with Copy/Download buttons. It also collapses full file code by default so the chat is not filled with thousands of visible lines.
 
-- **All** tab
-- **Favorites** tab
-- **Free Endpoint** tab
-- **API Available** tab
-- **Catalog** tab
-- reasoning/coding/vision/image/speech/long/fast tabs
+The app recognises file blocks like:
 
-Free Endpoint badges are read from the NVIDIA Build catalog, because NVIDIA's `/v1/models` response may not include the public catalog tags.
+```js
+filename: app.js
+console.log('hello');
+```
 
-## Important
+It also recognises filename lines written as comments, for example:
 
-This update requires BOTH:
+```js
+// filename: app.js
+console.log('hello');
+```
 
-- GitHub Pages frontend update
-- Cloudflare Worker update
+## Upload to GitHub Pages
 
-Without the Worker update, the app will still load API models, but it will not be able to enrich them with Build catalog / Free Endpoint metadata.
+Replace the files in the root of your GitHub repo with:
 
-## GitHub upload
+- `index.html`
+- `styles.css`
+- `app.js`
+- `manifest.webmanifest`
+- `sw.js`
+- `icon.svg`
+- `README.md`
+- `cloudflare-worker.js`
+- `index.worker.js`
+- `nvidia-ai-desktop-standalone.html`
 
-Replace these files in your GitHub repo root:
+Commit and wait for Pages to deploy.
+
+Open with a cache buster after upload:
 
 ```text
-index.html
-styles.css
-app.js
-manifest.webmanifest
-sw.js
-icon.svg
-README.md
-cloudflare-worker.js
-nvidia-ai-desktop-standalone.html
-index.worker.js
+https://wigglez-sudo.github.io/nvidia-ai-desktop/?v=filecards1
 ```
 
-Commit and wait for GitHub Pages to redeploy.
+Then press `Ctrl + F5`.
 
-Open with a cache buster:
+## Cloudflare Worker
 
-```text
-https://wigglez-sudo.github.io/nvidia-ai-desktop/?v=modelcatalog1
-```
+No Worker update is required for the generated-file-card fix. The included Worker files are kept in the package for convenience.
 
-Then press Ctrl+F5.
-
-## Cloudflare Worker update
-
-Replace:
-
-```text
-C:\Users\lukew\OneDrive\Desktop\Nvidaapp\nvidia-ai-proxy\nvidia-ai-proxy\src\index.js
-```
-
-with either:
-
-```text
-cloudflare-worker.js
-```
-
-or:
-
-```text
-index.worker.js
-```
-
-Then deploy:
-
-```powershell
-cd C:\Users\lukew\OneDrive\Desktop\Nvidaapp\nvidia-ai-proxy\nvidia-ai-proxy
-npx wrangler deploy
-```
-
-After deploy, open your Worker root URL:
+Your API Proxy URL remains:
 
 ```text
 https://nvidia-ai-proxy.lukewai.workers.dev
 ```
 
-It should list:
+## Asking models to generate downloadable files
+
+Use wording like:
 
 ```text
-/v1/build-models
+Give me the full updated files. Put each file in its own fenced code block and put filename: path/file.ext as the first line inside each block.
 ```
 
-You can test the catalog route directly:
-
-```text
-https://nvidia-ai-proxy.lukewai.workers.dev/v1/build-models
-```
-
-It should return JSON with a `models` array and a `freeEndpointCount`.
-
-## After updating
-
-In the app:
-
-1. Settings → make sure API Proxy URL is `https://nvidia-ai-proxy.lukewai.workers.dev`
-2. Save Settings
-3. Click Refresh Models
-4. Open model picker
-5. Check Free Endpoint tab
-
-Some models may show **Catalog Only**. Those came from the Build catalog but were not matched to your `/v1/models` response. They are shown so you can see the full catalog, but if one fails in chat, NVIDIA may require a different endpoint or exact model ID.
+The app also adds this instruction automatically when Download Buttons are enabled.
 
 
-## Free Endpoint verified fallback update
+## Streaming / Thinking Diagnostics Fix
 
-This build adds a verified Free Endpoint fallback list (76 slugs) so the model picker can show Free Endpoint badges even when NVIDIA's `/v1/models` response does not include the `Free Endpoint` flag.
+This build adds a visible Stream / reasoning diagnostics block under assistant replies. It records response headers, elapsed time, chunk counts, SSE payload samples, JSON events, content deltas, and reasoning deltas. It also attempts to enable NVIDIA public reasoning for reasoning-capable models by sending `chat_template_kwargs.enable_thinking` and `include_reasoning` when Thinking Display is enabled. If a model rejects those extra fields, the app retries once without them.
 
-After uploading:
-1. Hard refresh with `?v=freeverified1`.
-2. Open Settings and confirm your Worker URL is saved.
-3. Click Refresh Models.
-4. Open the model picker and use the Free Endpoint tab.
-
-For the strongest catalogue metadata, also update the Cloudflare Worker using `index.worker.js` / `cloudflare-worker.js` from this package.
+If the diagnostics show chunks arriving but zero content/reasoning deltas, NVIDIA is returning a shape the parser does not recognise. If it shows zero chunks and stays waiting, the request has not received stream data yet or the model/provider is stalled. If reasoning deltas stay zero while content deltas arrive, the model/provider did not expose public reasoning for that request.
