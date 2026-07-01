@@ -3,6 +3,7 @@
 //   GET  /v1/models
 //   POST /v1/chat/completions
 //   POST /v1/web-search
+//   GET  /v1/build-models
 //
 // Search providers:
 //   Brave Search API (recommended): pass X-Search-Api-Key from the app or set BRAVE_SEARCH_API_KEY as a Worker secret.
@@ -95,6 +96,182 @@ async function tavilySearch(query, count, apiKey) {
   return (data.results || []).map(cleanResult).filter(r => r.url);
 }
 
+
+const BUILD_MODELS_URL = "https://build.nvidia.com/models";
+
+function decodeHtmlEntities(value = "") {
+  return String(value)
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, " ");
+}
+
+function textFromHtml(fragment = "") {
+  return decodeHtmlEntities(String(fragment)
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<[^>]+>/g, "\n"))
+    .split(/\n+/)
+    .map(line => line.replace(/\s+/g, " ").trim())
+    .filter(Boolean)
+    .join("\n");
+}
+
+function publisherPrefix(publisher = "") {
+  const key = String(publisher || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  const map = {
+    "nvidia": "nvidia",
+    "moonshotai": "moonshotai",
+    "moonshot ai": "moonshotai",
+    "deepseek ai": "deepseek-ai",
+    "deepseek": "deepseek-ai",
+    "z ai": "z-ai",
+    "zai": "z-ai",
+    "minimaxai": "minimaxai",
+    "minimax ai": "minimaxai",
+    "mistral ai": "mistralai",
+    "mistral": "mistralai",
+    "google": "google",
+    "qwen": "qwen",
+    "meta": "meta",
+    "stepfun ai": "stepfun-ai",
+    "stepfun-ai": "stepfun-ai",
+    "stepfun": "stepfun-ai",
+    "resemble ai": "resemble-ai",
+    "black forest labs": "black-forest-labs",
+    "black-forest-labs": "black-forest-labs",
+    "ibm": "ibm",
+    "cohere": "cohere",
+    "snowflake": "snowflake",
+    "databricks": "databricks",
+    "01 ai": "01-ai"
+  };
+  return map[key] || key.replace(/\s+/g, "-") || "catalog";
+}
+
+function findPublisher(text = "") {
+  const publishers = [
+    "Black-forest-labs", "Black Forest Labs", "DeepSeek AI", "Mistral AI", "Moonshotai", "Moonshot AI",
+    "Minimaxai", "MiniMax AI", "Resemble.AI", "Stepfun-ai", "Stepfun AI", "NVIDIA", "Google", "Qwen", "Meta", "Z.ai", "IBM", "Cohere", "Snowflake", "Databricks", "01-ai", "01 AI"
+  ];
+  let found = "";
+  let best = -1;
+  const lower = text.toLowerCase();
+  for (const pub of publishers) {
+    const idx = lower.lastIndexOf(pub.toLowerCase());
+    if (idx > best) { best = idx; found = pub; }
+  }
+  return found;
+}
+
+function isProbablyDescription(line = "") {
+  const value = String(line).trim();
+  if (value.length < 25) return false;
+  if (/^(items per page|filters|sort by|most recent|of \d+ pages|reset apply)$/i.test(value)) return false;
+  if (/^\d+(k|m)?$/i.test(value) || /^\d+[dwmy]$/i.test(value) || /^\+\d+$/.test(value)) return false;
+  return true;
+}
+
+function inferUseCaseCaps(text = "") {
+  const t = String(text || "").toLowerCase();
+  const caps = ["catalog", "live"];
+  if (/free endpoint/.test(t)) caps.push("free_endpoint", "free");
+  if (/downloadable/.test(t)) caps.push("downloadable");
+  if (/partner endpoint/.test(t)) caps.push("paid");
+  if (/reason|thinking|agentic|agent|planning|tool/.test(t)) caps.push("reasoning");
+  if (/code|coding|software|program/.test(t)) caps.push("coding");
+  if (/rag|retrieval|rerank|embedding|embed|search/.test(t)) caps.push("research");
+  if (/vision|visual|vlm|multimodal|image-to-text|video|ocr|document|table extraction/.test(t)) caps.push("vision");
+  if (/image generation|text-to-image|diffusion|flux|sdxl|image editing|qwen-image/.test(t)) caps.push("image");
+  if (/speech|audio|voice|tts|asr|automatic speech recognition|translation/.test(t)) caps.push("speech");
+  if (/1m|million|128k|200k|256k|long context|context/.test(t)) caps.push("long");
+  if (/flash|fast|nano|mini|small|klein|\b[1-9]b\b|\b1b\b/.test(t)) caps.push("fast");
+  return [...new Set(caps)];
+}
+
+function parseBuildModelsHtml(html = "", page = 1) {
+  const models = [];
+  const anchorRe = /<a\b[^>]*href=["']\/models\/([^"'?#/]+)[^"']*["'][^>]*>([\s\S]*?)<\/a>/gi;
+  let match;
+  while ((match = anchorRe.exec(html))) {
+    const slug = decodeURIComponent(match[1] || "").trim();
+    const name = textFromHtml(match[2] || "").replace(/\n+/g, " ").trim();
+    if (!slug || !name || name.length > 120) continue;
+    if (/^(models|skills|blueprints|docs|explore)$/i.test(slug)) continue;
+
+    const beforeHtml = html.slice(Math.max(0, match.index - 1800), match.index);
+    const afterHtml = html.slice(match.index + match[0].length, match.index + match[0].length + 1600);
+    const before = textFromHtml(beforeHtml);
+    const afterLines = textFromHtml(afterHtml).split("\n").map(x => x.trim()).filter(Boolean);
+    const statusWindow = before.split("\n").slice(-12).join(" ");
+    const publisher = findPublisher(before) || "";
+    const description = afterLines.find(isProbablyDescription) || "";
+    const capabilityText = [name, slug, publisher, description, statusWindow, afterLines.slice(0, 10).join(" ")].join(" ");
+    const prefix = publisherPrefix(publisher);
+    const modelId = prefix && prefix !== "catalog" ? `${prefix}/${slug}` : slug;
+
+    models.push({
+      id: modelId,
+      modelId,
+      slug,
+      catalogSlug: slug,
+      name,
+      title: name,
+      publisher,
+      description,
+      freeEndpoint: /free endpoint/i.test(statusWindow),
+      downloadable: /downloadable/i.test(statusWindow),
+      partnerEndpoint: /partner endpoint/i.test(statusWindow),
+      capabilities: inferUseCaseCaps(capabilityText),
+      source: "catalog",
+      catalogOnly: true,
+      page,
+      url: `${BUILD_MODELS_URL}/${slug}`
+    });
+  }
+  return models;
+}
+
+async function handleBuildModels(request, origin) {
+  if (request.method !== "GET") return jsonResponse({ ok: false, error: "Use GET for /v1/build-models" }, 405, origin);
+  const all = [];
+  const errors = [];
+  for (let page = 1; page <= 6; page++) {
+    const url = page === 1 ? BUILD_MODELS_URL : `${BUILD_MODELS_URL}?page=${page}`;
+    try {
+      const res = await fetch(url, { headers: { "Accept": "text/html", "User-Agent": "Mozilla/5.0 NVIDIA-AI-Desktop-Model-Catalog" } });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const html = await res.text();
+      all.push(...parseBuildModelsHtml(html, page));
+    } catch (err) {
+      errors.push({ page, message: err && err.message ? err.message : String(err) });
+    }
+  }
+  const bySlug = new Map();
+  for (const model of all) {
+    if (!bySlug.has(model.slug)) bySlug.set(model.slug, model);
+    else {
+      const existing = bySlug.get(model.slug);
+      existing.capabilities = [...new Set([...(existing.capabilities || []), ...(model.capabilities || [])])];
+      existing.freeEndpoint = existing.freeEndpoint || model.freeEndpoint;
+      existing.downloadable = existing.downloadable || model.downloadable;
+      existing.partnerEndpoint = existing.partnerEndpoint || model.partnerEndpoint;
+    }
+  }
+  const models = [...bySlug.values()].sort((a, b) => a.name.localeCompare(b.name));
+  return jsonResponse({
+    ok: true,
+    source: BUILD_MODELS_URL,
+    total: models.length,
+    freeEndpointCount: models.filter(m => m.freeEndpoint || (m.capabilities || []).includes("free_endpoint")).length,
+    models,
+    errors
+  }, 200, origin);
+}
+
 async function handleWebSearch(request, env, origin) {
   if (request.method !== "POST") return jsonResponse({ ok: false, error: "Use POST for /v1/web-search" }, 405, origin);
   let body = {};
@@ -133,16 +310,18 @@ export default {
       return jsonResponse({
         ok: true,
         name: "NVIDIA AI Desktop proxy",
-        routes: ["/v1/models", "/v1/chat/completions", "/v1/web-search"],
+        routes: ["/v1/models", "/v1/chat/completions", "/v1/web-search", "/v1/build-models"],
         search: "Brave Search API recommended; Tavily also supported.",
       }, 200, origin);
     }
 
     if (url.pathname === "/v1/web-search") return handleWebSearch(request, env, origin);
 
+    if (url.pathname === "/v1/build-models") return handleBuildModels(request, origin);
+
     const allowedPaths = ["/v1/models", "/v1/chat/completions"];
     if (!allowedPaths.includes(url.pathname)) {
-      return jsonResponse({ ok: false, error: "Route not allowed", path: url.pathname, allowed: [...allowedPaths, "/v1/web-search"] }, 404, origin);
+      return jsonResponse({ ok: false, error: "Route not allowed", path: url.pathname, allowed: [...allowedPaths, "/v1/web-search", "/v1/build-models"] }, 404, origin);
     }
 
     const auth = getBearerAuth(request, env);

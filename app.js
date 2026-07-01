@@ -215,34 +215,92 @@ function inferCapabilities(id, raw = {}) {
   return [...caps];
 }
 
+
+function normaliseModelSlug(value) {
+  return String(value || '')
+    .toLowerCase()
+    .split('/').pop()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+function modelMatchKeys(value) {
+  const text = String(value || '').toLowerCase();
+  const tail = text.split('/').pop() || text;
+  const compact = text.replace(/[^a-z0-9]/g, '');
+  const tailCompact = tail.replace(/[^a-z0-9]/g, '');
+  const hyphen = normaliseModelSlug(text);
+  const tailHyphen = normaliseModelSlug(tail);
+  return [...new Set([text, tail, compact, tailCompact, hyphen, tailHyphen].filter(Boolean))];
+}
+
+function publisherToModelPrefix(publisher = '') {
+  const p = String(publisher || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  const map = {
+    'nvidia': 'nvidia',
+    'moonshotai': 'moonshotai',
+    'moonshot ai': 'moonshotai',
+    'deepseek ai': 'deepseek-ai',
+    'deepseek': 'deepseek-ai',
+    'z ai': 'z-ai',
+    'zai': 'z-ai',
+    'minimaxai': 'minimaxai',
+    'minimax ai': 'minimaxai',
+    'mistral ai': 'mistralai',
+    'mistral': 'mistralai',
+    'google': 'google',
+    'qwen': 'qwen',
+    'meta': 'meta',
+    'stepfun ai': 'stepfun-ai',
+    'stepfun': 'stepfun-ai',
+    'resemble ai': 'resemble-ai',
+    'black forest labs': 'black-forest-labs',
+    'ibm': 'ibm',
+    'cohere': 'cohere',
+    'snowflake': 'snowflake',
+    'databricks': 'databricks',
+    '01 ai': '01-ai'
+  };
+  return map[p] || p.replace(/\s+/g, '-');
+}
+
+function modelSortName(m) {
+  const sourceRank = m.source === 'api' ? 0 : m.source === 'api+catalog' ? 0 : 1;
+  return `${sourceRank}-${m.name || m.id}`;
+}
+
 function normalizeModel(raw) {
   if (!raw) return null;
   const obj = typeof raw === 'object' ? raw : { id: raw };
-  const id = obj.id || obj.name || obj.model;
+  const id = obj.id || obj.name || obj.model || obj.modelId || obj.slug;
   if (!id) return null;
   const caps = inferCapabilities(id, obj);
+  const source = obj.source || (obj.catalogOnly ? 'catalog' : 'api');
+  if (source === 'catalog' && !caps.includes('catalog')) caps.push('catalog');
+  if ((source === 'api' || source === 'api+catalog') && !caps.includes('api')) caps.push('api');
   return {
     id,
-    name: obj.display_name || obj.displayName || obj.title || formatModelName(id),
-    desc: obj.description || obj.owned_by || 'Live NVIDIA model',
-    capabilities: caps,
+    name: obj.display_name || obj.displayName || obj.title || obj.name || formatModelName(id),
+    desc: obj.description || obj.desc || obj.owned_by || (source === 'catalog' ? 'NVIDIA Build catalog model' : 'Live NVIDIA model'),
+    capabilities: [...new Set(caps)],
+    source,
+    catalogOnly: !!obj.catalogOnly || source === 'catalog',
     raw: obj
   };
 }
-
 function getCurrentModel() {
   return state.liveModels.find(m => m.id === state.settings.currentModelId) || state.liveModels[0] || null;
 }
 
 function badgeLabel(cap) {
   const map = {
-    chat: '💬 Chat', reasoning: '🧠 Reasoning', coding: '💻 Coding', research: '📚 Research', vision: '👁 Vision', image: '🖼️ Image', speech: '🎤 Speech', long: '📄 Long', fast: '⚡ Fast', free_endpoint: '🟢 Free Endpoint', free: '🟢 Free', paid: '💳 Paid', enterprise: '🏢 Enterprise', live: 'Live'
+    chat: '💬 Chat', reasoning: '🧠 Reasoning', coding: '💻 Coding', research: '📚 Research', vision: '👁 Vision', image: '🖼️ Image', speech: '🎤 Speech', long: '📄 Long', fast: '⚡ Fast', free_endpoint: '🟢 Free Endpoint', free: '🟢 Free', paid: '💳 Paid', enterprise: '🏢 Enterprise', api: '✅ API Available', catalog: '📚 Catalog', catalog_only: '⚠️ Catalog Only', live: 'Live'
   };
   return map[cap] || cap;
 }
 
 function capabilityHtml(model) {
-  const order = ['free_endpoint', 'reasoning', 'coding', 'research', 'vision', 'image', 'speech', 'long', 'fast', 'free', 'paid', 'enterprise', 'live'];
+  const order = ['free_endpoint', 'api', 'catalog_only', 'reasoning', 'coding', 'research', 'vision', 'image', 'speech', 'long', 'fast', 'free', 'paid', 'enterprise', 'catalog', 'live'];
   const caps = order.filter(c => model.capabilities?.includes(c));
   return `<div class="capability-bar">${caps.map(c => `<span class="capability-tag ${escapeAttr(c)}">${escapeHtml(badgeLabel(c))}</span>`).join('')}</div>`;
 }
@@ -970,25 +1028,101 @@ async function regenerateResponse(assistantId) {
   }
 }
 
+
+function buildModelIndex(models) {
+  const index = new Map();
+  for (const model of models) {
+    for (const key of modelMatchKeys(model.id)) index.set(key, model);
+    for (const key of modelMatchKeys(model.name)) index.set(key, model);
+    const raw = model.raw || {};
+    for (const key of modelMatchKeys(raw.slug || raw.catalogSlug || raw.modelSlug || '')) index.set(key, model);
+  }
+  return index;
+}
+
+function mergeCatalogIntoApiModels(apiModels, catalogModels) {
+  const models = [...apiModels];
+  const index = buildModelIndex(models);
+  let matched = 0;
+  let added = 0;
+
+  for (const rawCat of catalogModels) {
+    const cat = normalizeModel({ ...rawCat, source: 'catalog', catalogOnly: true });
+    if (!cat) continue;
+    const keys = [
+      ...modelMatchKeys(cat.id),
+      ...modelMatchKeys(cat.name),
+      ...modelMatchKeys(rawCat.slug),
+      ...modelMatchKeys(rawCat.catalogSlug)
+    ];
+    let existing = null;
+    for (const key of keys) {
+      if (index.has(key)) { existing = index.get(key); break; }
+    }
+
+    if (existing) {
+      existing.name = existing.name || cat.name;
+      if (cat.desc && (!existing.desc || existing.desc === 'Live NVIDIA model')) existing.desc = cat.desc;
+      existing.capabilities = [...new Set([...(existing.capabilities || []), ...(cat.capabilities || []), 'api'])].filter(c => c !== 'catalog_only');
+      existing.source = 'api+catalog';
+      existing.catalogOnly = false;
+      existing.raw = { ...(existing.raw || {}), catalog: rawCat, source: 'api+catalog' };
+      matched++;
+    } else {
+      cat.capabilities = [...new Set([...(cat.capabilities || []), 'catalog', 'catalog_only'])];
+      cat.catalogOnly = true;
+      models.push(cat);
+      for (const key of keys) if (!index.has(key)) index.set(key, cat);
+      added++;
+    }
+  }
+  return { models, matched, added };
+}
+
+async function fetchBuildCatalogModels() {
+  if (!stripSlash(state.settings.proxyUrl)) return { models: [], ok: false, skipped: true, message: 'Build catalog requires the Cloudflare Worker.' };
+  try {
+    const response = await fetchWithTimeout(buildApiUrl('/build-models'), { method: 'GET', headers: apiHeaders(false) }, 60000);
+    if (!response.ok) throw new Error(await errorFromResponse(response));
+    const data = await response.json();
+    const models = Array.isArray(data?.models) ? data.models : [];
+    return { models, ok: true, total: data.total || models.length, freeEndpointCount: data.freeEndpointCount || 0 };
+  } catch (err) {
+    console.warn('Build catalog refresh failed:', err);
+    return { models: [], ok: false, message: friendlyError(err) };
+  }
+}
+
 async function refreshModelsFromNvidia(manual = false) {
   if (!state.settings.apiKey) { showToast('Add your API key first.', 'error'); openSettings(); return 0; }
-  setModelMeta('Refreshing live NVIDIA models…');
+  setModelMeta('Refreshing NVIDIA API models and Build catalog…');
   try {
     const response = await fetchWithTimeout(buildApiUrl('/models'), { method: 'GET', headers: apiHeaders(false) }, 45000);
     if (!response.ok) throw new Error(await errorFromResponse(response));
     const data = await response.json();
     const rawModels = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
-    if (!rawModels.length) throw new Error('NVIDIA returned no models.');
+    if (!rawModels.length) throw new Error('NVIDIA returned no API models.');
+
     const byId = new Map();
     for (const raw of rawModels) {
-      const m = normalizeModel(raw); if (m) byId.set(m.id, m);
+      const m = normalizeModel({ ...raw, source: 'api' });
+      if (m) byId.set(m.id, m);
     }
-    state.liveModels = [...byId.values()].sort((a, b) => a.name.localeCompare(b.name));
-    if (!getCurrentModel()) state.settings.currentModelId = state.liveModels[0]?.id || '';
+
+    const apiModels = [...byId.values()];
+    const catalog = await fetchBuildCatalogModels();
+    let merged = { models: apiModels, matched: 0, added: 0 };
+    if (catalog.models.length) merged = mergeCatalogIntoApiModels(apiModels, catalog.models);
+
+    state.liveModels = merged.models.sort((a, b) => modelSortName(a).localeCompare(modelSortName(b)));
+    if (!getCurrentModel()) state.settings.currentModelId = state.liveModels.find(m => !m.catalogOnly)?.id || state.liveModels[0]?.id || '';
     persistModels(); persistSettings();
     renderModelList(); updateSelectedModelLabel(); updateStatus(); updateSendButton();
-    setModelMeta(`${state.liveModels.length} live NVIDIA models loaded.`);
-    if (manual) showToast(`Loaded ${state.liveModels.length} live models`);
+
+    const freeCount = state.liveModels.filter(m => m.capabilities?.includes('free_endpoint')).length;
+    const catalogNote = catalog.ok ? ` • ${catalog.models.length} Build catalog models merged` : ` • Build catalog unavailable${catalog.message ? ': ' + catalog.message : ''}`;
+    setModelMeta(`${apiModels.length} API models • ${state.liveModels.length} shown • ${freeCount} Free Endpoint${catalogNote}`);
+    if (manual) showToast(`Loaded ${state.liveModels.length} models (${freeCount} Free Endpoint)`);
     return state.liveModels.length;
   } catch (err) {
     setModelMeta(`Could not refresh models: ${friendlyError(err)}`);
@@ -996,7 +1130,6 @@ async function refreshModelsFromNvidia(manual = false) {
     return 0;
   }
 }
-
 function setModelMeta(text) { const el = document.getElementById('modelMeta'); if (el) el.textContent = text; }
 function getModelsForCurrentTab() {
   const search = (document.getElementById('modelSearch')?.value || '').toLowerCase().trim();
@@ -1025,7 +1158,7 @@ function renderModelList() {
     <div class="model-item ${current?.id === m.id ? 'selected' : ''}">
       <button class="model-star ${state.favourites.has(m.id) ? 'active' : ''}" onclick="toggleFavourite('${escapeJsString(m.id)}', event)" title="Favourite">${state.favourites.has(m.id) ? '★' : '☆'}</button>
       <div class="model-item-info" onclick="selectModel('${escapeJsString(m.id)}')">
-        <div class="model-item-name">${escapeHtml(m.name)}</div>
+        <div class="model-item-name">${escapeHtml(m.name)}${m.catalogOnly ? ' <span class="capability-tag catalog_only">Catalog only</span>' : ''}</div>
         <div class="model-item-desc">${escapeHtml(m.desc || 'Live NVIDIA model')}</div>
         <div class="model-item-desc"><code>${escapeHtml(m.id)}</code></div>
         ${capabilityHtml(m)}
@@ -1043,6 +1176,8 @@ function switchModelTab(tab, event) {
 function filterModels() { renderModelList(); }
 function toggleModelDropdown() { const dd = document.getElementById('modelDropdown'); if (dd) { dd.classList.toggle('open'); renderModelList(); } }
 function selectModel(id) {
+  const model = state.liveModels.find(m => m.id === id);
+  if (model?.catalogOnly) showToast('Catalog-only model selected. If chat fails, NVIDIA may require a different exact model ID or endpoint.', 'error');
   state.settings.currentModelId = id;
   persistSettings();
   updateSelectedModelLabel();
