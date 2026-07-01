@@ -647,7 +647,12 @@ button, input, textarea, select { font: inherit; }
 
 @media (max-width: 768px) {
   body { overflow: hidden; }
-  .top-bar { padding: 0 10px; }
+  .main { height: 100dvh; }
+  .top-bar {
+    height: calc(52px + env(safe-area-inset-top));
+    padding: env(safe-area-inset-top) 10px 0;
+    flex-shrink: 0;
+  }
   .top-bar-right { gap: 2px; }
   .chat-title { max-width: 42vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .chat-container { padding: 12px 0; }
@@ -663,7 +668,7 @@ button, input, textarea, select { font: inherit; }
   .modal { width: 94vw; max-height: 88dvh; }
   .modal-body { padding: 14px; }
   .modal-footer { padding: 12px 14px; }
-  .sidebar { position: fixed; top: 0; left: 0; bottom: 0; height: 100dvh; width: min(84vw, 320px); box-shadow: var(--shadow); z-index: 300; transition: transform .25s ease; transform: translateX(0); }
+  .sidebar { position: fixed; top: 0; left: 0; bottom: 0; height: 100dvh; width: min(84vw, 320px); box-shadow: var(--shadow); z-index: 300; transition: transform .25s ease; transform: translateX(0); padding-top: env(safe-area-inset-top); }
   .sidebar.collapsed { transform: translateX(-100%); width: min(84vw, 320px); border-right: 1px solid var(--border-color); overflow: hidden; }
   .file-card { align-items: flex-start; }
   .file-actions { flex-direction: column; }
@@ -713,7 +718,11 @@ button, input, textarea, select { font: inherit; }
   .input-area { padding-bottom: calc(14px + env(safe-area-inset-bottom)); }
   .model-dropdown { position: fixed; left: 10px; right: 10px; bottom: 92px; width: auto; max-height: 60dvh; }
   .modal { max-height: 90dvh; }
-  .top-bar { padding-left: max(12px, env(safe-area-inset-left)); padding-right: max(12px, env(safe-area-inset-right)); }
+  .top-bar {
+    padding-top: env(safe-area-inset-top);
+    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
+  }
 }
 .model-dropdown-header { flex-wrap: wrap; }
 

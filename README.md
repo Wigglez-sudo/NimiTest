@@ -7,7 +7,7 @@ A Kimi/Qwen-Studio-style NVIDIA AI chat app that runs as a static site on **GitH
 - Live site: https://wigglez-sudo.github.io/nvidia-ai-desktop/
 - Worker: https://nvidia-ai-proxy.lukewai.workers.dev
 
-This is **v3.0.3**, a consolidation/stability pass. The proven engine (streaming, model catalog, generated-file parsing, the Worker) was kept; the app was hardened and cleaned up, and the crash that was breaking the chat was fixed.
+This is **v3.0.5**, a small iOS layout patch on top of the v3.0.4 stability baseline. The proven engine (streaming, model catalog, generated-file parsing, the Worker) was kept; the app was patched in place without a rewrite.
 
 ---
 
@@ -65,7 +65,7 @@ index.worker.js
 Commit and wait for Pages to deploy. Then open with a cache-buster:
 
 ```
-https://wigglez-sudo.github.io/nvidia-ai-desktop/?v=thinking-compact
+https://wigglez-sudo.github.io/nvidia-ai-desktop/?v=3.0.5
 ```
 
 If you ever see a stale version again, just click **Clear cache & reload latest** in the Diagnostics panel (bottom-left of the sidebar).
@@ -74,7 +74,7 @@ If you ever see a stale version again, just click **Clear cache & reload latest*
 
 ## Deploy the Cloudflare Worker
 
-The Worker source is now a single file: **`worker/index.js`**. Its behaviour is the same as your current Worker (all four routes, both auth headers, streaming passed through, CORS), plus a `/health` route and a version string. **No Worker change is required for the frontend fixes**, but deploying this version is recommended so "Probe Worker" in Diagnostics can report the version.
+The Worker source is still a single file: **`worker/index.js`**. Its behaviour is unchanged in v3.0.5. **No Worker change is required for this patch** unless you want to redeploy the included copy for consistency.
 
 Copy it to your local Wrangler project and deploy:
 
@@ -118,9 +118,9 @@ Do **not** add `/v1/models`, `/v1/chat/completions`, etc. — the app appends pa
 
 ## Test checklist
 
-After uploading + deploying, open the site with `?v=thinking-compact` and check:
+After uploading, open the site with `?v=3.0.5` and check:
 
-1. Sidebar name/status (bottom-left) opens the **Diagnostics** panel; version badge shows `v3.0.3`.
+1. Sidebar name/status (bottom-left) opens the **Diagnostics** panel; version badge shows `v3.0.5`.
 2. Settings → **Test Connection** loads models.
 3. Model picker → **Refresh**; the **Free Endpoint** and **API Available** tabs have models.
 4. Send a message → a reply renders (this is the path that used to be broken).
@@ -130,8 +130,9 @@ After uploading + deploying, open the site with `?v=thinking-compact` and check:
 8. Rename, pin, search, and delete chats in the sidebar.
 9. Diagnostics → **Probe Worker**, **Test chat completion**, **Test build catalog**; turn on Web Search and **Test web search**.
 10. Settings → **Export settings** / **Import settings**.
-11. On iPhone/Safari: the sidebar opens as a drawer with a backdrop; the model picker sits above the keyboard.
+11. On iPhone/Safari: the top toolbar sits below the status/dynamic-island area, the sidebar opens as a drawer with a backdrop, and the model picker sits above the keyboard.
 12. Enable **Stream Diagnostics** and send to a reasoning model (e.g. a Nemotron/DeepSeek/Qwen/GLM); the diagnostics block shows chunk/SSE/JSON/content/reasoning counters.
+13. Click **Regenerate** on an assistant reply, then click **Stop** while it is responding; the active regenerated request stops and keeps any partial text.
 
 ---
 
@@ -175,3 +176,18 @@ No Cloudflare Worker change is required for this patch unless you want to redepl
 - Partial streamed text is kept in the chat.
 - If nothing was returned yet, the assistant message is marked `Stopped by user.`
 - No Cloudflare Worker change is required for this frontend-only control.
+
+## v3.0.4 — Regenerate stop + Worker default
+
+- Fixed patch drift in **Regenerate**: regenerated replies now create the same active `AbortController` as normal sends, so the red **Stop** button really aborts the active regenerated request.
+- Stopped regenerated requests now keep partial streamed text, or show `Stopped by user.` if no text arrived yet.
+- The default API Proxy URL is now `https://nvidia-ai-proxy.lukewai.workers.dev`, matching the GitHub Pages + Cloudflare Worker setup and avoiding accidental direct browser calls to NVIDIA on first run.
+- Bumped the service-worker cache to `nvidia-ai-desktop-v3-0-4`.
+- No Cloudflare Worker change is required for this frontend-only patch.
+
+## v3.0.5 — iOS safe-area toolbar fix
+
+- Fixed the iPhone/PWA layout where the top toolbar could sit underneath the status bar or dynamic island, making the hamburger/title/settings area hard to press.
+- Added mobile safe-area top padding to the top bar and sidebar drawer.
+- Bumped the service-worker cache to `nvidia-ai-desktop-v3-0-5`.
+- No Cloudflare Worker change is required for this frontend-only patch.

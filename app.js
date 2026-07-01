@@ -1,6 +1,6 @@
 /* NVIDIA AI Desktop - GitHub Pages / Cloudflare Worker build */
-const APP_VERSION = '3.0.3';
-const BUILD_ID = '2025-07-stop-response';
+const APP_VERSION = '3.0.5';
+const BUILD_ID = '2026-07-ios-safe-area-topbar';
 const NVIDIA_DIRECT_BASE = 'https://integrate.api.nvidia.com/v1';
 const SETTINGS_KEY = 'nvidia_ai_desktop_settings_v8_plugins';
 const MODEL_CACHE_KEY = 'nvidia_ai_desktop_live_models_v8_plugins';
@@ -156,7 +156,7 @@ const DEFAULT_PLUGINS = {
 const state = {
   settings: {
     apiKey: '',
-    proxyUrl: '',
+    proxyUrl: 'https://nvidia-ai-proxy.lukewai.workers.dev',
     userName: 'Luke',
     temperature: 0.7,
     maxTokens: 2048,
@@ -1727,16 +1727,34 @@ async function regenerateResponse(assistantId) {
   const assistantMsg = { id: uid('msg'), role: 'assistant', content: '', thinking: '', loading: true, time: nowTime(), model: model.name, mode: getMode().key };
   state.currentChat.messages.push(assistantMsg);
   state.isBusy = true;
+  state.stopRequested = false;
+  state.activeAbortController = new AbortController();
+  state.activeAssistantId = assistantMsg.id;
   persistChats(); renderAll(); updateSendButton();
   try {
     await requestAssistantResponse(assistantMsg.id);
   } catch (err) {
     const msg = getMessage(assistantMsg.id);
-    if (msg) msg.content = `Error: ${friendlyError(err)}`;
-    showToast('Regenerate failed', 'error');
+    if (state.stopRequested || isAbortLike(err)) {
+      if (msg) {
+        msg.status = 'Stopped';
+        if (!msg.content && !msg.thinking) msg.content = 'Stopped by user.';
+        try { recordStreamEvent(msg, 'Stopped by user'); } catch (_) {}
+      }
+      state.diag.lastError = 'Stopped by user';
+    } else {
+      if (msg) msg.content = `Error: ${friendlyError(err)}`;
+      state.diag.lastError = friendlyError(err);
+      showToast('Regenerate failed', 'error');
+    }
   } finally {
     const msg = getMessage(assistantMsg.id); if (msg) msg.loading = false;
-    state.isBusy = false; persistChats(); renderMessages(); updateSendButton();
+    state.isBusy = false;
+    if (state.activeAssistantId === assistantMsg.id) {
+      state.activeAbortController = null;
+      state.activeAssistantId = null;
+    }
+    persistChats(); renderMessages(); updateSendButton();
   }
 }
 
