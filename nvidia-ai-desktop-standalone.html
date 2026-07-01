@@ -1,18 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#0d0d0d">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="NVIDIA AI">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>NVIDIA AI Desktop</title>
-<link rel="manifest" href="manifest.webmanifest">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0d0d0d">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>NVIDIA AI Desktop</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
 
 :root {
   --bg-primary: #0d0d0d; --bg-secondary: #141414; --bg-tertiary: #1a1a1a;
@@ -682,1980 +681,1425 @@ button, input, textarea, select { font: inherit; }
   .file-actions { flex-direction: column; }
 }
 
-</style>
+/* Final app additions */
+.status-card { width: 100%; background: transparent; border: 0; color: inherit; cursor: pointer; text-align: left; }
+.status-card:hover { background: var(--bg-hover); }
+.editing-banner { max-width: 800px; margin: 0 auto 8px; padding: 8px 12px; border: 1px solid var(--nvidia-green); background: var(--nvidia-green-dim); color: var(--nvidia-green); border-radius: var(--radius-md); font-size: 12px; display: flex; justify-content: space-between; align-items: center; }
+.editing-banner button { background: transparent; color: var(--nvidia-green); border: 1px solid var(--nvidia-green); border-radius: 6px; padding: 4px 8px; cursor: pointer; }
+.message-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.message-action { border: 1px solid var(--border-color); background: var(--bg-tertiary); color: var(--text-secondary); padding: 5px 10px; border-radius: var(--radius-sm); font-size: 11px; cursor: pointer; transition: var(--transition); }
+.message-action:hover { color: var(--nvidia-green); border-color: var(--nvidia-green); }
+.thinking-line { display: inline-flex; align-items: center; gap: 8px; color: var(--text-secondary); font-size: 13px; padding: 6px 0; }
+.thinking-dots { display: inline-flex; gap: 4px; }
+.thinking-dots span { width: 5px; height: 5px; background: var(--nvidia-green); border-radius: 50%; animation: typingBounce 1.4s infinite ease-in-out; }
+.thinking-dots span:nth-child(2) { animation-delay: .15s; }
+.thinking-dots span:nth-child(3) { animation-delay: .3s; }
+.model-toolbar { display: flex; gap: 8px; }
+.model-toolbar input { flex: 1; }
+.model-refresh-btn { border: 1px solid var(--border-color); background: var(--bg-tertiary); color: var(--text-secondary); border-radius: var(--radius-sm); padding: 0 10px; cursor: pointer; font-size: 12px; }
+.model-refresh-btn:hover { border-color: var(--nvidia-green); color: var(--nvidia-green); }
+.model-meta { color: var(--text-muted); font-size: 11px; margin-top: 8px; line-height: 1.4; }
+.model-item { position: relative; }
+.model-star { width: 28px; height: 28px; border: 0; border-radius: 50%; background: transparent; color: var(--text-muted); cursor: pointer; font-size: 18px; flex-shrink: 0; }
+.model-star:hover, .model-star.active { color: var(--warning); background: var(--bg-hover); }
+.capability-bar { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; }
+.capability-tag { font-size: 10px; padding: 2px 6px; border-radius: 999px; border: 1px solid var(--border-color); background: var(--bg-tertiary); color: var(--text-secondary); font-weight: 600; }
+.capability-tag.reasoning { color: var(--accent-purple); border-color: rgba(168,85,247,.35); }
+.capability-tag.coding { color: var(--accent-blue); border-color: rgba(74,158,255,.35); }
+.capability-tag.vision, .capability-tag.image { color: var(--accent-orange); border-color: rgba(249,115,22,.35); }
+.capability-tag.speech { color: var(--accent-pink); border-color: rgba(236,72,153,.35); }
+.capability-tag.fast, .capability-tag.live { color: var(--nvidia-green); border-color: rgba(118,185,0,.35); }
+.capability-tag.long { color: var(--success); border-color: rgba(34,197,94,.35); }
+.connection-status { margin-top: 10px; padding: 10px; border-radius: var(--radius-sm); background: var(--bg-tertiary); border: 1px solid var(--border-color); font-size: 12px; color: var(--text-secondary); white-space: pre-wrap; }
+.connection-status.success { border-color: var(--success); color: var(--success); }
+.connection-status.error { border-color: var(--danger); color: var(--danger); }
+.btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.mode-help-card, .status-grid-card { background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px; margin-bottom: 10px; }
+.mode-help-card h3, .status-grid-card h3 { margin: 0 0 6px; font-size: 14px; color: var(--nvidia-green); }
+.mode-help-card p, .status-grid-card p { font-size: 12px; color: var(--text-secondary); line-height: 1.5; margin: 0; }
+.agent-card.selected { border-color: var(--nvidia-green); background: var(--nvidia-green-dim); }
+.code-block-wrapper { position: relative; }
+.code-download-name { color: var(--text-muted); font-size: 11px; margin-left: 8px; }
+@media (max-width: 768px) {
+  body { min-height: 100dvh; }
+  .input-area { padding-bottom: calc(14px + env(safe-area-inset-bottom)); }
+  .model-dropdown { position: fixed; left: 10px; right: 10px; bottom: 92px; width: auto; max-height: 60dvh; }
+  .modal { max-height: 90dvh; }
+  .top-bar { padding-left: max(12px, env(safe-area-inset-left)); padding-right: max(12px, env(safe-area-inset-right)); }
+}
+.model-dropdown-header { flex-wrap: wrap; }
 
+/* Real plugin settings */
+.plugin-item.disabled { opacity: .55; }
+.toggle-switch { border: none; }
+.toggle-switch:disabled { cursor: not-allowed; opacity: .5; }
+.plugin-settings { background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px; margin: -2px 0 10px 48px; }
+.plugin-settings.muted { opacity: .65; }
+.plugin-form-row { align-items: end; }
+.plugin-form-row > div { flex: 1; }
+
+
+.pending-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+.attachment-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 320px;
+  padding: 8px 10px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+}
+.attachment-icon { flex-shrink: 0; }
+.attachment-info { min-width: 0; }
+.attachment-name {
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 230px;
+}
+.attachment-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.attachment-remove {
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: 50%;
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.attachment-remove:hover { color: var(--danger); background: rgba(239,68,68,0.12); }
+.message-attachments {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+.message-attachment-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  max-width: 420px;
+}
+.message-attachment-card small { color: var(--text-muted); }
+
+</style>
 </head>
 <body>
-<aside class="sidebar" id="sidebar">
-  <div class="sidebar-header">
-    <div class="logo-icon">N</div>
-    <div>
-      <div class="logo-text">NVIDIA AI</div>
-      <div class="logo-sub">Desktop</div>
-    </div>
-  </div>
-  <button class="new-chat-btn" onclick="newChat()">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-    New Chat <span style="margin-left:auto;color:var(--text-muted);font-size:11px;">Ctrl K</span>
-  </button>
-  <nav class="sidebar-nav">
-    <div class="nav-section">
-      <div class="nav-item active" data-tab="chat" onclick="switchTab('chat')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Chat
-      </div>
-      <div class="nav-item" data-tab="plugins" onclick="switchTab('plugins')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6v6H9z"/></svg>Plugins
-      </div>
-      <div class="nav-item" data-tab="slides" onclick="switchTab('slides')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>Slides
-      </div>
-      <div class="nav-item" data-tab="websites" onclick="switchTab('websites')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>Websites
-      </div>
-      <div class="nav-item" data-tab="docs" onclick="switchTab('docs')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Docs
-      </div>
-      <div class="nav-item" data-tab="research" onclick="switchTab('research')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>Deep Research
-      </div>
-      <div class="nav-item" data-tab="sheets" onclick="switchTab('sheets')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h18v18H3zM3 9h18M3 15h18M9 3v18M15 3v18"/></svg>Sheets
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="logo-icon">N</div>
+      <div>
+        <div class="logo-text">NVIDIA AI</div>
+        <div class="logo-sub">Desktop</div>
       </div>
     </div>
-    <div class="nav-divider"></div>
-    <div class="nav-section">
-      <div class="nav-item" data-tab="agents" onclick="switchTab('agents')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>Agent Swarm
-      </div>
-      <div class="nav-item" data-tab="code" onclick="switchTab('code')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>NVIDIA Code
-      </div>
-      <div class="nav-item" data-tab="tasks" onclick="switchTab('tasks')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>Scheduled Tasks
-      </div>
-      <div class="nav-item" data-tab="claw" onclick="switchTab('claw')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>NemoClaw <span class="nav-badge">Beta</span>
-      </div>
-    </div>
-    <div class="nav-divider"></div>
-    <div class="nav-label">Chat History</div>
-    <div id="chatHistory"></div>
-  </nav>
-  <div class="sidebar-footer">
-    <div class="user-avatar">U</div>
-    <div class="user-info">
-      <div class="user-name">User</div>
-      <div class="user-plan">Free Tier</div>
-    </div>
-  </div>
-</aside>
 
-<main class="main">
-  <div class="top-bar">
-    <div class="top-bar-left">
-      <button class="toggle-sidebar" onclick="toggleSidebar()" title="Toggle sidebar">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-      <div class="chat-title" id="chatTitle">NVIDIA AI Chat</div>
-      <span class="mode-indicator" id="modeIndicator" style="display:none;"></span>
-    </div>
-    <div class="top-bar-right">
-      <button class="top-btn" onclick="exportToPDF()" title="Export to PDF">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-        <span class="tooltip">Export PDF</span>
-      </button>
-      <button class="top-btn" onclick="shareChat()" title="Share">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
-        <span class="tooltip">Share</span>
-      </button>
-      <button class="top-btn" onclick="openSettings()" title="Settings">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.67 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.67 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.67a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-        <span class="tooltip">Settings</span>
-      </button>
-    </div>
-  </div>
+    <button class="new-chat-btn" onclick="newChat()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+      New Chat <span style="margin-left:auto;color:var(--text-muted);font-size:11px;">Ctrl K</span>
+    </button>
 
-  <div class="chat-container" id="chatContainer">
-    <div class="chat-messages" id="chatMessages"></div>
-  </div>
-
-  <div class="input-area" id="inputArea">
-    <div class="input-wrapper">
-      <textarea class="input-box" id="inputBox" placeholder="Message NVIDIA AI..." rows="1" onkeydown="handleKeydown(event)" oninput="autoResize(this)"></textarea>
-      <div class="input-footer">
-        <div class="input-left">
-          <button class="input-tool-btn" id="attachBtn" title="Attach file" onclick="document.getElementById('fileInput').click()">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-          </button>
-          <input type="file" id="fileInput" style="display:none" accept="text/*,image/*" onchange="handleFileSelect(event)">
-
-          <button class="input-tool-btn" id="voiceBtn" title="Voice input (Ctrl+M)" onclick="toggleVoiceInput()">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-          </button>
-
-          <button class="input-tool-btn" id="imageGenBtn" title="Image generation mode" onclick="toggleImageGenMode()">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
-          </button>
-
-          <div class="model-selector">
-            <button class="model-select-btn" id="modelSelectBtn" onclick="toggleModelDropdown()">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
-              <span id="selectedModelName">Nemotron 3 Ultra</span>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
-            </button>
-            <div class="model-dropdown" id="modelDropdown">
-              <div class="model-dropdown-header">
-                <button class="model-tab active" onclick="switchModelTab('free', event)">Free</button>
-                <button class="model-tab" onclick="switchModelTab('live', event)">Live</button>
-                <button class="model-tab" onclick="switchModelTab('paid', event)">Credit</button>
-                <button class="model-tab" onclick="switchModelTab('enterprise', event)">Enterprise</button>
-                <button class="model-tab" onclick="switchModelTab('all', event)">All</button>
-              </div>
-              <div class="model-search">
-                <div class="model-toolbar">
-                  <input type="text" placeholder="Search models..." id="modelSearch" oninput="filterModels(this.value)">
-                  <button class="model-refresh-btn" type="button" onclick="refreshModelsFromNvidia(true)">Refresh</button>
-                </div>
-                <div class="model-meta" id="modelMeta"></div>
-              </div>
-              <div class="model-list" id="modelList"></div>
-            </div>
-          </div>
+    <nav class="sidebar-nav">
+      <div class="nav-label">AI Modes</div>
+      <div id="modeNav"></div>
+      <div class="nav-divider"></div>
+      <div class="nav-section">
+        <div class="nav-item" onclick="openPluginsPanel()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6v6H9z"/></svg>
+          Plugins
         </div>
-        <button class="send-btn" id="sendBtn" onclick="sendMessage()" disabled>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        <div class="nav-item" onclick="openAgentPanel()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+          Agent Swarm <span class="nav-badge" id="agentBadge">General</span>
+        </div>
+        <div class="nav-item" onclick="openHelpPanel()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.82 1c0 2-3 2-3 4"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          Help / What modes do
+        </div>
+      </div>
+      <div class="nav-divider"></div>
+      <div class="nav-label">Chat History</div>
+      <div id="chatHistory"></div>
+    </nav>
+
+    <button class="sidebar-footer status-card" id="statusCard" onclick="openStatusPanel()">
+      <div class="user-avatar" id="statusAvatar">L</div>
+      <div class="user-info">
+        <div class="user-name" id="statusName">Luke</div>
+        <div class="user-plan" id="statusText">Disconnected</div>
+      </div>
+    </button>
+  </aside>
+
+  <main class="main">
+    <div class="top-bar">
+      <div class="top-bar-left">
+        <button class="toggle-sidebar" onclick="toggleSidebar()" title="Toggle sidebar">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <div class="chat-title" id="chatTitle">NVIDIA AI Chat</div>
+        <span class="mode-indicator" id="modeIndicator">Chat</span>
+      </div>
+      <div class="top-bar-right">
+        <button class="top-btn" onclick="exportToPDF()" title="Export to PDF">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          <span class="tooltip">Export PDF</span>
+        </button>
+        <button class="top-btn" onclick="shareChat()" title="Share">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+          <span class="tooltip">Share</span>
+        </button>
+        <button class="top-btn" onclick="openSettings()" title="Settings">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.67 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.67 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.67a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          <span class="tooltip">Settings</span>
         </button>
       </div>
     </div>
-  </div>
-</main>
 
-<!-- Settings Modal -->
-<div class="modal-overlay" id="settingsModal">
-  <div class="modal">
-    <div class="modal-header">
-      <div class="modal-title">Settings</div>
-      <button class="modal-close" onclick="closeSettings()">
+    <div class="chat-container" id="chatContainer">
+      <div class="chat-messages" id="chatMessages"></div>
+    </div>
+
+    <div class="input-area" id="inputArea">
+      <div class="editing-banner" id="editingBanner" style="display:none;">
+        Editing previous message. Sending will replace everything after it.
+        <button onclick="cancelEdit()">Cancel</button>
+      </div>
+      <div class="input-wrapper">
+        <textarea class="input-box" id="inputBox" placeholder="Message NVIDIA AI..." rows="1" onkeydown="handleKeydown(event)" oninput="autoResize(this); updateSendButton();"></textarea>
+        <div class="pending-attachments" id="pendingAttachments" style="display:none;"></div>
+        <div class="input-footer">
+          <div class="input-left">
+            <button class="input-tool-btn" id="attachBtn" title="Attach file" onclick="document.getElementById('fileInput').click()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+            </button>
+            <input type="file" id="fileInput" style="display:none" accept="text/*,image/*,.md,.json,.csv,.py,.js,.html,.css" onchange="handleFileSelect(event)">
+            <button class="input-tool-btn" id="voiceBtn" title="Voice input" onclick="toggleVoiceInput()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+            </button>
+            <div class="model-selector">
+              <button class="model-select-btn" id="modelSelectBtn" onclick="toggleModelDropdown()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
+                <span id="selectedModelName">Load models</span>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+              <div class="model-dropdown" id="modelDropdown">
+                <div class="model-dropdown-header">
+                  <button class="model-tab active" onclick="switchModelTab('all', event)">All</button>
+                  <button class="model-tab" onclick="switchModelTab('favorites', event)">Favorites</button>
+                  <button class="model-tab" onclick="switchModelTab('reasoning', event)">Reasoning</button>
+                  <button class="model-tab" onclick="switchModelTab('coding', event)">Coding</button>
+                  <button class="model-tab" onclick="switchModelTab('vision', event)">Vision</button>
+                  <button class="model-tab" onclick="switchModelTab('image', event)">Image</button>
+                  <button class="model-tab" onclick="switchModelTab('speech', event)">Speech</button>
+                  <button class="model-tab" onclick="switchModelTab('long', event)">Long</button>
+                  <button class="model-tab" onclick="switchModelTab('fast', event)">Fast</button>
+                </div>
+                <div class="model-search">
+                  <div class="model-toolbar">
+                    <input type="text" placeholder="Search live NVIDIA models..." id="modelSearch" oninput="renderModelList()">
+                    <button class="model-refresh-btn" type="button" onclick="refreshModelsFromNvidia(true)">Refresh</button>
+                  </div>
+                  <div class="model-meta" id="modelMeta"></div>
+                </div>
+                <div class="model-list" id="modelList"></div>
+              </div>
+            </div>
+          </div>
+          <button class="send-btn" id="sendBtn" onclick="sendMessage()" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div class="modal-overlay" id="settingsModal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">Settings</div>
+        <button class="modal-close" onclick="closeSettings()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="setting-group">
+          <label class="setting-label">NVIDIA API Key</label>
+          <div class="setting-desc">Your nvapi- key. Stored only in this browser. Never put it in GitHub.</div>
+          <input type="password" class="setting-input" id="apiKeyInput" placeholder="nvapi-xxxxxxxx" autocomplete="off" autocapitalize="none" spellcheck="false">
+        </div>
+        <div class="setting-group">
+          <label class="setting-label">API Proxy URL</label>
+          <div class="setting-desc">Use your Cloudflare Worker URL for GitHub Pages/iPhone.</div>
+          <input type="url" class="setting-input" id="proxyUrlInput" placeholder="https://nvidia-ai-proxy.lukewai.workers.dev" autocomplete="off" autocapitalize="none" spellcheck="false">
+        </div>
+        <div class="setting-group">
+          <div class="btn-row">
+            <button class="btn btn-secondary" type="button" onclick="testConnection()">Test Connection</button>
+            <button class="btn btn-secondary" type="button" onclick="refreshModelsFromSettings()">Refresh Models</button>
+            <button class="btn btn-secondary" type="button" onclick="clearApiKey()">Clear Key</button>
+          </div>
+          <div id="connectionStatus" class="connection-status" style="display:none;"></div>
+        </div>
+        <div class="setting-group">
+          <label class="setting-label">User display name</label>
+          <input type="text" class="setting-input" id="userNameInput" placeholder="Luke">
+        </div>
+        <div class="setting-group">
+          <label class="setting-label">Temperature</label>
+          <div class="setting-desc">Lower = focused. Higher = creative.</div>
+          <div style="display:flex;align-items:center;">
+            <input type="range" class="setting-slider" id="tempSlider" min="0" max="2" step="0.1" value="0.7" oninput="document.getElementById('tempValue').textContent=this.value">
+            <span class="slider-value" id="tempValue">0.7</span>
+          </div>
+        </div>
+        <div class="setting-group">
+          <label class="setting-label">Max Tokens</label>
+          <select class="setting-select" id="maxTokensSelect">
+            <option value="512">512 tokens</option><option value="1024">1,024 tokens</option><option value="2048" selected>2,048 tokens</option><option value="4096">4,096 tokens</option><option value="8192">8,192 tokens</option><option value="16384">16,384 tokens</option><option value="32768">32,768 tokens</option>
+          </select>
+        </div>
+        <div class="setting-group">
+          <label class="setting-label">Streaming</label>
+          <select class="setting-select" id="streamSelect">
+            <option value="yes" selected>Yes - stream text live</option>
+            <option value="no">No - wait for full response</option>
+          </select>
+        </div>
+        <div class="setting-group">
+          <label class="setting-label">Show Thinking Indicator</label>
+          <select class="setting-select" id="thinkingSelect">
+            <option value="yes" selected>Yes - show Thinking… while waiting</option>
+            <option value="no">No</option>
+          </select>
+        </div>
+        <div class="setting-group">
+          <label class="setting-label">Theme</label>
+          <select class="setting-select" id="themeSelect"><option value="dark" selected>Dark NVIDIA</option><option value="light">Light</option></select>
+        </div>
+        <div class="setting-group">
+          <label class="setting-label">Custom Mode Prompt</label>
+          <textarea class="setting-input" id="customPromptInput" rows="5" placeholder="Write your own system prompt for Custom mode..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeSettings()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel-overlay" id="panelOverlay" onclick="closePanel()"></div>
+  <div class="side-panel" id="sidePanel">
+    <div class="panel-header">
+      <div class="panel-title" id="panelTitle">Panel</div>
+      <button class="panel-close" onclick="closePanel()">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
     </div>
-    <div class="modal-body">
-      <div class="setting-group">
-        <label class="setting-label">NVIDIA API Key</label>
-        <div class="setting-desc">Your nvapi- key from build.nvidia.com. Stored locally in this browser only. Do not commit it to GitHub.</div>
-        <input type="password" class="setting-input" id="apiKeyInput" placeholder="nvapi-xxxxxxxxxxxxxxxx" autocomplete="off" autocapitalize="none" spellcheck="false">
-      </div>
-      <div class="setting-group">
-        <label class="setting-label">API Proxy URL <span style="color:var(--text-muted);font-weight:400;">Optional</span></label>
-        <div class="setting-desc">Leave blank to call NVIDIA directly. For GitHub Pages/iPhone, use your Cloudflare Worker URL if direct mode says “Failed to fetch”.</div>
-        <input type="url" class="setting-input" id="proxyUrlInput" placeholder="https://your-worker.yourname.workers.dev" autocomplete="off" autocapitalize="none" spellcheck="false">
-        <div class="ios-note">Direct browser calls can fail because of CORS. The included Cloudflare Worker forwards requests without storing your key.</div>
-      </div>
-      <div class="setting-group">
-        <div class="btn-row">
-          <button class="btn btn-secondary" type="button" onclick="testConnection()">Test Connection</button>
-          <button class="btn btn-secondary" type="button" onclick="refreshModelsFromSettings()">Refresh Models</button>
-          <button class="btn btn-secondary" type="button" onclick="clearApiKey()">Clear Key</button>
-        </div>
-        <div id="connectionStatus" class="connection-status" style="display:none;"></div>
-      </div>
-      <div class="setting-group">
-        <label class="setting-label">Temperature</label>
-        <div class="setting-desc">Controls randomness. Lower = more focused, Higher = more creative.</div>
-        <div style="display:flex;align-items:center;">
-          <input type="range" class="setting-slider" id="tempSlider" min="0" max="2" step="0.1" value="0.7" oninput="document.getElementById('tempValue').textContent=this.value">
-          <span class="slider-value" id="tempValue">0.7</span>
-        </div>
-      </div>
-      <div class="setting-group">
-        <label class="setting-label">Max Tokens</label>
-        <div class="setting-desc">Maximum response length.</div>
-        <select class="setting-select" id="maxTokensSelect">
-          <option value="512">512 tokens</option><option value="1024">1,024 tokens</option>
-          <option value="2048" selected>2,048 tokens</option><option value="4096">4,096 tokens</option>
-          <option value="8192">8,192 tokens</option><option value="16384">16,384 tokens</option>
-          <option value="32768">32,768 tokens</option><option value="65536">65,536 tokens</option>
-          <option value="131072">131,072 tokens</option><option value="200000">200,000 tokens</option>
-        </select>
-      </div>
-      <div class="setting-group">
-        <label class="setting-label">Theme</label>
-        <div class="setting-desc">Choose your preferred appearance.</div>
-        <select class="setting-select" id="themeSelect">
-          <option value="dark" selected>Dark (NVIDIA)</option><option value="light">Light</option><option value="system">System Default</option>
-        </select>
-      </div>
-      <div class="setting-group">
-        <label class="setting-label">Auto-download Files</label>
-        <div class="setting-desc">Automatically offer file downloads when code blocks are detected.</div>
-        <select class="setting-select" id="autoDownloadSelect">
-          <option value="ask" selected>Ask me first</option><option value="always">Always download</option><option value="never">Never auto-download</option>
-        </select>
-      </div>
-      <div class="setting-group">
-        <label class="setting-label">Stream Thinking</label>
-        <div class="setting-desc">Show reasoning/thinking process for supported models (DeepSeek-R1, etc.)</div>
-        <select class="setting-select" id="streamThinkingSelect">
-          <option value="yes" selected>Yes, show thinking</option><option value="no">No, hide thinking</option>
-        </select>
-      </div>
-      <div class="setting-group">
-        <label class="setting-label">Voice Input Language</label>
-        <div class="setting-desc">Language for speech-to-text recognition.</div>
-        <select class="setting-select" id="voiceLangSelect">
-          <option value="en-US" selected>English (US)</option><option value="en-GB">English (UK)</option>
-          <option value="es-ES">Spanish</option><option value="fr-FR">French</option>
-          <option value="de-DE">German</option><option value="it-IT">Italian</option>
-          <option value="ja-JP">Japanese</option><option value="ko-KR">Korean</option>
-          <option value="zh-CN">Chinese (Simplified)</option><option value="zh-TW">Chinese (Traditional)</option>
-          <option value="hi-IN">Hindi</option><option value="pt-BR">Portuguese</option>
-          <option value="ru-RU">Russian</option><option value="ar-SA">Arabic</option>
-        </select>
-      </div>
-      <div class="setting-group">
-        <label class="setting-label">Image Generation Size</label>
-        <div class="setting-desc">Default size for generated images.</div>
-        <select class="setting-select" id="imageSizeSelect">
-          <option value="1024x1024" selected>1024 x 1024 (Square)</option>
-          <option value="1024x768">1024 x 768 (Landscape)</option>
-          <option value="768x1024">768 x 1024 (Portrait)</option>
-          <option value="512x512">512 x 512 (Small)</option>
-        </select>
-      </div>
-      <div class="setting-group">
-        <label class="setting-label">PDF Export Style</label>
-        <div class="setting-desc">How your exported PDFs should look.</div>
-        <select class="setting-select" id="pdfStyleSelect">
-          <option value="clean" selected>Clean & Minimal</option>
-          <option value="branded">NVIDIA Branded</option>
-          <option value="academic">Academic / Formal</option>
-        </select>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeSettings()">Cancel</button>
-      <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
-    </div>
+    <div class="panel-body" id="panelBody"></div>
   </div>
-</div>
 
-<!-- Side Panel -->
-<div class="panel-overlay" id="panelOverlay" onclick="closePanel()"></div>
-<div class="side-panel" id="sidePanel">
-  <div class="panel-header">
-    <div class="panel-title" id="panelTitle">Panel</div>
-    <button class="panel-close" onclick="closePanel()">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <div class="panel-body" id="panelBody"></div>
-</div>
+  <div class="toast-container" id="toastContainer"></div>
+  <script>
+/* NVIDIA AI Desktop - GitHub Pages / Cloudflare Worker build */
+const NVIDIA_DIRECT_BASE = 'https://integrate.api.nvidia.com/v1';
+const SETTINGS_KEY = 'nvidia_ai_desktop_settings_v8_plugins';
+const MODEL_CACHE_KEY = 'nvidia_ai_desktop_live_models_v8_plugins';
+const FAV_KEY = 'nvidia_ai_desktop_favourites_v8_plugins';
+const CHATS_KEY = 'nvidia_ai_desktop_chats_v8_plugins';
+const CURRENT_CHAT_KEY = 'nvidia_ai_desktop_current_chat_v8_plugins';
 
-<!-- Toast Container -->
-<div class="toast-container" id="toastContainer"></div>
-
-
-<script>
-// ==================== MODEL DATA ====================
-const MODELS = [
-  // FREE TIER
-  { id: "nvidia/llama-3.1-nemotron-70b-instruct", name: "Llama 3.1 Nemotron 70B", desc: "NVIDIA-tuned Llama for reasoning & chat", tags: ["free","reasoning"], tier: "free" },
-  { id: "nvidia/llama-3.1-nemotron-51b-instruct", name: "Llama 3.1 Nemotron 51B", desc: "Mid-size reasoning model", tags: ["free","reasoning"], tier: "free" },
-  { id: "nvidia/llama-3.1-nemotron-8b-instruct", name: "Llama 3.1 Nemotron 8B", desc: "Fast, efficient local-like inference", tags: ["free"], tier: "free" },
-  { id: "nvidia/llama-3.1-nemotron-nano-v1", name: "Llama 3.1 Nemotron Nano", desc: "Ultra-fast, lightweight", tags: ["free"], tier: "free" },
-  { id: "deepseek-ai/deepseek-r1", name: "DeepSeek-R1", desc: "Top-tier reasoning with thinking chains", tags: ["free","reasoning"], tier: "free" },
-  { id: "deepseek-ai/deepseek-v3", name: "DeepSeek-V3", desc: "General purpose chat & code", tags: ["free"], tier: "free" },
-  { id: "meta/llama-3.3-70b-instruct", name: "Llama 3.3 70B", desc: "Meta's latest general model", tags: ["free"], tier: "free" },
-  { id: "meta/llama-3.1-405b-instruct", name: "Llama 3.1 405B", desc: "Massive open model", tags: ["free"], tier: "free" },
-  { id: "meta/llama-3.1-70b-instruct", name: "Llama 3.1 70B", desc: "Strong general-purpose model", tags: ["free"], tier: "free" },
-  { id: "meta/llama-3.1-8b-instruct", name: "Llama 3.1 8B", desc: "Fast, efficient for most tasks", tags: ["free"], tier: "free" },
-  { id: "mistralai/mistral-large-2-instruct", name: "Mistral Large 2", desc: "Multilingual reasoning & code", tags: ["free"], tier: "free" },
-  { id: "mistralai/mixtral-8x22b-instruct-v0.1", name: "Mixtral 8x22B", desc: "Sparse MoE, strong reasoning", tags: ["free"], tier: "free" },
-  { id: "mistralai/mixtral-8x7b-instruct-v0.1", name: "Mixtral 8x7B", desc: "Efficient MoE model", tags: ["free"], tier: "free" },
-  { id: "mistralai/mistral-7b-instruct-v0.3", name: "Mistral 7B", desc: "Fast, capable small model", tags: ["free"], tier: "free" },
-  { id: "mistralai/mistral-nemo-12b-instruct", name: "Mistral NeMo 12B", desc: "Best speed on free tier (~16.5 tok/s)", tags: ["free"], tier: "free" },
-  { id: "qwen/qwen2.5-72b-instruct", name: "Qwen 2.5 72B", desc: "Strong multilingual & coding", tags: ["free"], tier: "free" },
-  { id: "qwen/qwen2.5-7b-instruct", name: "Qwen 2.5 7B", desc: "Fast, efficient Qwen variant", tags: ["free"], tier: "free" },
-  { id: "qwen/qwen2.5-coder-32b-instruct", name: "Qwen 2.5 Coder 32B", desc: "Specialized for code generation", tags: ["free"], tier: "free" },
-  { id: "microsoft/phi-4", name: "Phi-4", desc: "Microsoft's compact powerful model", tags: ["free"], tier: "free" },
-  { id: "microsoft/phi-3.5-moe-instruct", name: "Phi-3.5 MoE", desc: "Mixture of Experts variant", tags: ["free"], tier: "free" },
-  { id: "microsoft/phi-3-mini-4k-instruct", name: "Phi-3 Mini", desc: "Ultra-fast on-device feel", tags: ["free"], tier: "free" },
-  { id: "google/gemma-2-27b-it", name: "Gemma 2 27B", desc: "Google's open model", tags: ["free"], tier: "free" },
-  { id: "google/gemma-2-9b-it", name: "Gemma 2 9B", desc: "Lightweight Google model", tags: ["free"], tier: "free" },
-  { id: "google/gemma-2-2b-it", name: "Gemma 2 2B", desc: "Tiny but capable", tags: ["free"], tier: "free" },
-  { id: "zhipuai/glm-4-9b-chat", name: "GLM-4 9B", desc: "Strong bilingual (CN/EN) model", tags: ["free"], tier: "free" },
-  { id: "zhipuai/glm-4-32b-chat", name: "GLM-4 32B", desc: "Larger GLM for complex tasks", tags: ["free"], tier: "free" },
-  { id: "moonshotai/kimi-k2-5", name: "Kimi K2.5", desc: "Long context up to 256K", tags: ["free"], tier: "free" },
-  { id: "moonshotai/kimi-k2-5-coder", name: "Kimi K2.5 Coder", desc: "Coding-specialized Kimi", tags: ["free"], tier: "free" },
-  { id: "01-ai/yi-large", name: "Yi Large", desc: "Strong Chinese & English", tags: ["free"], tier: "free" },
-  { id: "01-ai/yi-1.5-34b-chat", name: "Yi 1.5 34B", desc: "Balanced performance", tags: ["free"], tier: "free" },
-  { id: "01-ai/yi-1.5-9b-chat", name: "Yi 1.5 9B", desc: "Fast Yi variant", tags: ["free"], tier: "free" },
-  { id: "cohere/command-r-plus-08-2024", name: "Command R+", desc: "Long context, RAG optimized", tags: ["free"], tier: "free" },
-  { id: "cohere/command-r-08-2024", name: "Command R", desc: "Balanced enterprise model", tags: ["free"], tier: "free" },
-  { id: "databricks/dbrx-instruct", name: "DBRX Instruct", desc: "Databricks MoE model", tags: ["free"], tier: "free" },
-  { id: "snowflake/snowflake-arctic-instruct", name: "Snowflake Arctic", desc: "Enterprise-focused MoE", tags: ["free"], tier: "free" },
-  { id: "ibm/granite-3.1-8b-instruct", name: "Granite 3.1 8B", desc: "IBM's enterprise model", tags: ["free"], tier: "free" },
-  { id: "ibm/granite-3.1-2b-instruct", name: "Granite 3.1 2B", desc: "Tiny IBM model", tags: ["free"], tier: "free" },
-  { id: "nvidia/nemotron-4-340b-instruct", name: "Nemotron 4 340B", desc: "NVIDIA's largest open model", tags: ["free"], tier: "free" },
-  { id: "nvidia/nemotron-4-15b-instruct", name: "Nemotron 4 15B", desc: "Mid-size NVIDIA model", tags: ["free"], tier: "free" },
-  { id: "nvidia/nemotron-4-8b-instruct", name: "Nemotron 4 8B", desc: "Fast NVIDIA model", tags: ["free"], tier: "free" },
-  { id: "nvidia/nemotron-4-4b-instruct", name: "Nemotron 4 4B", desc: "Ultra-fast NVIDIA model", tags: ["free"], tier: "free" },
-  { id: "nvidia/nemotron-4-2b-instruct", name: "Nemotron 4 2B", desc: "Lightweight NVIDIA", tags: ["free"], tier: "free" },
-  { id: "nvidia/nemotron-4-1b-instruct", name: "Nemotron 4 1B", desc: "Tiny NVIDIA model", tags: ["free"], tier: "free" },
-  { id: "nvidia/nemotron-4-500m-instruct", name: "Nemotron 4 500M", desc: "Smallest NVIDIA model", tags: ["free"], tier: "free" },
-  { id: "nvidia/nemotron-4-250m-instruct", name: "Nemotron 4 250M", desc: "Micro NVIDIA model", tags: ["free"], tier: "free" },
-  { id: "nvidia/nemotron-4-125m-instruct", name: "Nemotron 4 125M", desc: "Nano NVIDIA model", tags: ["free"], tier: "free" },
-  { id: "nvidia/nemotron-4-70m-instruct", name: "Nemotron 4 70M", desc: "Pico NVIDIA model", tags: ["free"], tier: "free" },
-  { id: "nvidia/nemotron-4-35m-instruct", name: "Nemotron 4 35M", desc: "Femto NVIDIA model", tags: ["free"], tier: "free" },
-  { id: "nvidia/nemotron-4-17m-instruct", name: "Nemotron 4 17M", desc: "Atto NVIDIA model", tags: ["free"], tier: "free" },
-  { id: "nvidia/nemotron-4-8m-instruct", name: "Nemotron 4 8M", desc: "Zepto NVIDIA model", tags: ["free"], tier: "free" },
-  { id: "nvidia/nemotron-4-4m-instruct", name: "Nemotron 4 4M", desc: "Yocto NVIDIA model", tags: ["free"], tier: "free" },
-  { id: "nvidia/nemotron-4-2m-instruct", name: "Nemotron 4 2M", desc: "Smallest possible", tags: ["free"], tier: "free" },
-  { id: "nvidia/nemotron-4-1m-instruct", name: "Nemotron 4 1M", desc: "Single million params", tags: ["free"], tier: "free" },
-  { id: "nvidia/nemotron-4-500k-instruct", name: "Nemotron 4 500K", desc: "Half million params", tags: ["free"], tier: "free" },
-  { id: "nvidia/nemotron-4-250k-instruct", name: "Nemotron 4 250K", desc: "Quarter million params", tags: ["free"], tier: "free" },
-  { id: "nvidia/nemotron-4-125k-instruct", name: "Nemotron 4 125K", desc: "Eighth million params", tags: ["free"], tier: "free" },
-  { id: "nvidia/nemotron-4-70k-instruct", name: "Nemotron 4 70K", desc: "Seventy thousand params", tags: ["free"], tier: "free" },
-  { id: "nvidia/nemotron-4-35k-instruct", name: "Nemotron 4 35K", desc: "Thirty-five thousand params", tags: ["free"], tier: "free" },
-  { id: "nvidia/nemotron-4-17k-instruct", name: "Nemotron 4 17K", desc: "Seventeen thousand params", tags: ["free"], tier: "free" },
-  { id: "nvidia/nemotron-4-8k-instruct", name: "Nemotron 4 8K", desc: "Eight thousand params", tags: ["free"], tier: "free" },
-  { id: "nvidia/nemotron-4-4k-instruct", name: "Nemotron 4 4K", desc: "Four thousand params", tags: ["free"], tier: "free" },
-  { id: "nvidia/nemotron-4-2k-instruct", name: "Nemotron 4 2K", desc: "Two thousand params", tags: ["free"], tier: "free" },
-  { id: "nvidia/nemotron-4-1k-instruct", name: "Nemotron 4 1K", desc: "One thousand params", tags: ["free"], tier: "free" },
-  { id: "nvidia/nemotron-4-500-instruct", name: "Nemotron 4 500", desc: "Five hundred params", tags: ["free"], tier: "free" },
-  { id: "nvidia/nemotron-4-250-instruct", name: "Nemotron 4 250", desc: "Two hundred fifty params", tags: ["free"], tier: "free" },
-  { id: "nvidia/nemotron-4-125-instruct", name: "Nemotron 4 125", desc: "One hundred twenty-five params", tags: ["free"], tier: "free" },
-  { id: "nvidia/nemotron-4-70-instruct", name: "Nemotron 4 70", desc: "Seventy params", tags: ["free"], tier: "free" },
-  { id: "nvidia/nemotron-4-35-instruct", name: "Nemotron 4 35", desc: "Thirty-five params", tags: ["free"], tier: "free" },
-  { id: "nvidia/nemotron-4-17-instruct", name: "Nemotron 4 17", desc: "Seventeen params", tags: ["free"], tier: "free" },
-  { id: "nvidia/nemotron-4-8-instruct", name: "Nemotron 4 8", desc: "Eight params", tags: ["free"], tier: "free" },
-  { id: "nvidia/nemotron-4-4-instruct", name: "Nemotron 4 4", desc: "Four params", tags: ["free"], tier: "free" },
-  { id: "nvidia/nemotron-4-2-instruct", name: "Nemotron 4 2", desc: "Two params", tags: ["free"], tier: "free" },
-  { id: "nvidia/nemotron-4-1-instruct", name: "Nemotron 4 1", desc: "One param", tags: ["free"], tier: "free" },
-  // PAID/CREDIT TIER
-  { id: "openai/gpt-4o", name: "GPT-4o", desc: "OpenAI's flagship multimodal model", tags: ["paid","vision","voice"], tier: "paid" },
-  { id: "openai/gpt-4o-mini", name: "GPT-4o Mini", desc: "Fast, affordable GPT-4o", tags: ["paid","vision"], tier: "paid" },
-  { id: "openai/gpt-4-turbo", name: "GPT-4 Turbo", desc: "Previous gen flagship", tags: ["paid","vision"], tier: "paid" },
-  { id: "anthropic/claude-3-5-sonnet", name: "Claude 3.5 Sonnet", desc: "Best coding & reasoning", tags: ["paid","vision"], tier: "paid" },
-  { id: "anthropic/claude-3-5-haiku", name: "Claude 3.5 Haiku", desc: "Fast Claude variant", tags: ["paid","vision"], tier: "paid" },
-  { id: "anthropic/claude-3-opus", name: "Claude 3 Opus", desc: "Most capable Claude", tags: ["paid","vision"], tier: "paid" },
-  { id: "google/gemini-1.5-pro", name: "Gemini 1.5 Pro", desc: "2M context, multimodal", tags: ["paid","vision"], tier: "paid" },
-  { id: "google/gemini-1.5-flash", name: "Gemini 1.5 Flash", desc: "Fast Gemini variant", tags: ["paid","vision"], tier: "paid" },
-  { id: "x-ai/grok-2", name: "Grok-2", desc: "X.AI's latest model", tags: ["paid","vision"], tier: "paid" },
-  { id: "x-ai/grok-2-mini", name: "Grok-2 Mini", desc: "Fast Grok variant", tags: ["paid"], tier: "paid" },
-  { id: "perplexity/sonar", name: "Perplexity Sonar", desc: "Web-aware reasoning", tags: ["paid","reasoning"], tier: "paid" },
-  { id: "perplexity/sonar-pro", name: "Perplexity Sonar Pro", desc: "Advanced web search + reasoning", tags: ["paid","reasoning"], tier: "paid" },
-  { id: "nvidia/nemotron-4-ultra", name: "Nemotron 4 Ultra", desc: "NVIDIA's best enterprise model", tags: ["paid","reasoning"], tier: "paid" },
-  { id: "nvidia/nemotron-4-super", name: "Nemotron 4 Super", desc: "High-performance NVIDIA", tags: ["paid"], tier: "paid" },
-  { id: "nvidia/nemotron-4-hyper", name: "Nemotron 4 Hyper", desc: "Ultra-performance NVIDIA", tags: ["paid"], tier: "paid" },
-  { id: "nvidia/nemotron-4-mega", name: "Nemotron 4 Mega", desc: "Massive NVIDIA model", tags: ["paid"], tier: "paid" },
-  { id: "nvidia/nemotron-4-giga", name: "Nemotron 4 Giga", desc: "Gigantic NVIDIA model", tags: ["paid"], tier: "paid" },
-  { id: "nvidia/nemotron-4-tera", name: "Nemotron 4 Tera", desc: "Terascale NVIDIA model", tags: ["paid"], tier: "paid" },
-  { id: "nvidia/nemotron-4-peta", name: "Nemotron 4 Peta", desc: "Petascale NVIDIA model", tags: ["paid"], tier: "paid" },
-  { id: "nvidia/nemotron-4-exa", name: "Nemotron 4 Exa", desc: "Exascale NVIDIA model", tags: ["paid"], tier: "paid" },
-  // ENTERPRISE
-  { id: "nvidia/nemotron-4-enterprise", name: "Nemotron 4 Enterprise", desc: "Production-grade with SLA", tags: ["enterprise"], tier: "enterprise" },
-  { id: "nvidia/nemotron-4-enterprise-plus", name: "Nemotron 4 Enterprise+", desc: "Premium enterprise support", tags: ["enterprise"], tier: "enterprise" },
-  { id: "nvidia/nemotron-4-enterprise-pro", name: "Nemotron 4 Enterprise Pro", desc: "Maximum enterprise features", tags: ["enterprise"], tier: "enterprise" },
-  { id: "nvidia/nemotron-4-enterprise-max", name: "Nemotron 4 Enterprise Max", desc: "Unlimited enterprise scale", tags: ["enterprise"], tier: "enterprise" },
-  { id: "nvidia/nemotron-4-enterprise-ultra", name: "Nemotron 4 Enterprise Ultra", desc: "Ultra enterprise tier", tags: ["enterprise"], tier: "enterprise" },
-  { id: "nvidia/nemotron-4-enterprise-super", name: "Nemotron 4 Enterprise Super", desc: "Super enterprise tier", tags: ["enterprise"], tier: "enterprise" },
-  { id: "nvidia/nemotron-4-enterprise-hyper", name: "Nemotron 4 Enterprise Hyper", desc: "Hyper enterprise tier", tags: ["enterprise"], tier: "enterprise" },
-  { id: "nvidia/nemotron-4-enterprise-mega", name: "Nemotron 4 Enterprise Mega", desc: "Mega enterprise tier", tags: ["enterprise"], tier: "enterprise" },
-  { id: "nvidia/nemotron-4-enterprise-giga", name: "Nemotron 4 Enterprise Giga", desc: "Giga enterprise tier", tags: ["enterprise"], tier: "enterprise" },
-  { id: "nvidia/nemotron-4-enterprise-tera", name: "Nemotron 4 Enterprise Tera", desc: "Tera enterprise tier", tags: ["enterprise"], tier: "enterprise" },
+const MODES = [
+  { key: 'chat', icon: '💬', label: 'Chat', short: 'General assistant for normal questions and tasks.', prompt: 'You are a helpful NVIDIA AI desktop assistant. Be clear, practical and honest. When code or files are useful, use fenced code blocks with a filename line such as filename: app.js.' },
+  { key: 'coding', icon: '💻', label: 'Coding', short: 'Programming, debugging, Docker, Git, APIs and file generation.', prompt: 'You are an expert software engineer. Prioritise working code, exact commands, debugging steps, and downloadable file blocks. Ask only when required. When generating files, use fenced code blocks and put filename: path/to/file.ext as the first line.' },
+  { key: 'research', icon: '📚', label: 'Research', short: 'Deeper structured analysis and comparisons.', prompt: 'You are a careful research assistant. Give structured, evidence-aware analysis. Separate facts from assumptions. Say when live web access or a source is needed. Avoid pretending to have citations unless provided.' },
+  { key: 'writing', icon: '📝', label: 'Writing', short: 'Emails, docs, rewriting, summaries and tone changes.', prompt: 'You are a writing assistant. Improve clarity, tone, grammar and structure. Preserve the user’s intent and avoid adding unsupported claims.' },
+  { key: 'creative', icon: '🎨', label: 'Creative', short: 'Stories, ideas, roleplay, branding and brainstorming.', prompt: 'You are a creative assistant. Be imaginative, vivid and useful. Offer original ideas while staying aligned with the user’s request.' },
+  { key: 'data', icon: '📊', label: 'Data', short: 'CSV, SQL, spreadsheets, analysis and datasets.', prompt: 'You are a data analyst. Prefer clear tables, CSV/JSON when requested, formulas, assumptions, and reproducible steps. Use downloadable file blocks where useful.' },
+  { key: 'web', icon: '🌐', label: 'Web', short: 'HTML, CSS, JavaScript, websites and UI.', prompt: 'You are a web developer. Produce clean, responsive HTML/CSS/JS. Use accessible UI patterns. Put each generated file in a fenced code block with filename: as the first line.' },
+  { key: 'images', icon: '🖼️', label: 'Images', short: 'Image prompts and image-capable model guidance.', prompt: 'You help with image generation prompts and image workflows. If the selected model is not image-capable, explain that a vision/image model may be needed.' },
+  { key: 'voice', icon: '🎤', label: 'Voice', short: 'Dictation-friendly, concise speech-style responses.', prompt: 'You are a voice-friendly assistant. Keep responses conversational and easy to read aloud unless the user asks for detail.' },
+  { key: 'custom', icon: '⚙️', label: 'Custom', short: 'Uses your custom system prompt from Settings.', prompt: '' }
 ];
 
-// Dynamic model list. The built-in list is only a fallback; the app can fetch the current
-// NVIDIA model list from /v1/models, cache it locally, and merge it with the fallback list.
-let appModels = MODELS.slice();
-const MODEL_CACHE_KEY = 'nvidia_model_cache_v3';
-const MODEL_REFRESH_INTERVAL_MS = 12 * 60 * 60 * 1000;
-
-function formatModelName(id) {
-  const tail = String(id || '').split('/').pop() || String(id || 'Unknown Model');
-  return tail
-    .replace(/[-_]+/g, ' ')
-    .replace(/\b\w/g, c => c.toUpperCase())
-    .replace(/\bAi\b/g, 'AI')
-    .replace(/\bGpt\b/g, 'GPT')
-    .replace(/\bLlm\b/g, 'LLM')
-    .trim();
-}
-
-function inferModelTags(id, raw = {}) {
-  const text = `${id} ${raw.owned_by || ''} ${raw.object || ''} ${raw.endpoint || ''} ${raw.description || ''}`.toLowerCase();
-  const tags = ['live'];
-  if (/r1|reason|thinking|nemotron|deepseek|qwq/.test(text)) tags.push('reasoning');
-  if (/coder|code|codegemma|devstral|codestral/.test(text)) tags.push('code');
-  if (/vl|vision|visual|image|pixtral|phi-4-multimodal|multimodal|ocr/.test(text)) tags.push('vision');
-  if (/embed|embedding|retriever/.test(text)) tags.push('embedding');
-  if (/rerank|rank/.test(text)) tags.push('rerank');
-  if (/audio|speech|voice|whisper/.test(text)) tags.push('voice');
-  return [...new Set(tags)];
-}
-
-function inferModelTier(raw = {}, id = '') {
-  const text = `${id} ${raw.tier || ''} ${raw.access || ''} ${raw.pricing || ''} ${raw.category || ''} ${raw.description || ''}`.toLowerCase();
-  if (/enterprise|private|sla/.test(text)) return 'enterprise';
-  if (/paid|credit|billing|premium/.test(text)) return 'paid';
-  // NVIDIA /v1/models usually does not expose pricing/tier metadata, so keep fetched
-  // models separate rather than pretending they are free.
-  return 'live';
-}
-
-function normalizeFetchedModel(raw) {
-  if (!raw) return null;
-  const isObject = typeof raw === 'object';
-  const id = typeof raw === 'string' ? raw : raw.id || raw.name || raw.model;
-  if (!id) return null;
-  const tier = inferModelTier(raw, id);
-  const tags = inferModelTags(id, raw);
-  const owner = isObject ? raw.owned_by : '';
-  const description = isObject && raw.description ? raw.description : `Live NVIDIA model${owner ? ` • ${owner}` : ''}`;
-  if (tier === 'paid' && !tags.includes('paid')) tags.push('paid');
-  if (tier === 'enterprise' && !tags.includes('enterprise')) tags.push('enterprise');
-  return {
-    id,
-    name: isObject ? (raw.display_name || raw.displayName || raw.title || formatModelName(id)) : formatModelName(id),
-    desc: description || 'Live NVIDIA model from /v1/models',
-    tags,
-    tier,
-    source: 'nvidia-live',
-    raw
-  };
-}
-
-function mergeModelLists(fetched = []) {
-  const byId = new Map();
-  for (const m of MODELS) byId.set(m.id, { ...m, source: 'built-in' });
-  for (const raw of fetched) {
-    const m = normalizeFetchedModel(raw);
-    if (!m) continue;
-    const existing = byId.get(m.id);
-    byId.set(m.id, existing ? { ...existing, ...m, tags: [...new Set([...(existing.tags || []), ...(m.tags || [])])] } : m);
-  }
-  appModels = [...byId.values()].sort((a, b) => {
-    const sourceScore = (b.source === 'nvidia-live') - (a.source === 'nvidia-live');
-    if (sourceScore) return sourceScore;
-    return a.name.localeCompare(b.name);
-  });
-  if (!appModels.some(m => m.id === state?.currentModel?.id)) {
-    state.currentModel = appModels[0] || MODELS[0];
-  }
-  updateSelectedModelLabel();
-  updateModelMeta();
-}
-
-function loadCachedModels() {
-  try {
-    const cached = JSON.parse(localStorage.getItem(MODEL_CACHE_KEY) || 'null');
-    if (cached && Array.isArray(cached.models)) {
-      mergeModelLists(cached.models);
-    } else {
-      mergeModelLists([]);
-    }
-  } catch (_) {
-    mergeModelLists([]);
-  }
-}
-
-function saveFetchedModels(models) {
-  try {
-    localStorage.setItem(MODEL_CACHE_KEY, JSON.stringify({ models, updatedAt: Date.now() }));
-  } catch (_) {}
-}
-
-function getCachedModelMeta() {
-  try {
-    return JSON.parse(localStorage.getItem(MODEL_CACHE_KEY) || 'null');
-  } catch (_) {
-    return null;
-  }
-}
-
-function shouldAutoRefreshModels() {
-  if (!state.settings.apiKey) return false;
-  const cached = getCachedModelMeta();
-  if (!cached?.updatedAt) return true;
-  return Date.now() - cached.updatedAt > MODEL_REFRESH_INTERVAL_MS;
-}
-
-function updateSelectedModelLabel() {
-  const label = document.getElementById('selectedModelName');
-  if (label && state?.currentModel?.name) label.textContent = state.currentModel.name;
-}
-
-function updateModelMeta() {
-  const meta = document.getElementById('modelMeta');
-  if (!meta) return;
-  const cached = getCachedModelMeta();
-  const liveCount = appModels.filter(m => m.source === 'nvidia-live').length;
-  const total = appModels.length;
-  const dateText = cached?.updatedAt ? ` • updated ${new Date(cached.updatedAt).toLocaleString()}` : '';
-  meta.textContent = liveCount ? `${liveCount} live NVIDIA models loaded • ${total} total${dateText}` : `${total} built-in fallback models • click Refresh after adding your key`;
-}
-
-function getModelsForTab(tier) {
-  if (tier === 'all') return appModels;
-  if (tier === 'live') return appModels.filter(m => m.source === 'nvidia-live' || m.tier === 'live');
-  return appModels.filter(m => m.tier === tier);
-}
-
-function escapeJsString(text) {
-  return String(text).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n').replace(/\r/g, '');
-}
-
-function applyFetchedModelData(data, persist = true) {
-  const models = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
-  if (!models.length) throw new Error('NVIDIA returned no models from /v1/models.');
-  if (persist) saveFetchedModels(models);
-  mergeModelLists(models);
-  renderModelList(currentModelTab);
-  return models.length;
-}
-
-async function refreshModelsFromNvidia(manual = false, overrideSettings = null) {
-  const tempSettings = overrideSettings || state.settings;
-  if (!tempSettings.apiKey) {
-    if (manual) showToast('Add your NVIDIA API key in Settings first.', 'error');
-    return 0;
-  }
-  const meta = document.getElementById('modelMeta');
-  if (manual && meta) meta.textContent = 'Refreshing model list from NVIDIA…';
-  try {
-    const response = await fetchWithTimeout(buildApiUrl('/models', tempSettings), {
-      method: 'GET',
-      headers: buildApiHeaders(tempSettings, false)
-    }, 30000);
-    const text = await response.text();
-    if (!response.ok) throw new Error(`HTTP ${response.status}: ${text.slice(0, 400) || response.statusText}`);
-    const data = JSON.parse(text);
-    const count = applyFetchedModelData(data, true);
-    if (manual) showToast(`Updated model list: ${count} live NVIDIA models`);
-    return count;
-  } catch (err) {
-    const friendly = getFetchHelp(err);
-    if (manual) showToast(friendly, 'error');
-    updateModelMeta();
-    return 0;
-  }
-}
-
-async function refreshModelsFromSettings() {
-  const status = document.getElementById('connectionStatus');
-  const tempSettings = {
-    ...state.settings,
-    apiKey: document.getElementById('apiKeyInput').value.trim(),
-    proxyUrl: document.getElementById('proxyUrlInput').value.trim()
-  };
-  if (!tempSettings.apiKey) {
-    if (status) {
-      status.style.display = 'block';
-      status.className = 'connection-status error';
-      status.textContent = 'Enter your NVIDIA API key first.';
-    }
-    return;
-  }
-  if (status) {
-    status.style.display = 'block';
-    status.className = 'connection-status';
-    status.textContent = 'Refreshing models from NVIDIA…';
-  }
-  const count = await refreshModelsFromNvidia(false, tempSettings);
-  if (status) {
-    if (count) {
-      status.className = 'connection-status success';
-      status.textContent = `Model list updated. Found ${count} live NVIDIA models. Save settings to keep this connection mode.`;
-    } else {
-      status.className = 'connection-status error';
-      status.textContent = 'Could not refresh models. If this is GitHub Pages/iPhone, add the Cloudflare Worker URL as the API Proxy URL.';
-    }
-  }
-}
+const AGENTS = [
+  { key: 'general', name: 'General', role: 'Balanced helper', emoji: '🟢', prompt: '' },
+  { key: 'engineer', name: 'Senior Engineer', role: 'Strict coding reviewer', emoji: '💻', prompt: 'Act as a senior engineer. Check edge cases, give practical implementation details, and point out likely breakages.' },
+  { key: 'researcher', name: 'Researcher', role: 'Careful analyst', emoji: '📚', prompt: 'Act as a cautious researcher. Avoid overclaiming, state uncertainty, and organise findings clearly.' },
+  { key: 'data', name: 'Data Analyst', role: 'Tables and analysis', emoji: '📊', prompt: 'Act as a data analyst. Prefer structured outputs, tables, calculations, and repeatable analysis.' },
+  { key: 'creative', name: 'Creative', role: 'Ideas and writing', emoji: '🎨', prompt: 'Act as a creative director. Offer bold options, names, concepts, and polished wording.' },
+  { key: 'teacher', name: 'Teacher', role: 'Explains step by step', emoji: '👨‍🏫', prompt: 'Act as a patient teacher. Explain in plain English and build up step by step.' },
+  { key: 'security', name: 'Security Reviewer', role: 'Safety and hardening', emoji: '🛡️', prompt: 'Act as a security reviewer. Highlight secrets, unsafe defaults, injection risks, and safer alternatives.' }
+];
 
 
-// ==================== STATE ====================
-let state = {
-  currentChatId: null,
-  chats: {},
-  messages: [],
-  currentModel: appModels[0],
-  currentTab: 'chat',
-  currentAgent: 'general',
-  isStreaming: false,
-  imageGenMode: false,
-  voiceRecording: false,
-  recognition: null,
+const DEFAULT_PLUGINS = {
+  webSearch: false,
+  webSearchProvider: 'brave',
+  webSearchApiKey: '',
+  webSearchResults: 6,
+  webSearchMode: 'auto',
+  webSearchSafe: 'moderate',
+  fileReader: true,
+  downloadButtons: true,
+  thinkingDisplay: true,
+  longContext: false,
+  codeInterpreter: false
+};
+
+const state = {
   settings: {
     apiKey: '',
     proxyUrl: '',
+    userName: 'Luke',
     temperature: 0.7,
     maxTokens: 2048,
+    stream: true,
+    showThinking: true,
     theme: 'dark',
-    autoDownload: 'ask',
-    streamThinking: 'yes',
-    voiceLang: 'en-US',
-    imageSize: '1024x1024',
-    pdfStyle: 'clean'
+    customPrompt: '',
+    plugins: { ...DEFAULT_PLUGINS },
+    currentMode: 'chat',
+    currentAgent: 'general',
+    currentModelId: ''
   },
-  plugins: {
-    webSearch: false,
-    fileReader: true,
-    codeInterpreter: false,
-    autoDownload: false,
-    thinkingMode: true,
-    longContext: false
-  }
+  liveModels: [],
+  favourites: new Set(),
+  currentChat: null,
+  chats: [],
+  modelTab: 'all',
+  isBusy: false,
+  editingMessageId: null,
+  lastConnection: null,
+  voiceRecognition: null,
+  pendingAttachments: []
 };
 
-// ==================== SYSTEM PROMPTS ====================
-const SYSTEM_PROMPTS = {
-  chat: "You are a helpful AI assistant powered by NVIDIA NIM. Be concise, accurate, and helpful.",
-  slides: "You are a presentation design expert. When asked to create slides, output structured content with clear titles, bullet points, and speaker notes. Use markdown formatting.",
-  websites: "You are a web development expert. When asked to build a website, generate complete, production-ready HTML/CSS/JS code. Always provide downloadable file cards for the code.",
-  research: "You are a thorough research analyst. Provide detailed, well-cited analysis with structured reasoning. Break down complex topics into clear sections.",
-  sheets: "You are a data analysis expert. When asked for data, generate CSV-compatible tables or structured datasets. Provide file download cards for data exports.",
-  code: "You are an expert software engineer specializing in CUDA, Python, C++, and web development. Write clean, documented, production-ready code. Always offer file downloads instead of pasting long code blocks.",
-  claw: "You are NemoClaw, a web-aware research assistant. You can analyze APIs, fetch data concepts, and provide technical integration guidance."
-};
+function uid(prefix = 'id') { return `${prefix}_${Date.now()}_${Math.random().toString(16).slice(2)}`; }
+function nowTime() { return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); }
+function escapeHtml(text) { return String(text ?? '').replace(/[&<>'"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[c])); }
+function escapeAttr(text) { return escapeHtml(text).replace(/`/g, '&#96;'); }
+function escapeJsString(text) { return String(text ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n').replace(/\r/g, ''); }
+function stripSlash(url) { return String(url || '').trim().replace(/\/+$/, ''); }
 
-const AGENTS = {
-  general: { name: "General Assistant", emoji: "🤖", role: "All-rounder", desc: "Balanced helper for any task" },
-  engineer: { name: "Senior Engineer", emoji: "👨‍💻", role: "Code Expert", desc: "Architecture, debugging, code review" },
-  scientist: { name: "Research Scientist", emoji: "🔬", role: "Deep Analysis", desc: "Research, data, complex reasoning" },
-  writer: { name: "Creative Writer", emoji: "✍️", role: "Content Creator", desc: "Stories, copy, creative content" },
-  analyst: { name: "Data Analyst", emoji: "📊", role: "Data Expert", desc: "SQL, visualization, insights" },
-  educator: { name: "Educator", emoji: "🎓", role: "Teacher", desc: "Explanations, tutorials, learning" }
-};
+function loadJson(key, fallback) {
+  try { const value = JSON.parse(localStorage.getItem(key) || 'null'); return value ?? fallback; } catch { return fallback; }
+}
+function saveJson(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch (_) {} }
 
-// ==================== INIT ====================
-function init() {
-  loadSettings();
-  loadCachedModels();
-  loadChatHistory();
-  newChat();
-  renderModelList('free');
-  setupKeyboardShortcuts();
-  setupVoiceRecognition();
-  checkScheduledTasks();
-  setInterval(checkScheduledTasks, 30000);
-  updateSendButton();
-  if (shouldAutoRefreshModels()) refreshModelsFromNvidia(false);
+function loadState() {
+  state.settings = { ...state.settings, ...loadJson(SETTINGS_KEY, {}) };
+  state.settings.plugins = { ...DEFAULT_PLUGINS, ...(state.settings.plugins || {}) };
+  state.settings.showThinking = !!state.settings.plugins.thinkingDisplay;
+  const cache = loadJson(MODEL_CACHE_KEY, { models: [], updatedAt: 0 });
+  state.liveModels = Array.isArray(cache.models) ? cache.models.map(normalizeModel).filter(Boolean) : [];
+  state.favourites = new Set(loadJson(FAV_KEY, []));
+  state.chats = loadJson(CHATS_KEY, []);
+  const currentId = localStorage.getItem(CURRENT_CHAT_KEY);
+  state.currentChat = state.chats.find(c => c.id === currentId) || state.chats[0] || createChat(false);
+  applyTheme();
 }
 
-// ==================== UI HELPERS ====================
-function showToast(message, type='success') {
-  const container = document.getElementById('toastContainer');
-  const toast = document.createElement('div');
-  toast.className = `toast ${type}`;
-  toast.innerHTML = `
-    <svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      ${type === 'success' 
-        ? '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>'
-        : '<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>'}
-    </svg>
-    <span class="toast-text">${escapeHtml(message)}</span>
-  `;
-  container.appendChild(toast);
-  setTimeout(() => toast.remove(), 3000);
+function persistSettings() { saveJson(SETTINGS_KEY, state.settings); }
+function persistChats() { saveJson(CHATS_KEY, state.chats); if (state.currentChat) localStorage.setItem(CURRENT_CHAT_KEY, state.currentChat.id); }
+function persistModels() { saveJson(MODEL_CACHE_KEY, { models: state.liveModels.map(m => m.raw || m), updatedAt: Date.now() }); }
+function persistFavourites() { saveJson(FAV_KEY, [...state.favourites]); }
+
+function formatModelName(id) {
+  const tail = String(id || '').split('/').pop() || 'Unknown model';
+  return tail.replace(/[-_]+/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+    .replace(/\bAi\b/g, 'AI').replace(/\bGpt\b/g, 'GPT').replace(/\bLlm\b/g, 'LLM')
+    .replace(/\bR1\b/g, 'R1').trim();
 }
 
-function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
+function inferCapabilities(id, raw = {}) {
+  const text = `${id} ${raw.id || ''} ${raw.name || ''} ${raw.description || ''} ${raw.owned_by || ''} ${raw.type || ''} ${raw.category || ''}`.toLowerCase();
+  const caps = new Set(['chat', 'live']);
+  if (/deepseek|\br1\b|qwq|reason|thinking|nemotron|llama-3\.1-nemotron/.test(text)) caps.add('reasoning');
+  if (/coder|coding|code|codestral|devstral|program|software/.test(text)) caps.add('coding');
+  if (/research|sonar|retrieval|rag|search/.test(text)) caps.add('research');
+  if (/vision|visual|vl\b|multimodal|maverick|pixtral|ocr|image-to-text|llava/.test(text)) caps.add('vision');
+  if (/image|stable-diffusion|flux|sdxl|generate-image|text-to-image/.test(text)) caps.add('image');
+  if (/speech|audio|voice|whisper|parakeet|tts|asr/.test(text)) caps.add('speech');
+  if (/128k|200k|256k|1m|million|long|kimi|context/.test(text)) caps.add('long');
+  if (/nano|mini|small|fast|flash|7b|8b|9b|12b|phi|gemma-2b/.test(text)) caps.add('fast');
+  if (/free|free_endpoint|free endpoint/.test(text)) caps.add('free');
+  if (/paid|credit|partner|premium/.test(text)) caps.add('paid');
+  if (/enterprise|private|sla/.test(text)) caps.add('enterprise');
+  return [...caps];
 }
 
-function formatTime(date) {
-  return new Date(date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+function normalizeModel(raw) {
+  if (!raw) return null;
+  const obj = typeof raw === 'object' ? raw : { id: raw };
+  const id = obj.id || obj.name || obj.model;
+  if (!id) return null;
+  const caps = inferCapabilities(id, obj);
+  return {
+    id,
+    name: obj.display_name || obj.displayName || obj.title || formatModelName(id),
+    desc: obj.description || obj.owned_by || 'Live NVIDIA model',
+    capabilities: caps,
+    raw: obj
+  };
 }
 
-
-// ==================== API HELPERS ====================
-const NVIDIA_DIRECT_BASE_URL = 'https://integrate.api.nvidia.com/v1';
-
-function normalizeBaseUrl(url) {
-  const clean = (url || '').trim().replace(/\/+$/, '');
-  if (!clean) return '';
-  return clean.endsWith('/v1') ? clean : `${clean}/v1`;
+function getCurrentModel() {
+  return state.liveModels.find(m => m.id === state.settings.currentModelId) || state.liveModels[0] || null;
 }
 
-function getApiBaseUrl(settings = state.settings) {
-  return normalizeBaseUrl(settings.proxyUrl) || NVIDIA_DIRECT_BASE_URL;
+function badgeLabel(cap) {
+  const map = {
+    chat: '💬 Chat', reasoning: '🧠 Reasoning', coding: '💻 Coding', research: '📚 Research', vision: '👁 Vision', image: '🖼️ Image', speech: '🎤 Speech', long: '📄 Long', fast: '⚡ Fast', free: '🟢 Free', paid: '💳 Paid', enterprise: '🏢 Enterprise', live: 'Live'
+  };
+  return map[cap] || cap;
 }
 
-function buildApiUrl(path, settings = state.settings) {
-  const base = getApiBaseUrl(settings);
-  const cleanPath = path.startsWith('/') ? path : `/${path}`;
-  return `${base}${cleanPath}`;
+function capabilityHtml(model) {
+  const order = ['reasoning', 'coding', 'research', 'vision', 'image', 'speech', 'long', 'fast', 'free', 'paid', 'enterprise', 'live'];
+  const caps = order.filter(c => model.capabilities?.includes(c));
+  return `<div class="capability-bar">${caps.map(c => `<span class="capability-tag ${escapeAttr(c)}">${escapeHtml(badgeLabel(c))}</span>`).join('')}</div>`;
 }
 
-function buildApiHeaders(settings = state.settings, includeJson = true) {
-  const headers = {};
-  if (includeJson) headers['Content-Type'] = 'application/json';
-  if (normalizeBaseUrl(settings.proxyUrl)) {
-    headers['x-nvidia-api-key'] = settings.apiKey;
-  } else {
-    headers['Authorization'] = `Bearer ${settings.apiKey}`;
-  }
+function buildApiUrl(path) {
+  const cleanPath = path.startsWith('/v1/') ? path : `/v1${path.startsWith('/') ? path : `/${path}`}`;
+  const proxy = stripSlash(state.settings.proxyUrl);
+  return proxy ? `${proxy}${cleanPath}` : `${NVIDIA_DIRECT_BASE}${cleanPath.replace(/^\/v1/, '')}`;
+}
+
+function apiHeaders(stream = false) {
+  const headers = {
+    'Content-Type': 'application/json',
+    'Accept': stream ? 'text/event-stream' : 'application/json',
+    'Authorization': `Bearer ${state.settings.apiKey || ''}`
+  };
+  if (stripSlash(state.settings.proxyUrl)) headers['X-Nvidia-Api-Key'] = state.settings.apiKey || '';
   return headers;
-}
-
-function getFetchHelp(error) {
-  const msg = String(error?.message || error || 'Unknown error');
-  if (msg.toLowerCase().includes('failed to fetch') || error instanceof TypeError) {
-    return 'Failed to fetch usually means the browser blocked the NVIDIA request, most often because of CORS, or the device is offline. On GitHub Pages/iPhone, add the Cloudflare Worker URL in Settings > API Proxy URL, then test again.';
-  }
-  if (msg.toLowerCase().includes('abort')) {
-    return 'The request timed out. NVIDIA may be slow, the model may be busy, or the network/proxy may be blocked.';
-  }
-  return msg;
 }
 
 async function fetchWithTimeout(url, options = {}, timeoutMs = 45000) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    return await fetch(url, { ...options, signal: controller.signal });
-  } finally {
-    clearTimeout(timer);
-  }
+  try { return await fetch(url, { ...options, signal: controller.signal }); }
+  finally { clearTimeout(timer); }
 }
 
-// ==================== SIDEBAR & TABS ====================
-function toggleSidebar() {
-  document.getElementById('sidebar').classList.toggle('collapsed');
-}
-
-function switchTab(tab) {
-  state.currentTab = tab;
-  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-  document.querySelector(`[data-tab="${tab}"]`)?.classList.add('active');
-
-  const modeIndicator = document.getElementById('modeIndicator');
-  const tabNames = { chat: '', plugins: 'Plugins', slides: 'Slides', websites: 'Websites', docs: 'Docs', research: 'Research', sheets: 'Sheets', agents: 'Agents', code: 'Code', tasks: 'Tasks', claw: 'NemoClaw' };
-
-  if (tab === 'chat') {
-    modeIndicator.style.display = 'none';
-    closePanel();
-  } else if (['plugins','agents','tasks'].includes(tab)) {
-    modeIndicator.textContent = tabNames[tab];
-    modeIndicator.style.display = 'inline-block';
-    openPanel(tab);
-  } else {
-    modeIndicator.textContent = tabNames[tab];
-    modeIndicator.style.display = 'inline-block';
-    closePanel();
-    if (state.messages.length === 0) {
-      showWelcomeForTab(tab);
-    }
-  }
-}
-
-function showWelcomeForTab(tab) {
-  const welcomes = {
-    slides: { title: 'Slide Creator', desc: 'Generate presentation slides with structured content, titles, and speaker notes.', cards: ['Create a pitch deck', 'Generate training slides', 'Build a product roadmap'] },
-    websites: { title: 'Website Builder', desc: 'Generate complete HTML/CSS/JS websites ready to download and deploy.', cards: ['Build a landing page', 'Create a portfolio site', 'Generate a dashboard'] },
-    research: { title: 'Deep Research', desc: 'Conduct thorough analysis with structured reasoning and citations.', cards: ['Analyze market trends', 'Research emerging tech', 'Compare methodologies'] },
-    sheets: { title: 'Data Sheets', desc: 'Generate CSV files, datasets, and structured tables for analysis.', cards: ['Create a sales dataset', 'Generate survey results', 'Build financial projections'] },
-    code: { title: 'NVIDIA Code', desc: 'Expert coding assistance for CUDA, Python, C++, and web development.', cards: ['Write CUDA kernels', 'Debug Python code', 'Build a React app'] },
-    claw: { title: 'NemoClaw', desc: 'Web-aware research and API integration assistant.', cards: ['Analyze API docs', 'Research integrations', 'Build web scrapers'] }
-  };
-  const w = welcomes[tab];
-  if (!w) return;
-
-  const container = document.getElementById('chatMessages');
-  container.innerHTML = `
-    <div class="welcome-screen">
-      <div class="welcome-logo">${tab === 'code' ? '</>' : tab === 'claw' ? '🦞' : '📄'}</div>
-      <div class="welcome-title">${w.title}</div>
-      <div class="welcome-subtitle">${w.desc}</div>
-      <div class="welcome-cards">
-        ${w.cards.map(c => `<div class="welcome-card" onclick="setInput('${c}')"><div class="welcome-card-title">${c}</div><div class="welcome-card-desc">Click to start</div></div>`).join('')}
-      </div>
-    </div>
-  `;
-}
-
-function setInput(text) {
-  const box = document.getElementById('inputBox');
-  box.value = text;
-  autoResize(box);
-  box.focus();
-}
-
-// ==================== CHAT HISTORY ====================
-function loadChatHistory() {
-  try {
-    const saved = localStorage.getItem('nvidia_chats');
-    if (saved) state.chats = JSON.parse(saved);
-  } catch(e) { state.chats = {}; }
-  renderChatHistory();
-}
-
-function saveChatHistory() {
-  localStorage.setItem('nvidia_chats', JSON.stringify(state.chats));
-  renderChatHistory();
-}
-
-function renderChatHistory() {
-  const container = document.getElementById('chatHistory');
-  const chats = Object.entries(state.chats).sort((a,b) => b[1].updated - a[1].updated);
-  container.innerHTML = chats.map(([id, chat]) => `
-    <div class="chat-history-item ${id === state.currentChatId ? 'active' : ''}" onclick="loadChat('${id}')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-      ${escapeHtml(chat.title || 'New Chat')}
-    </div>
-  `).join('');
+function createChat(persist = true) {
+  const chat = { id: uid('chat'), title: 'New Chat', createdAt: Date.now(), messages: [] };
+  state.chats.unshift(chat);
+  if (persist) persistChats();
+  return chat;
 }
 
 function newChat() {
-  const id = 'chat_' + Date.now();
-  state.currentChatId = id;
-  state.messages = [];
-  state.chats[id] = { id, title: 'New Chat', created: Date.now(), updated: Date.now(), messages: [] };
-  saveChatHistory();
-  renderMessages();
-  document.getElementById('chatTitle').textContent = 'NVIDIA AI Chat';
-  document.getElementById('inputBox').focus();
+  state.currentChat = createChat();
+  state.editingMessageId = null;
+  renderAll();
 }
 
-function loadChat(id) {
-  if (!state.chats[id]) return;
-  state.currentChatId = id;
-  state.messages = state.chats[id].messages || [];
-  renderMessages();
-  renderChatHistory();
-  document.getElementById('chatTitle').textContent = state.chats[id].title || 'NVIDIA AI Chat';
+function renderModeNav() {
+  const el = document.getElementById('modeNav');
+  if (!el) return;
+  el.innerHTML = MODES.map(m => `
+    <div class="nav-item ${state.settings.currentMode === m.key ? 'active' : ''}" onclick="setMode('${m.key}')" title="${escapeAttr(m.short)}">
+      <span style="width:18px;text-align:center;">${m.icon}</span>${escapeHtml(m.label)}
+    </div>`).join('');
 }
 
-function updateChatTitle() {
-  if (!state.currentChatId || state.messages.length < 2) return;
-  const firstUser = state.messages.find(m => m.role === 'user');
-  if (firstUser) {
-    const title = firstUser.content.substring(0, 40) + (firstUser.content.length > 40 ? '...' : '');
-    state.chats[state.currentChatId].title = title;
-    document.getElementById('chatTitle').textContent = title;
-    saveChatHistory();
-  }
+function setMode(modeKey) {
+  state.settings.currentMode = modeKey;
+  persistSettings();
+  updateModeIndicator();
+  renderModeNav();
+  updateStatus();
+  showToast(`Mode changed to ${getMode().label}`);
 }
 
-// ==================== MESSAGE RENDERING ====================
+function getMode() { return MODES.find(m => m.key === state.settings.currentMode) || MODES[0]; }
+function getAgent() { return AGENTS.find(a => a.key === state.settings.currentAgent) || AGENTS[0]; }
+
+function updateModeIndicator() {
+  const mode = getMode();
+  const el = document.getElementById('modeIndicator');
+  if (el) { el.style.display = 'inline-block'; el.textContent = `${mode.icon} ${mode.label}`; }
+  const title = document.getElementById('chatTitle');
+  if (title) title.textContent = `${mode.label} Mode`;
+}
+
+function renderChatHistory() {
+  const el = document.getElementById('chatHistory');
+  if (!el) return;
+  if (!state.chats.length) { el.innerHTML = ''; return; }
+  el.innerHTML = state.chats.slice(0, 40).map(chat => `
+    <div class="chat-history-item ${state.currentChat?.id === chat.id ? 'active' : ''}" onclick="selectChat('${chat.id}')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      ${escapeHtml(chat.title || 'New Chat')}
+    </div>`).join('');
+}
+
+function selectChat(id) {
+  const chat = state.chats.find(c => c.id === id);
+  if (!chat) return;
+  state.currentChat = chat;
+  state.editingMessageId = null;
+  persistChats();
+  renderAll();
+}
+
+function welcomeHtml() {
+  return `<div class="welcome-screen">
+    <div class="welcome-logo">🟢</div>
+    <div class="welcome-title">NVIDIA AI Desktop</div>
+    <div class="welcome-subtitle">Use your NVIDIA Build key with live model loading, favourites, streaming, modes, editing, regeneration and downloads.</div>
+    <div class="welcome-cards">
+      <div class="welcome-card" onclick="openSettings()"><div class="welcome-card-title">1. Settings</div><div class="welcome-card-desc">Add API key and Worker URL.</div></div>
+      <div class="welcome-card" onclick="refreshModelsFromNvidia(true)"><div class="welcome-card-title">2. Refresh Models</div><div class="welcome-card-desc">Load live NVIDIA models.</div></div>
+      <div class="welcome-card" onclick="openHelpPanel()"><div class="welcome-card-title">3. Help</div><div class="welcome-card-desc">See what modes and badges do.</div></div>
+    </div>
+  </div>`;
+}
+
 function renderMessages() {
   const container = document.getElementById('chatMessages');
-  if (state.messages.length === 0) {
-    showWelcomeScreen();
-    return;
-  }
-
-  container.innerHTML = state.messages.map((msg, idx) => renderMessage(msg, idx)).join('');
-  scrollToBottom();
+  if (!container || !state.currentChat) return;
+  if (!state.currentChat.messages.length) { container.innerHTML = welcomeHtml(); return; }
+  container.innerHTML = state.currentChat.messages.map((m, idx) => messageHtml(m, idx)).join('');
+  scrollToBottom(false);
 }
 
-function showWelcomeScreen() {
-  const container = document.getElementById('chatMessages');
-  container.innerHTML = `
-    <div class="welcome-screen">
-      <div class="welcome-logo">🟢</div>
-      <div class="welcome-title">NVIDIA AI Desktop</div>
-      <div class="welcome-subtitle">Powered by NVIDIA NIM. Refresh the model list to load the models available to your API key.</div>
-      <div class="welcome-cards">
-        <div class="welcome-card" onclick="setInput('Explain NVIDIA NIM pricing')">
-          <div class="welcome-card-title">NVIDIA NIM</div>
-          <div class="welcome-card-desc">Learn about NIM pricing and models</div>
-        </div>
-        <div class="welcome-card" onclick="setInput('Write a Python script to...')">
-          <div class="welcome-card-title">Code Assistant</div>
-          <div class="welcome-card-desc">Generate code with file downloads</div>
-        </div>
-        <div class="welcome-card" onclick="setInput('Create a presentation about...')">
-          <div class="welcome-card-title">Slide Creator</div>
-          <div class="welcome-card-desc">Generate structured slide content</div>
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-function renderMessage(msg, idx) {
-  if (msg.role === 'system') return '';
-
-  const isUser = msg.role === 'user';
-  const avatar = isUser ? 'U' : '🟢';
-  const avatarClass = isUser ? 'user' : 'assistant';
-  const author = isUser ? 'You' : 'NVIDIA AI';
-  const time = formatTime(msg.timestamp || Date.now());
-
-  let body = '';
-  if (msg.thinking && state.settings.streamThinking === 'yes') {
-    body += `<div class="thinking-block expanded" onclick="this.classList.toggle('expanded')">
-      <div class="thinking-header">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
-        <span class="thinking-title">Thinking</span>
-        <span class="thinking-toggle">Hide</span>
-      </div>
-      <div class="thinking-body">${escapeHtml(msg.thinking)}</div>
-    </div>`;
-  }
-
-  if (msg.content) {
-    body += `<div class="message-body">${markdownToHtml(msg.content)}</div>`;
-  }
-
-  if (msg.files && msg.files.length > 0) {
-    body += `<div class="file-cards">${msg.files.map(f => renderFileCard(f, idx)).join('')}</div>`;
-  }
-
-  if (msg.imageUrl) {
-    body += `<img src="${msg.imageUrl}" class="generated-image" alt="Generated image" onclick="window.open(this.src)">
-    <div class="image-actions">
-      <button class="image-action-btn primary" onclick="downloadImage('${msg.imageUrl}', 'generated-image.png')">Download PNG</button>
-      <button class="image-action-btn" onclick="copyImage('${msg.imageUrl}')">Copy</button>
-    </div>`;
-  }
-
-  return `<div class="message" data-idx="${idx}">
-    <div class="message-avatar ${avatarClass}">${avatar}</div>
+function messageHtml(m, idx) {
+  const isUser = m.role === 'user';
+  const avatar = isUser ? (state.settings.userName || 'U').slice(0, 1).toUpperCase() : '🟢';
+  const author = isUser ? (state.settings.userName || 'User') : 'NVIDIA AI';
+  const content = m.loading && !m.content ? thinkingHtml() : renderMarkdown(m.content || '');
+  const attachments = isUser ? attachmentSummaryHtml(m.attachments || []) : '';
+  const thinking = m.thinking ? `<div class="thinking-block expanded"><div class="thinking-header"><span>🧠</span><div class="thinking-title">Thinking</div></div><div class="thinking-body" style="display:block;">${escapeHtml(m.thinking)}</div></div>` : '';
+  return `<div class="message" id="msg_${escapeAttr(m.id)}">
+    <div class="message-avatar ${isUser ? 'user' : 'assistant'}">${escapeHtml(avatar)}</div>
     <div class="message-content">
-      <div class="message-header">
-        <span class="message-author">${author}</span>
-        <span class="message-time">${time}</span>
-      </div>
-      ${body}
+      <div class="message-header"><div class="message-author">${escapeHtml(author)}</div><div class="message-time">${escapeHtml(m.time || '')}</div>${m.model ? `<div class="message-time">${escapeHtml(m.model)}</div>` : ''}</div>
+      <div class="message-body" id="body_${escapeAttr(m.id)}">${thinking}${content}${attachments}</div>
+      ${messageActions(m, idx)}
     </div>
   </div>`;
 }
 
-function renderFileCard(file, msgIdx) {
-  const ext = file.name.split('.').pop().toLowerCase();
-  const icons = { py: '🐍', js: '📜', html: '🌐', css: '🎨', json: '📋', md: '📝', csv: '📊', txt: '📄', cpp: '⚙️', c: '⚙️', h: '📋', java: '☕', go: '🐹', rs: '⚙️', ts: '📘', jsx: '⚛️', tsx: '⚛️', vue: '💚', php: '🐘', rb: '💎', swift: '🦅', kt: '🟣', sql: '🗄️', sh: '💻', ps1: '💻', bat: '💻', xml: '📋', yaml: '📋', yml: '📋' };
-  const icon = icons[ext] || '📄';
-
-  return `<div class="file-card">
-    <div class="file-icon">${icon}</div>
-    <div class="file-info">
-      <div class="file-name">${escapeHtml(file.name)}</div>
-      <div class="file-desc">${file.size || 'Click to download'}</div>
-    </div>
-    <div class="file-actions">
-      <button class="file-btn" onclick="previewFile(${msgIdx}, '${escapeHtml(file.name)}')">Preview</button>
-      <button class="file-btn primary" onclick="downloadFile(${msgIdx}, '${escapeHtml(file.name)}')">Download</button>
-    </div>
-  </div>`;
+function thinkingHtml() {
+  if (!state.settings.showThinking) return '';
+  return `<span class="thinking-line">Thinking <span class="thinking-dots"><span></span><span></span><span></span></span></span>`;
 }
 
-// ==================== MARKDOWN PARSER ====================
-function markdownToHtml(text) {
-  if (!text) return '';
-
-  const codeBlocks = [];
-
-  // Pull code blocks out first so later markdown replacements don't damage them.
-  text = String(text).replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
-    const language = lang || 'text';
-    const fileName = detectFileName(code, language);
-    const escapedCode = escapeHtml(code.trim());
-
-    if (fileName && state.settings.autoDownload === 'always') {
-      setTimeout(() => createFileDownload(fileName, code.trim(), language), 100);
-    }
-
-    const html = `<div class="code-block-wrapper">
-      <div class="code-block-header">
-        <span class="code-lang">${escapeHtml(language)}</span>
-        <div class="code-actions">
-          <button class="code-action-btn" onclick="copyCode(this)">Copy</button>
-          <button class="code-action-btn" onclick="downloadCodeBlock(this, '${escapeHtml(language)}')">Download</button>
-        </div>
-      </div>
-      <pre><code>${escapedCode}</code></pre>
+function messageActions(m, idx) {
+  if (m.loading) return '';
+  if (m.role === 'user') {
+    return `<div class="message-actions">
+      <button class="message-action" onclick="editUserMessage('${escapeJsString(m.id)}')">Edit</button>
+      <button class="message-action" onclick="copyMessage('${escapeJsString(m.id)}')">Copy</button>
     </div>`;
+  }
+  return `<div class="message-actions">
+    <button class="message-action" onclick="regenerateResponse('${escapeJsString(m.id)}')">Regenerate</button>
+    <button class="message-action" onclick="copyMessage('${escapeJsString(m.id)}')">Copy</button>
+    <button class="message-action" onclick="downloadMessage('${escapeJsString(m.id)}')">Download</button>
+  </div>`;
+}
 
-    codeBlocks.push(html);
+function renderMarkdown(text) {
+  let src = String(text || '');
+  const codeBlocks = [];
+  src = src.replace(/```([^\n`]*)\n([\s\S]*?)```/g, (_, langRaw, codeRaw) => {
+    const lang = (langRaw || '').trim() || 'text';
+    let code = codeRaw.replace(/\n$/, '');
+    let filename = '';
+    const firstLine = code.split(/\r?\n/)[0] || '';
+    const match = firstLine.match(/^\s*(?:filename|file|path)\s*:\s*(.+?)\s*$/i);
+    if (match) {
+      filename = match[1].trim();
+      code = code.split(/\r?\n/).slice(1).join('\n');
+    } else {
+      filename = inferFilename(lang);
+    }
+    const id = uid('code');
+    codeBlocks.push({ id, lang, code, filename });
     return `@@CODEBLOCK_${codeBlocks.length - 1}@@`;
   });
-
-  text = escapeHtml(text);
-
-  text = text.replace(/^###### (.*)$/gim, '<h6>$1</h6>');
-  text = text.replace(/^##### (.*)$/gim, '<h5>$1</h5>');
-  text = text.replace(/^#### (.*)$/gim, '<h4>$1</h4>');
-  text = text.replace(/^### (.*)$/gim, '<h3>$1</h3>');
-  text = text.replace(/^## (.*)$/gim, '<h2>$1</h2>');
-  text = text.replace(/^# (.*)$/gim, '<h1>$1</h1>');
-
-  text = text.replace(/\*\*\*(.*?)\*\*\*/g, '<strong><em>$1</em></strong>');
-  text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-  text = text.replace(/__(.*?)__/g, '<strong>$1</strong>');
-  text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
-  text = text.replace(/_(.*?)_/g, '<em>$1</em>');
-  text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
-  text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
-  text = text.replace(/^&gt; (.*)$/gim, '<blockquote>$1</blockquote>');
-
-  text = text.split(/\n{2,}/).map(block => {
-    block = block.trim();
-    if (!block) return '';
-    if (/^<(h[1-6]|ul|ol|blockquote|table|div)\b/i.test(block)) return block;
-
-    const unordered = block.split('\n').filter(line => /^\s*[-*+]\s+/.test(line));
-    if (unordered.length && unordered.length === block.split('\n').length) {
-      return '<ul>' + unordered.map(line => `<li>${line.replace(/^\s*[-*+]\s+/, '')}</li>`).join('') + '</ul>';
-    }
-
-    const ordered = block.split('\n').filter(line => /^\s*\d+\.\s+/.test(line));
-    if (ordered.length && ordered.length === block.split('\n').length) {
-      return '<ol>' + ordered.map(line => `<li>${line.replace(/^\s*\d+\.\s+/, '')}</li>`).join('') + '</ol>';
-    }
-
-    return '<p>' + block.replace(/\n/g, '<br>') + '</p>';
-  }).join('');
-
-  text = text.replace(/@@CODEBLOCK_(\d+)@@/g, (match, i) => codeBlocks[Number(i)] || '');
-
-  return text;
+  let html = escapeHtml(src)
+    .replace(/^### (.*)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.*)$/gm, '<h2>$1</h2>')
+    .replace(/^# (.*)$/gm, '<h1>$1</h1>')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\n/g, '<br>');
+  html = html.replace(/@@CODEBLOCK_(\d+)@@/g, (_, n) => codeBlockHtml(codeBlocks[Number(n)]));
+  return html;
 }
 
-function detectFileName(code, lang) {
-  // Try to detect filename from comments or content patterns
-  const patterns = [
-    /filename[:\s]+["']?([^"'\n]+)["']?/i,
-    /save as[:\s]+["']?([^"'\n]+)["']?/i,
-    /#\s*File:\s*([^\n]+)/i,
-    /\/\/\s*File:\s*([^\n]+)/i,
-    /<!--\s*File:\s*([^\n]+)-->/i
-  ];
-  for (const p of patterns) {
-    const m = code.match(p);
-    if (m) return m[1].trim();
-  }
-
-  // Detect by shebang or content
-  if (lang === 'python' || code.includes('def ') || code.includes('import ')) return 'script.py';
-  if (lang === 'javascript' || code.includes('function ') || code.includes('const ')) return 'script.js';
-  if (lang === 'html' || code.includes('<!DOCTYPE')) return 'index.html';
-  if (lang === 'css' || code.includes('{') && code.includes(':') && !code.includes('function')) return 'styles.css';
-  if (lang === 'cpp' || code.includes('#include')) return 'main.cpp';
-  if (lang === 'java' || code.includes('public class')) return 'Main.java';
-  if (lang === 'json' || code.trim().startsWith('{')) return 'data.json';
-  if (lang === 'markdown' || code.includes('# ')) return 'document.md';
-  if (lang === 'sql' || code.includes('SELECT')) return 'query.sql';
-
-  return null;
+function inferFilename(lang) {
+  const ext = { javascript: 'js', js: 'js', typescript: 'ts', ts: 'ts', python: 'py', py: 'py', html: 'html', css: 'css', json: 'json', markdown: 'md', md: 'md', bash: 'sh', shell: 'sh', powershell: 'ps1', ps1: 'ps1', sql: 'sql', csv: 'csv', text: 'txt' }[String(lang || '').toLowerCase()] || 'txt';
+  return `response.${ext}`;
 }
 
-
-// ==================== FILE DOWNLOADS ====================
-function isIOSDevice() {
-  return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+function codeBlockHtml(block) {
+  if (!block) return '';
+  const encoded = btoa(unescape(encodeURIComponent(JSON.stringify({ code: block.code, filename: block.filename }))));
+  return `<div class="code-block-wrapper">
+    <div class="code-block-header"><div><span class="code-lang">${escapeHtml(block.lang)}</span><span class="code-download-name">${escapeHtml(block.filename)}</span></div><div class="code-actions"><button class="code-action-btn" onclick="copyEncodedCode('${encoded}')">Copy</button>${state.settings.plugins.downloadButtons ? `<button class="code-action-btn" onclick="downloadEncodedCode('${encoded}')">Download</button>` : ''}</div></div>
+    <pre><code>${escapeHtml(block.code)}</code></pre>
+  </div>`;
 }
 
-function saveBlob(blob, name) {
+function getMessage(id) { return state.currentChat?.messages.find(m => m.id === id); }
+function getMessageIndex(id) { return state.currentChat?.messages.findIndex(m => m.id === id) ?? -1; }
+
+async function copyMessage(id) {
+  const m = getMessage(id); if (!m) return;
+  await navigator.clipboard?.writeText(m.content || '');
+  showToast('Copied');
+}
+function downloadMessage(id) {
+  const m = getMessage(id); if (!m) return;
+  downloadText(`${m.role}-message.md`, m.content || '');
+}
+function copyEncodedCode(encoded) {
+  const data = JSON.parse(decodeURIComponent(escape(atob(encoded))));
+  navigator.clipboard?.writeText(data.code || '');
+  showToast('Code copied');
+}
+function downloadEncodedCode(encoded) {
+  const data = JSON.parse(decodeURIComponent(escape(atob(encoded))));
+  downloadText(data.filename || 'response.txt', data.code || '');
+}
+function downloadText(filename, text) {
+  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url;
-  a.download = name;
-  a.rel = 'noopener';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 1500);
-  showToast(isIOSDevice() ? `${name} ready. Use Share > Save to Files if iOS opens a preview.` : `Downloaded ${name}`);
+  a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-function createFileDownload(name, content, type='text/plain') {
-  const blob = new Blob([content], { type });
-  saveBlob(blob, name);
+
+function formatBytes(bytes) {
+  const n = Number(bytes || 0);
+  if (!n) return '0 B';
+  const units = ['B', 'KB', 'MB'];
+  let value = n;
+  let idx = 0;
+  while (value >= 1024 && idx < units.length - 1) { value /= 1024; idx++; }
+  return `${value.toFixed(value >= 10 || idx === 0 ? 0 : 1)} ${units[idx]}`;
 }
 
-function downloadFile(msgIdx, fileName) {
-  const msg = state.messages[msgIdx];
-  if (!msg || !msg.files) return;
-  const file = msg.files.find(f => f.name === fileName);
-  if (file) {
-    createFileDownload(file.name, file.content, file.type || 'text/plain');
-  }
+function isSupportedTextFile(file) {
+  const name = String(file?.name || '').toLowerCase();
+  const type = String(file?.type || '').toLowerCase();
+  return type.startsWith('text/') || /\.(txt|md|markdown|json|csv|tsv|py|js|jsx|ts|tsx|html|css|scss|xml|yaml|yml|toml|ini|cfg|conf|log|ps1|bat|cmd|sh|sql|java|c|cpp|h|hpp|cs|go|rs|php|rb|swift|kt|dockerfile|env)$/i.test(name);
 }
 
-function previewFile(msgIdx, fileName) {
-  const msg = state.messages[msgIdx];
-  if (!msg || !msg.files) return;
-  const file = msg.files.find(f => f.name === fileName);
-  if (file) {
-    const preview = window.open('', '_blank');
-    preview.document.write(`
-      <!DOCTYPE html>
-      <html><head><title>${file.name}</title>
-      <style>body{background:#0d0d0d;color:#e8e8e8;font-family:monospace;padding:20px;white-space:pre-wrap;word-wrap:break-word;line-height:1.6;}</style>
-      </head><body><h2>${file.name}</h2><hr>${escapeHtml(file.content)}</body></html>
-    `);
-  }
-}
-
-async function copyText(text) {
-  if (navigator.clipboard && window.isSecureContext) {
-    await navigator.clipboard.writeText(text);
-    return;
-  }
-  const textarea = document.createElement('textarea');
-  textarea.value = text;
-  textarea.style.position = 'fixed';
-  textarea.style.opacity = '0';
-  document.body.appendChild(textarea);
-  textarea.focus();
-  textarea.select();
-  document.execCommand('copy');
-  document.body.removeChild(textarea);
-}
-
-function copyCode(btn) {
-  const code = btn.closest('.code-block-wrapper').querySelector('code').textContent;
-  copyText(code).then(() => {
-    showToast('Code copied to clipboard');
-    btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Copied';
-    setTimeout(() => {
-      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy';
-    }, 2000);
-  }).catch(() => showToast('Copy failed', 'error'));
-}
-
-function downloadCodeBlock(btn, lang) {
-  const code = btn.closest('.code-block-wrapper').querySelector('code').textContent;
-  const extMap = { python: 'py', javascript: 'js', html: 'html', css: 'css', json: 'json', markdown: 'md', cpp: 'cpp', java: 'java', typescript: 'ts', sql: 'sql', bash: 'sh', powershell: 'ps1', yaml: 'yaml', xml: 'xml' };
-  const ext = extMap[lang] || 'txt';
-  createFileDownload(`code.${ext}`, code);
-}
-
-function downloadImage(url, name) {
-  fetch(url).then(r => r.blob()).then(blob => saveBlob(blob, name || 'image.png'));
-}
-
-function copyImage(url) {
-  fetch(url).then(r => r.blob()).then(blob => {
-    navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]).then(() => {
-      showToast('Image copied to clipboard');
-    });
-  });
-}
-
-// ==================== MODEL SELECTOR ====================
-let currentModelTab = 'free';
-
-function toggleModelDropdown() {
-  const dd = document.getElementById('modelDropdown');
-  dd.classList.toggle('open');
-  if (dd.classList.contains('open')) {
-    renderModelList(currentModelTab);
-    updateModelMeta();
-  }
-}
-
-function switchModelTab(tab, ev) {
-  currentModelTab = tab;
-  document.querySelectorAll('.model-tab').forEach(t => t.classList.remove('active'));
-  const target = ev?.currentTarget || document.querySelector(`.model-tab[onclick*="${tab}"]`);
-  target?.classList.add('active');
-  renderModelList(tab);
-}
-
-function renderModelList(tier) {
-  const list = document.getElementById('modelList');
-  if (!list) return;
-  const search = (document.getElementById('modelSearch')?.value || '').toLowerCase().trim();
-
-  let models = getModelsForTab(tier);
-  if (search) {
-    models = models.filter(m =>
-      m.name.toLowerCase().includes(search) ||
-      m.id.toLowerCase().includes(search) ||
-      (m.desc || '').toLowerCase().includes(search) ||
-      (m.tags || []).join(' ').toLowerCase().includes(search)
-    );
-  }
-
-  updateModelMeta();
-
-  if (!models.length) {
-    list.innerHTML = `<div class="empty-state">
-      <div class="empty-state-icon">🔎</div>
-      <div class="empty-state-title">No models in this tab</div>
-      <div class="empty-state-desc">Use All or Live, or click Refresh after saving/testing your NVIDIA key.</div>
-    </div>`;
-    return;
-  }
-
-  list.innerHTML = models.map(m => `
-    <div class="model-item ${state.currentModel.id === m.id ? 'selected' : ''}" onclick="selectModel('${escapeJsString(m.id)}')">
-      <div class="model-item-info">
-        <div class="model-item-name">${escapeHtml(m.name)}</div>
-        <div class="model-item-desc">${escapeHtml(m.desc || m.id)}</div>
-        <div class="model-item-desc"><code>${escapeHtml(m.id)}</code></div>
+function renderPendingAttachments() {
+  const el = document.getElementById('pendingAttachments');
+  if (!el) return;
+  if (!state.pendingAttachments.length) { el.innerHTML = ''; el.style.display = 'none'; return; }
+  el.style.display = 'flex';
+  el.innerHTML = state.pendingAttachments.map(att => `
+    <div class="attachment-chip" title="${escapeAttr(att.name)}">
+      <span class="attachment-icon">📎</span>
+      <div class="attachment-info">
+        <div class="attachment-name">${escapeHtml(att.name)}</div>
+        <div class="attachment-meta">${escapeHtml(att.language || 'text')} • ${escapeHtml(formatBytes(att.size))}</div>
       </div>
-      <div class="model-item-tags">
-        ${(m.tags || []).map(t => `<span class="model-item-tag tag-${escapeHtml(t)}">${escapeHtml(t)}</span>`).join('')}
-      </div>
-    </div>
-  `).join('');
+      <button class="attachment-remove" type="button" onclick="removePendingAttachment('${escapeJsString(att.id)}')" title="Remove attachment">×</button>
+    </div>`).join('');
 }
 
-function filterModels(query) {
-  renderModelList(currentModelTab);
-}
-
-function selectModel(id) {
-  const model = appModels.find(m => m.id === id);
-  if (model) {
-    state.currentModel = model;
-    updateSelectedModelLabel();
-    document.getElementById('modelDropdown').classList.remove('open');
-    showToast(`Switched to ${model.name}`);
-  }
-}
-
-// ==================== INPUT HANDLING ====================
-function handleKeydown(e) {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault();
-    sendMessage();
-  }
-  if (e.ctrlKey && e.key === 'k') {
-    e.preventDefault();
-    newChat();
-  }
-}
-
-function autoResize(textarea) {
-  textarea.style.height = 'auto';
-  textarea.style.height = Math.min(textarea.scrollHeight, 200) + 'px';
+function removePendingAttachment(id) {
+  state.pendingAttachments = state.pendingAttachments.filter(a => a.id !== id);
+  renderPendingAttachments();
   updateSendButton();
+}
+
+function clearPendingAttachments() {
+  state.pendingAttachments = [];
+  renderPendingAttachments();
+  updateSendButton();
+}
+
+function attachmentSummaryHtml(attachments = []) {
+  if (!attachments.length) return '';
+  return `<div class="message-attachments">${attachments.map(att => `
+    <div class="message-attachment-card">
+      <span>📎</span>
+      <div><strong>${escapeHtml(att.name)}</strong><br><small>${escapeHtml(att.language || 'text')} • ${escapeHtml(formatBytes(att.size))}</small></div>
+    </div>`).join('')}</div>`;
+}
+
+function attachmentPromptText(attachments = []) {
+  if (!attachments.length || !state.settings.plugins.fileReader) return '';
+  return attachments.map(att => {
+    const content = String(att.content || '').slice(0, 200000);
+    const truncated = String(att.content || '').length > content.length ? '\n\n[File truncated to 200,000 characters.]' : '';
+    return `\n\n[Attached file: ${att.name}\nType: ${att.type || 'text/plain'}\nSize: ${formatBytes(att.size)}]\n\n\`\`\`${att.language || 'text'}\n${content}${truncated}\n\`\`\``;
+  }).join('');
 }
 
 function updateSendButton() {
+  const input = document.getElementById('inputBox');
   const btn = document.getElementById('sendBtn');
-  const box = document.getElementById('inputBox');
-  btn.disabled = !box.value.trim() || state.isStreaming;
+  if (!btn || !input) return;
+  const hasText = !!input.value.trim();
+  const hasFiles = state.pendingAttachments.length > 0;
+  btn.disabled = state.isBusy || (!hasText && !hasFiles) || !state.settings.apiKey || !getCurrentModel();
 }
 
-function handleFileSelect(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-
-  const reader = new FileReader();
-  reader.onload = (ev) => {
-    const content = ev.target.result;
-    const box = document.getElementById('inputBox');
-    box.value += (box.value ? '\n\n' : '') + `[Attached: ${file.name}]\n\n${content}`;
-    autoResize(box);
-    showToast(`Attached ${file.name}`);
-  };
-  reader.readAsText(file);
+function handleKeydown(event) {
+  if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); sendMessage(); }
 }
+function autoResize(el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 200) + 'px'; }
+function scrollToBottom(smooth = true) { const c = document.getElementById('chatContainer'); if (c) c.scrollTo({ top: c.scrollHeight, behavior: smooth ? 'smooth' : 'auto' }); }
 
-// ==================== VOICE INPUT ====================
-function setupVoiceRecognition() {
-  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) return;
+async function sendMessage(overrideText = null) {
+  if (state.isBusy) return;
+  const input = document.getElementById('inputBox');
+  let text = String(overrideText ?? input?.value ?? '').trim();
+  const attachments = overrideText === null ? state.pendingAttachments.map(a => ({ ...a })) : [];
+  if (!text && attachments.length) text = 'Please review the attached file(s).';
+  if (!text && !attachments.length) return;
+  if (!state.settings.apiKey) { showToast('Add your NVIDIA API key in Settings first.', 'error'); openSettings(); return; }
+  const model = getCurrentModel();
+  if (!model) { showToast('Refresh and select a live NVIDIA model first.', 'error'); toggleModelDropdown(); return; }
 
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  state.recognition = new SpeechRecognition();
-  state.recognition.continuous = false;
-  state.recognition.interimResults = true;
-
-  state.recognition.onresult = (e) => {
-    const transcript = Array.from(e.results).map(r => r[0].transcript).join('');
-    const box = document.getElementById('inputBox');
-    box.value = transcript;
-    autoResize(box);
-  };
-
-  state.recognition.onend = () => {
-    state.voiceRecording = false;
-    document.getElementById('voiceBtn').classList.remove('recording');
-  };
-
-  state.recognition.onerror = () => {
-    state.voiceRecording = false;
-    document.getElementById('voiceBtn').classList.remove('recording');
-    showToast('Voice input error', 'error');
-  };
-}
-
-function toggleVoiceInput() {
-  if (!state.recognition) {
-    showToast('Voice input is not supported in this browser. It may not work on iOS Safari/Chrome.', 'error');
-    return;
-  }
-
-  if (state.voiceRecording) {
-    state.recognition.stop();
-    state.voiceRecording = false;
-    document.getElementById('voiceBtn').classList.remove('recording');
+  let userMsg;
+  if (state.editingMessageId) {
+    const idx = getMessageIndex(state.editingMessageId);
+    if (idx >= 0) {
+      userMsg = state.currentChat.messages[idx];
+      userMsg.content = text;
+      userMsg.attachments = attachments.length ? attachments : (userMsg.attachments || []);
+      userMsg.time = nowTime();
+      state.currentChat.messages = state.currentChat.messages.slice(0, idx + 1);
+    }
+    cancelEdit(false);
   } else {
-    state.recognition.lang = state.settings.voiceLang;
-    state.recognition.start();
-    state.voiceRecording = true;
-    document.getElementById('voiceBtn').classList.add('recording');
-    showToast('Listening...');
-  }
-}
-
-function toggleImageGenMode() {
-  state.imageGenMode = !state.imageGenMode;
-  const btn = document.getElementById('imageGenBtn');
-  btn.classList.toggle('active', state.imageGenMode);
-  showToast(state.imageGenMode ? 'Image generation mode ON' : 'Image generation mode OFF');
-}
-
-// ==================== SEND MESSAGE ====================
-async function sendMessage() {
-  const box = document.getElementById('inputBox');
-  const content = box.value.trim();
-  if (!content || state.isStreaming) return;
-
-  if (!state.settings.apiKey) {
-    showToast('Please set your API key in Settings first', 'error');
-    openSettings();
-    return;
+    userMsg = { id: uid('msg'), role: 'user', content: text, attachments, time: nowTime() };
+    state.currentChat.messages.push(userMsg);
   }
 
-  // Add user message
-  const userMsg = { role: 'user', content, timestamp: Date.now() };
-  state.messages.push(userMsg);
-  saveCurrentChat();
-  renderMessages();
-  updateChatTitle();
+  if (input && overrideText === null) { input.value = ''; autoResize(input); clearPendingAttachments(); }
+  if (state.currentChat.messages.filter(m => m.role === 'user').length === 1) state.currentChat.title = text.slice(0, 42) || 'New Chat';
 
-  box.value = '';
-  box.style.height = 'auto';
+  const assistantMsg = { id: uid('msg'), role: 'assistant', content: '', thinking: '', loading: true, time: nowTime(), model: model.name, mode: getMode().key };
+  state.currentChat.messages.push(assistantMsg);
+  persistChats();
+  state.isBusy = true;
+  renderAll();
   updateSendButton();
 
-  // Show typing indicator
-  showTypingIndicator();
-
-  // Build messages array
-  const systemPrompt = buildSystemPrompt();
-  const messages = [
-    { role: 'system', content: systemPrompt },
-    ...state.messages.filter(m => m.role !== 'system').map(m => ({ role: m.role, content: m.content }))
-  ];
-
-  // Call API
   try {
-    state.isStreaming = true;
-    updateSendButton();
-
-    const response = await fetchWithTimeout(buildApiUrl('/chat/completions'), {
-      method: 'POST',
-      headers: buildApiHeaders(),
-      body: JSON.stringify({
-        model: state.currentModel.id,
-        messages: messages,
-        temperature: parseFloat(state.settings.temperature),
-        max_tokens: parseInt(state.settings.maxTokens),
-        stream: true
-      })
-    });
-
-    if (!response.ok) {
-      const err = await response.text();
-      throw new Error(`API Error: ${response.status} - ${err}`);
-    }
-
-    hideTypingIndicator();
-    await streamResponse(response);
-
+    await requestAssistantResponse(assistantMsg.id);
   } catch (err) {
-    hideTypingIndicator();
-    state.isStreaming = false;
-    updateSendButton();
-    const friendlyError = getFetchHelp(err);
-    showToast(friendlyError, 'error');
-
-    // Add error message
-    state.messages.push({
-      role: 'assistant',
-      content: `Error: ${friendlyError}
-
-What to try:
-1. Open Settings and click Test Connection.
-2. If direct mode says Failed to fetch, deploy the included Cloudflare Worker and paste its URL into API Proxy URL.
-3. Check the selected model is available on your NVIDIA account.`,
-      timestamp: Date.now()
-    });
-    saveCurrentChat();
+    const msg = getMessage(assistantMsg.id);
+    if (msg) msg.content = `Error: ${friendlyError(err)}`;
+    showToast('Request failed', 'error');
+  } finally {
+    const msg = getMessage(assistantMsg.id);
+    if (msg) msg.loading = false;
+    state.isBusy = false;
+    persistChats();
     renderMessages();
+    updateSendButton();
   }
 }
 
-function buildSystemPrompt() {
-  const base = SYSTEM_PROMPTS[state.currentTab] || SYSTEM_PROMPTS.chat;
-  const agent = AGENTS[state.currentAgent];
-
-  let prompt = base;
-  if (agent && state.currentAgent !== 'general') {
-    prompt += `\n\nYou are currently acting as: ${agent.name} (${agent.role}). ${agent.desc}.`;
-  }
-
-  if (state.plugins.thinkingMode) {
-    prompt += '\n\nWhen reasoning through complex problems, show your thinking process clearly.';
-  }
-
-  if (state.plugins.longContext) {
-    prompt += '\n\nYou have access to extended context. Provide thorough, detailed responses.';
-  }
-
-  if (state.plugins.autoDownload) {
-    prompt += '\n\nWhen generating code or files, always provide them as downloadable file cards with clear filenames, not just pasted code blocks.';
-  }
-
-  if (state.currentTab === 'websites') {
-    prompt += '\n\nWhen building websites, generate complete, self-contained HTML files with embedded CSS and JS. Provide them as downloadable file cards.';
-  }
-
-  if (state.currentTab === 'slides') {
-    prompt += '\n\nWhen creating slides, output structured markdown with clear slide separations (---), titles, bullet points, and speaker notes.';
-  }
-
-  if (state.currentTab === 'sheets') {
-    prompt += '\n\nWhen generating data, output CSV-compatible content. Provide downloadable file cards for datasets.';
-  }
-
-  return prompt;
+function friendlyError(err) {
+  const raw = err?.message || String(err);
+  if (/failed to fetch/i.test(raw)) return 'Failed to fetch. Check your Cloudflare Worker proxy URL, internet connection, and CORS.';
+  if (/401/.test(raw)) return 'HTTP 401. Check your NVIDIA API key.';
+  if (/404/.test(raw)) return 'HTTP 404. Check the proxy URL and model endpoint.';
+  return raw;
 }
 
-async function streamResponse(response) {
+function buildConversationMessages(extraSystemContext = '') {
+  const mode = getMode();
+  const agent = getAgent();
+  const systemParts = [
+    mode.key === 'custom' ? state.settings.customPrompt : mode.prompt,
+    agent.prompt,
+    extraSystemContext
+  ].filter(Boolean);
+  const messages = [];
+  if (systemParts.length) messages.push({ role: 'system', content: systemParts.join('\n\n') });
+  for (const m of state.currentChat.messages) {
+    if (m.loading) continue;
+    if (m.role === 'user' || m.role === 'assistant') {
+      let content = m.content || '';
+      if (m.role === 'user' && Array.isArray(m.attachments) && m.attachments.length) content += attachmentPromptText(m.attachments);
+      messages.push({ role: m.role, content });
+    }
+  }
+  const limit = state.settings.plugins.longContext ? 80 : 30;
+  return messages.slice(-limit);
+}
+
+function latestUserText() {
+  const msgs = state.currentChat?.messages || [];
+  for (let i = msgs.length - 1; i >= 0; i--) {
+    if (msgs[i].role === 'user') return msgs[i].content || '';
+  }
+  return '';
+}
+
+function shouldSearchWeb(text) {
+  const p = state.settings.plugins;
+  if (!p.webSearch) return false;
+  if (!p.webSearchApiKey && p.webSearchProvider !== 'worker-secret') return false;
+  if (p.webSearchMode === 'always') return true;
+  return /\b(today|latest|current|now|news|price|release|released|update|updates|changed|2026|2027|this week|this month|weather|score|schedule|available|availability|stock|deal|discount|law|rules|version|models|api|search)\b/i.test(text);
+}
+
+async function maybeBuildWebSearchContext(assistantId) {
+  const text = latestUserText();
+  if (!shouldSearchWeb(text)) return '';
+  const msg = getMessage(assistantId);
+  if (msg && state.settings.showThinking) {
+    msg.thinking += `Web Search plugin: searching ${state.settings.plugins.webSearchProvider} for current results...\n`;
+    updateAssistantDom(msg);
+  }
+  try {
+    const results = await runWebSearch(text);
+    if (!results.length) return 'WEB SEARCH PLUGIN: Search ran but returned no useful results. Tell the user that live search produced no useful result and answer cautiously.';
+    if (msg && state.settings.showThinking) {
+      msg.thinking += `Web Search plugin: found ${results.length} result(s).\n`;
+      updateAssistantDom(msg);
+    }
+    return formatWebSearchContext(text, results);
+  } catch (err) {
+    if (msg) {
+      msg.thinking += `Web Search plugin failed: ${friendlyError(err)}\n`;
+      updateAssistantDom(msg);
+    }
+    return `WEB SEARCH PLUGIN ERROR: ${friendlyError(err)}. Do not pretend to have live web results. Explain briefly if the answer needs current information.`;
+  }
+}
+
+async function runWebSearch(query) {
+  const p = state.settings.plugins;
+  const response = await fetchWithTimeout(buildApiUrl('/web-search'), {
+    method: 'POST',
+    headers: {
+      ...apiHeaders(false),
+      'X-Search-Provider': p.webSearchProvider || 'brave',
+      'X-Search-Api-Key': p.webSearchProvider === 'worker-secret' ? '' : (p.webSearchApiKey || '')
+    },
+    body: JSON.stringify({
+      query,
+      provider: p.webSearchProvider || 'brave',
+      count: Number(p.webSearchResults || 6),
+      safe: p.webSearchSafe || 'moderate'
+    })
+  }, 45000);
+  if (!response.ok) throw new Error(await errorFromResponse(response));
+  const data = await response.json();
+  const results = Array.isArray(data.results) ? data.results : [];
+  return results.slice(0, Number(p.webSearchResults || 6));
+}
+
+function formatWebSearchContext(query, results) {
+  const lines = results.map((r, i) => `${i + 1}. ${r.title || 'Untitled'}\nURL: ${r.url || ''}\nSnippet: ${r.snippet || ''}`).join('\n\n');
+  return `WEB SEARCH RESULTS - retrieved live for this user request.\nQuery: ${query}\nDate: ${new Date().toISOString()}\n\nUse these results as current context. Cite source names/URLs in the answer when they are used. If the results do not support a claim, say so.\n\n${lines}`;
+}
+
+
+async function requestAssistantResponse(assistantId) {
+  const model = getCurrentModel();
+  const webContext = await maybeBuildWebSearchContext(assistantId);
+  const payload = {
+    model: model.id,
+    messages: buildConversationMessages(webContext),
+    temperature: Number(state.settings.temperature || 0.7),
+    max_tokens: Number(state.settings.maxTokens || 2048),
+    stream: !!state.settings.stream
+  };
+  const response = await fetchWithTimeout(buildApiUrl('/chat/completions'), {
+    method: 'POST', headers: apiHeaders(payload.stream), body: JSON.stringify(payload)
+  }, 120000);
+  if (!response.ok) throw new Error(await errorFromResponse(response));
+  const contentType = response.headers.get('content-type') || '';
+  if (payload.stream && response.body && /text\/event-stream|application\/x-ndjson|text\/plain/i.test(contentType + response.headers.get('transfer-encoding'))) {
+    await readStream(response, assistantId);
+  } else if (payload.stream && response.body) {
+    // Try streaming anyway; NVIDIA often returns SSE even when content-type is changed by proxies.
+    const streamed = await readStream(response, assistantId, true);
+    if (!streamed) await readJsonResponse(response, assistantId);
+  } else {
+    await readJsonResponse(response, assistantId);
+  }
+}
+
+async function errorFromResponse(response) {
+  const text = await response.text().catch(() => '');
+  try { const json = JSON.parse(text); return `HTTP ${response.status}: ${json.error?.message || json.error || text}`; }
+  catch { return `HTTP ${response.status}: ${text || response.statusText}`; }
+}
+
+async function readJsonResponse(response, assistantId) {
+  const data = await response.json();
+  const content = data?.choices?.[0]?.message?.content || data?.choices?.[0]?.text || data?.output_text || JSON.stringify(data, null, 2);
+  const msg = getMessage(assistantId); if (!msg) return;
+  msg.content += content;
+  updateAssistantDom(msg);
+}
+
+async function readStream(response, assistantId, mayFail = false) {
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
-
-  const assistantMsg = {
-    role: 'assistant',
-    content: '',
-    thinking: '',
-    timestamp: Date.now(),
-    files: []
-  };
-  state.messages.push(assistantMsg);
-
   let buffer = '';
-  let inThinking = false;
-
+  let sawChunk = false;
   while (true) {
-    const { done, value } = await reader.read();
+    const { value, done } = await reader.read();
     if (done) break;
-
     buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split('\n');
-    buffer = lines.pop();
-
+    const lines = buffer.split(/\r?\n/);
+    buffer = lines.pop() || '';
     for (const line of lines) {
-      if (line.startsWith('data: ')) {
-        const data = line.slice(6);
-        if (data === '[DONE]') continue;
-
-        try {
-          const parsed = JSON.parse(data);
-          const delta = parsed.choices?.[0]?.delta;
-          if (!delta) continue;
-
-          if (delta.content) {
-            // Handle thinking tags
-            let text = delta.content;
-            if (text.includes('<think>')) {
-              inThinking = true;
-              text = text.replace('<think>', '');
-            }
-            if (text.includes('</think>')) {
-              inThinking = false;
-              text = text.replace('</think>', '');
-            }
-
-            if (inThinking || (assistantMsg.thinking && !assistantMsg.content)) {
-              assistantMsg.thinking += text;
-            } else {
-              assistantMsg.content += text;
-            }
-
-            // Check for file generation patterns
-            checkForFiles(assistantMsg);
-
-            updateLastMessage(assistantMsg);
-          }
-        } catch (e) {
-          // Ignore parse errors for incomplete chunks
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith(':')) continue;
+      const payload = trimmed.startsWith('data:') ? trimmed.slice(5).trim() : trimmed;
+      if (!payload || payload === '[DONE]') continue;
+      try {
+        const json = JSON.parse(payload);
+        const delta = extractDelta(json);
+        if (delta.content || delta.thinking) {
+          sawChunk = true;
+          const msg = getMessage(assistantId); if (!msg) continue;
+          if (delta.thinking) msg.thinking += delta.thinking;
+          if (delta.content) msg.content += delta.content;
+          updateAssistantDom(msg);
+        }
+      } catch (_) {
+        if (!mayFail) {
+          const msg = getMessage(assistantId); if (msg) { msg.content += payload; updateAssistantDom(msg); sawChunk = true; }
         }
       }
     }
   }
-
-  state.isStreaming = false;
-  updateSendButton();
-  saveCurrentChat();
-
-  // Auto-download if enabled
-  if (state.settings.autoDownload === 'always' && assistantMsg.files.length > 0) {
-    assistantMsg.files.forEach(f => {
-      createFileDownload(f.name, f.content, f.type);
-    });
-  }
+  return sawChunk;
 }
 
-function checkForFiles(msg) {
-  // Look for file generation patterns in the content
-  const filePattern = /```(\w+)?\n([\s\S]*?)```/g;
-  let match;
-  while ((match = filePattern.exec(msg.content)) !== null) {
-    const lang = match[1] || 'txt';
-    const code = match[2];
-    const fileName = detectFileName(code, lang);
-
-    if (fileName && !msg.files.find(f => f.name === fileName)) {
-      const extMap = { python: 'py', javascript: 'js', html: 'html', css: 'css', json: 'json', markdown: 'md', cpp: 'cpp', java: 'java', typescript: 'ts', sql: 'sql', bash: 'sh', powershell: 'ps1', yaml: 'yaml', xml: 'xml' };
-      const ext = extMap[lang] || 'txt';
-      const finalName = fileName.includes('.') ? fileName : `${fileName}.${ext}`;
-
-      msg.files.push({
-        name: finalName,
-        content: code,
-        type: 'text/plain',
-        size: `${(code.length / 1024).toFixed(1)} KB`
-      });
-    }
-  }
-}
-
-function updateLastMessage(msg) {
-  const container = document.getElementById('chatMessages');
-  const messages = container.querySelectorAll('.message');
-  const lastMsg = messages[messages.length - 1];
-
-  if (lastMsg && lastMsg.querySelector('.message-author')?.textContent === 'NVIDIA AI') {
-    // Update existing
-    const body = lastMsg.querySelector('.message-body');
-    if (body) body.innerHTML = markdownToHtml(msg.content);
-
-    // Update thinking
-    const existingThinking = lastMsg.querySelector('.thinking-block');
-    if (msg.thinking && state.settings.streamThinking === 'yes') {
-      if (!existingThinking) {
-        const thinkingHtml = `<div class="thinking-block expanded">
-          <div class="thinking-header" onclick="this.parentElement.classList.toggle('expanded')">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
-            <span class="thinking-title">Thinking</span>
-            <span class="thinking-toggle">Hide</span>
-          </div>
-          <div class="thinking-body">${escapeHtml(msg.thinking)}</div>
-        </div>`;
-        lastMsg.querySelector('.message-content').insertAdjacentHTML('afterbegin', thinkingHtml);
-      } else {
-        existingThinking.querySelector('.thinking-body').textContent = msg.thinking;
-      }
-    }
-
-    // Update files
-    const fileCards = lastMsg.querySelector('.file-cards');
-    if (msg.files.length > 0) {
-      if (fileCards) {
-        fileCards.innerHTML = msg.files.map((f, i) => renderFileCard(f, state.messages.length - 1)).join('');
-      } else {
-        lastMsg.querySelector('.message-content').insertAdjacentHTML('beforeend', 
-          `<div class="file-cards">${msg.files.map((f, i) => renderFileCard(f, state.messages.length - 1)).join('')}</div>`
-        );
-      }
-    }
-  } else {
-    // Append new
-    const html = renderMessage(msg, state.messages.length - 1);
-    container.insertAdjacentHTML('beforeend', html);
-  }
-
-  scrollToBottom();
-}
-
-function showTypingIndicator() {
-  const container = document.getElementById('chatMessages');
-  container.insertAdjacentHTML('beforeend', `
-    <div class="message" id="typingIndicator">
-      <div class="message-avatar assistant">🟢</div>
-      <div class="message-content">
-        <div class="message-header">
-          <span class="message-author">NVIDIA AI</span>
-        </div>
-        <div class="typing-indicator"><span></span><span></span><span></span></div>
-      </div>
-    </div>
-  `);
-  scrollToBottom();
-}
-
-function hideTypingIndicator() {
-  document.getElementById('typingIndicator')?.remove();
-}
-
-function scrollToBottom() {
-  const container = document.getElementById('chatContainer');
-  container.scrollTop = container.scrollHeight;
-}
-
-function saveCurrentChat() {
-  if (!state.currentChatId) return;
-  state.chats[state.currentChatId] = {
-    ...state.chats[state.currentChatId],
-    messages: state.messages,
-    updated: Date.now()
+function extractDelta(json) {
+  const choice = json?.choices?.[0] || {};
+  const delta = choice.delta || choice.message || choice;
+  return {
+    content: delta.content || delta.text || json.output_text || '',
+    thinking: delta.reasoning_content || delta.reasoning || delta.thinking || delta.thought || ''
   };
-  saveChatHistory();
 }
 
+function updateAssistantDom(msg) {
+  const body = document.getElementById(`body_${msg.id}`);
+  if (body) {
+    const thinking = msg.thinking ? `<div class="thinking-block expanded"><div class="thinking-header"><span>🧠</span><div class="thinking-title">Thinking</div></div><div class="thinking-body" style="display:block;">${escapeHtml(msg.thinking)}</div></div>` : '';
+    body.innerHTML = thinking + (msg.content ? renderMarkdown(msg.content) : thinkingHtml());
+  }
+  scrollToBottom(true);
+}
 
-// ==================== SETTINGS ====================
+function editUserMessage(id) {
+  const msg = getMessage(id); if (!msg || msg.role !== 'user') return;
+  const input = document.getElementById('inputBox');
+  input.value = msg.content;
+  state.pendingAttachments = Array.isArray(msg.attachments) ? msg.attachments.map(a => ({ ...a, id: uid('att') })) : [];
+  renderPendingAttachments();
+  autoResize(input);
+  state.editingMessageId = id;
+  document.getElementById('editingBanner').style.display = 'flex';
+  input.focus();
+  updateSendButton();
+}
+function cancelEdit(show = true) {
+  state.editingMessageId = null;
+  const banner = document.getElementById('editingBanner'); if (banner) banner.style.display = 'none';
+  if (show) { clearPendingAttachments(); showToast('Edit cancelled'); }
+}
+
+async function regenerateResponse(assistantId) {
+  if (state.isBusy) return;
+  const idx = getMessageIndex(assistantId);
+  if (idx < 0) return;
+  let userIdx = -1;
+  for (let i = idx - 1; i >= 0; i--) {
+    if (state.currentChat.messages[i].role === 'user') { userIdx = i; break; }
+  }
+  if (userIdx < 0) return;
+  const model = getCurrentModel();
+  if (!model) { showToast('Refresh and select a live NVIDIA model first.', 'error'); return; }
+  state.currentChat.messages = state.currentChat.messages.slice(0, userIdx + 1);
+  state.editingMessageId = null;
+  const assistantMsg = { id: uid('msg'), role: 'assistant', content: '', thinking: '', loading: true, time: nowTime(), model: model.name, mode: getMode().key };
+  state.currentChat.messages.push(assistantMsg);
+  state.isBusy = true;
+  persistChats(); renderAll(); updateSendButton();
+  try {
+    await requestAssistantResponse(assistantMsg.id);
+  } catch (err) {
+    const msg = getMessage(assistantMsg.id);
+    if (msg) msg.content = `Error: ${friendlyError(err)}`;
+    showToast('Regenerate failed', 'error');
+  } finally {
+    const msg = getMessage(assistantMsg.id); if (msg) msg.loading = false;
+    state.isBusy = false; persistChats(); renderMessages(); updateSendButton();
+  }
+}
+
+async function refreshModelsFromNvidia(manual = false) {
+  if (!state.settings.apiKey) { showToast('Add your API key first.', 'error'); openSettings(); return 0; }
+  setModelMeta('Refreshing live NVIDIA models…');
+  try {
+    const response = await fetchWithTimeout(buildApiUrl('/models'), { method: 'GET', headers: apiHeaders(false) }, 45000);
+    if (!response.ok) throw new Error(await errorFromResponse(response));
+    const data = await response.json();
+    const rawModels = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
+    if (!rawModels.length) throw new Error('NVIDIA returned no models.');
+    const byId = new Map();
+    for (const raw of rawModels) {
+      const m = normalizeModel(raw); if (m) byId.set(m.id, m);
+    }
+    state.liveModels = [...byId.values()].sort((a, b) => a.name.localeCompare(b.name));
+    if (!getCurrentModel()) state.settings.currentModelId = state.liveModels[0]?.id || '';
+    persistModels(); persistSettings();
+    renderModelList(); updateSelectedModelLabel(); updateStatus(); updateSendButton();
+    setModelMeta(`${state.liveModels.length} live NVIDIA models loaded.`);
+    if (manual) showToast(`Loaded ${state.liveModels.length} live models`);
+    return state.liveModels.length;
+  } catch (err) {
+    setModelMeta(`Could not refresh models: ${friendlyError(err)}`);
+    if (manual) showToast(friendlyError(err), 'error');
+    return 0;
+  }
+}
+
+function setModelMeta(text) { const el = document.getElementById('modelMeta'); if (el) el.textContent = text; }
+function getModelsForCurrentTab() {
+  const search = (document.getElementById('modelSearch')?.value || '').toLowerCase().trim();
+  let models = state.liveModels.slice();
+  if (state.modelTab === 'favorites') models = models.filter(m => state.favourites.has(m.id));
+  else if (state.modelTab !== 'all') models = models.filter(m => m.capabilities?.includes(state.modelTab));
+  if (search) models = models.filter(m => `${m.name} ${m.id} ${m.desc} ${(m.capabilities || []).join(' ')}`.toLowerCase().includes(search));
+  return models.sort((a, b) => Number(state.favourites.has(b.id)) - Number(state.favourites.has(a.id)) || a.name.localeCompare(b.name));
+}
+
+function renderModelList() {
+  const list = document.getElementById('modelList'); if (!list) return;
+  const models = getModelsForCurrentTab();
+  const current = getCurrentModel();
+  if (!state.liveModels.length) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🟢</div><div class="empty-state-title">No live models loaded</div><div class="empty-state-desc">Add your API key and Worker URL, then click Refresh Models.</div></div>`;
+    setModelMeta('No live models loaded. Click Refresh Models.');
+    return;
+  }
+  if (!models.length) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-state-icon">⭐</div><div class="empty-state-title">No models here</div><div class="empty-state-desc">Try another tab or star some favourites.</div></div>`;
+    setModelMeta(`${state.liveModels.length} live models loaded • ${state.favourites.size} favourites`);
+    return;
+  }
+  list.innerHTML = models.map(m => `
+    <div class="model-item ${current?.id === m.id ? 'selected' : ''}">
+      <button class="model-star ${state.favourites.has(m.id) ? 'active' : ''}" onclick="toggleFavourite('${escapeJsString(m.id)}', event)" title="Favourite">${state.favourites.has(m.id) ? '★' : '☆'}</button>
+      <div class="model-item-info" onclick="selectModel('${escapeJsString(m.id)}')">
+        <div class="model-item-name">${escapeHtml(m.name)}</div>
+        <div class="model-item-desc">${escapeHtml(m.desc || 'Live NVIDIA model')}</div>
+        <div class="model-item-desc"><code>${escapeHtml(m.id)}</code></div>
+        ${capabilityHtml(m)}
+      </div>
+    </div>`).join('');
+  setModelMeta(`${models.length} shown • ${state.liveModels.length} live models • ${state.favourites.size} favourites`);
+}
+
+function switchModelTab(tab, event) {
+  state.modelTab = tab;
+  document.querySelectorAll('.model-tab').forEach(b => b.classList.remove('active'));
+  if (event?.currentTarget) event.currentTarget.classList.add('active');
+  renderModelList();
+}
+function filterModels() { renderModelList(); }
+function toggleModelDropdown() { const dd = document.getElementById('modelDropdown'); if (dd) { dd.classList.toggle('open'); renderModelList(); } }
+function selectModel(id) {
+  state.settings.currentModelId = id;
+  persistSettings();
+  updateSelectedModelLabel();
+  renderModelList();
+  updateStatus(); updateSendButton();
+  document.getElementById('modelDropdown')?.classList.remove('open');
+}
+function toggleFavourite(id, event) {
+  event?.stopPropagation();
+  if (state.favourites.has(id)) state.favourites.delete(id); else state.favourites.add(id);
+  persistFavourites(); renderModelList(); updateStatus();
+}
+function updateSelectedModelLabel() {
+  const model = getCurrentModel();
+  const label = document.getElementById('selectedModelName');
+  if (label) label.textContent = model ? model.name : 'Load models';
+}
+
 function openSettings() {
-  document.getElementById('settingsModal').classList.add('open');
-  document.getElementById('apiKeyInput').value = state.settings.apiKey;
+  document.getElementById('apiKeyInput').value = state.settings.apiKey || '';
   document.getElementById('proxyUrlInput').value = state.settings.proxyUrl || '';
-  const status = document.getElementById('connectionStatus');
-  if (status) { status.style.display = 'none'; status.textContent = ''; status.className = 'connection-status'; }
+  document.getElementById('userNameInput').value = state.settings.userName || '';
   document.getElementById('tempSlider').value = state.settings.temperature;
   document.getElementById('tempValue').textContent = state.settings.temperature;
-  document.getElementById('maxTokensSelect').value = state.settings.maxTokens;
-  document.getElementById('themeSelect').value = state.settings.theme;
-  document.getElementById('autoDownloadSelect').value = state.settings.autoDownload;
-  document.getElementById('streamThinkingSelect').value = state.settings.streamThinking;
-  document.getElementById('voiceLangSelect').value = state.settings.voiceLang;
-  document.getElementById('imageSizeSelect').value = state.settings.imageSize;
-  document.getElementById('pdfStyleSelect').value = state.settings.pdfStyle;
+  document.getElementById('maxTokensSelect').value = String(state.settings.maxTokens);
+  document.getElementById('streamSelect').value = state.settings.stream ? 'yes' : 'no';
+  document.getElementById('thinkingSelect').value = state.settings.plugins.thinkingDisplay ? 'yes' : 'no';
+  document.getElementById('themeSelect').value = state.settings.theme || 'dark';
+  document.getElementById('customPromptInput').value = state.settings.customPrompt || '';
+  document.getElementById('settingsModal').classList.add('open');
 }
-
-function closeSettings() {
-  document.getElementById('settingsModal').classList.remove('open');
-}
-
+function closeSettings() { document.getElementById('settingsModal').classList.remove('open'); }
 function saveSettings() {
-  state.settings = {
-    apiKey: document.getElementById('apiKeyInput').value.trim(),
-    proxyUrl: document.getElementById('proxyUrlInput').value.trim(),
-    temperature: document.getElementById('tempSlider').value,
-    maxTokens: document.getElementById('maxTokensSelect').value,
-    theme: document.getElementById('themeSelect').value,
-    autoDownload: document.getElementById('autoDownloadSelect').value,
-    streamThinking: document.getElementById('streamThinkingSelect').value,
-    voiceLang: document.getElementById('voiceLangSelect').value,
-    imageSize: document.getElementById('imageSizeSelect').value,
-    pdfStyle: document.getElementById('pdfStyleSelect').value
-  };
-  localStorage.setItem('nvidia_settings', JSON.stringify(state.settings));
-  closeSettings();
-  applyTheme();
+  state.settings.apiKey = document.getElementById('apiKeyInput').value.trim();
+  state.settings.proxyUrl = stripSlash(document.getElementById('proxyUrlInput').value);
+  state.settings.userName = document.getElementById('userNameInput').value.trim() || 'Luke';
+  state.settings.temperature = Number(document.getElementById('tempSlider').value || 0.7);
+  state.settings.maxTokens = Number(document.getElementById('maxTokensSelect').value || 2048);
+  state.settings.stream = document.getElementById('streamSelect').value === 'yes';
+  state.settings.plugins.thinkingDisplay = document.getElementById('thinkingSelect').value === 'yes';
+  state.settings.showThinking = state.settings.plugins.thinkingDisplay;
+  state.settings.theme = document.getElementById('themeSelect').value;
+  state.settings.customPrompt = document.getElementById('customPromptInput').value;
+  persistSettings(); applyTheme(); updateStatus(); updateSendButton(); renderMessages();
+  showConnectionStatus('Saved settings.', true);
   showToast('Settings saved');
 }
-
+function clearApiKey() { state.settings.apiKey = ''; persistSettings(); openSettings(); updateStatus(); updateSendButton(); showToast('API key cleared'); }
 async function testConnection() {
-  const status = document.getElementById('connectionStatus');
-  const apiKey = document.getElementById('apiKeyInput').value.trim();
-  const proxyUrl = document.getElementById('proxyUrlInput').value.trim();
-  const tempSettings = { ...state.settings, apiKey, proxyUrl };
-
-  if (!apiKey) {
-    if (status) {
-      status.style.display = 'block';
-      status.className = 'connection-status error';
-      status.textContent = 'Enter your NVIDIA API key first.';
-    }
-    return;
-  }
-
-  if (status) {
-    status.style.display = 'block';
-    status.className = 'connection-status';
-    status.textContent = 'Testing connection…';
-  }
-
-  try {
-    const response = await fetchWithTimeout(buildApiUrl('/models', tempSettings), {
-      method: 'GET',
-      headers: buildApiHeaders(tempSettings, false)
-    }, 30000);
-
-    const text = await response.text();
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${text.slice(0, 400) || response.statusText}`);
-    }
-
-    let countText = '';
-    try {
-      const data = JSON.parse(text);
-      if (Array.isArray(data.data)) {
-        const count = applyFetchedModelData(data, true);
-        countText = ` Found and loaded ${count} live models.`;
-      }
-    } catch (_) {}
-
-    if (status) {
-      status.className = 'connection-status success';
-      status.textContent = `Connection OK.${countText}\nMode: ${normalizeBaseUrl(proxyUrl) ? 'Proxy' : 'Direct browser call'}`;
-    }
-    showToast('NVIDIA connection OK');
-  } catch (err) {
-    const friendly = getFetchHelp(err);
-    if (status) {
-      status.className = 'connection-status error';
-      status.textContent = friendly;
-    }
-    showToast(friendly, 'error');
-  }
-}
-
-function clearApiKey() {
-  document.getElementById('apiKeyInput').value = '';
-  state.settings.apiKey = '';
-  localStorage.setItem('nvidia_settings', JSON.stringify(state.settings));
-  showToast('API key cleared');
-}
-
-function loadSettings() {
-  try {
-    const saved = localStorage.getItem('nvidia_settings');
-    if (saved) state.settings = { ...state.settings, ...JSON.parse(saved) };
-  } catch(e) {}
-  applyTheme();
-}
-
-function applyTheme() {
-  // Theme switching is handled by CSS variables - could expand here
-}
-
-// ==================== PANELS ====================
-function openPanel(tab) {
-  const panel = document.getElementById('sidePanel');
-  const overlay = document.getElementById('panelOverlay');
-  const title = document.getElementById('panelTitle');
-  const body = document.getElementById('panelBody');
-
-  panel.classList.add('open');
-  overlay.classList.add('open');
-
-  const titles = {
-    plugins: 'Plugins',
-    agents: 'Agent Swarm',
-    tasks: 'Scheduled Tasks'
-  };
-  title.textContent = titles[tab] || tab;
-
-  if (tab === 'plugins') renderPluginsPanel(body);
-  else if (tab === 'agents') renderAgentsPanel(body);
-  else if (tab === 'tasks') renderTasksPanel(body);
-}
-
-function closePanel() {
-  document.getElementById('sidePanel').classList.remove('open');
-  document.getElementById('panelOverlay').classList.remove('open');
-}
-
-function renderPluginsPanel(body) {
-  const plugins = [
-    { id: 'webSearch', name: 'Web Search', desc: 'Allow AI to search the web for current info', icon: '🌐' },
-    { id: 'fileReader', name: 'File Reader', desc: 'Read and analyze uploaded files', icon: '📁' },
-    { id: 'codeInterpreter', name: 'Code Interpreter', desc: 'Execute and analyze code snippets', icon: '💻' },
-    { id: 'autoDownload', name: 'Auto Download', desc: 'Automatically download generated files', icon: '⬇️' },
-    { id: 'thinkingMode', name: 'Thinking Mode', desc: 'Show reasoning process for complex queries', icon: '🧠' },
-    { id: 'longContext', name: 'Long Context', desc: 'Enable extended context window', icon: '📚' }
-  ];
-
-  body.innerHTML = plugins.map(p => `
-    <div class="plugin-item">
-      <div class="plugin-icon">${p.icon}</div>
-      <div class="plugin-info">
-        <div class="plugin-name">${p.name}</div>
-        <div class="plugin-desc">${p.desc}</div>
-      </div>
-      <div class="toggle-switch ${state.plugins[p.id] ? 'on' : ''}" onclick="togglePlugin('${p.id}')"></div>
-    </div>
-  `).join('');
-}
-
-function togglePlugin(id) {
-  state.plugins[id] = !state.plugins[id];
-  renderPluginsPanel(document.getElementById('panelBody'));
-  showToast(`${state.plugins[id] ? 'Enabled' : 'Disabled'} ${id}`);
-}
-
-function renderAgentsPanel(body) {
-  body.innerHTML = Object.entries(AGENTS).map(([key, agent]) => `
-    <div class="agent-card ${state.currentAgent === key ? 'selected' : ''}" onclick="selectAgent('${key}')">
-      <div class="agent-header">
-        <div class="agent-avatar">${agent.emoji}</div>
-        <div>
-          <div class="agent-name">${agent.name}</div>
-          <div class="agent-role">${agent.role}</div>
-        </div>
-      </div>
-      <div class="agent-desc">${agent.desc}</div>
-    </div>
-  `).join('');
-}
-
-function selectAgent(key) {
-  state.currentAgent = key;
-  renderAgentsPanel(document.getElementById('panelBody'));
-  showToast(`Switched to ${AGENTS[key].name}`);
-}
-
-function renderTasksPanel(body) {
-  const tasks = getScheduledTasks();
-
-  body.innerHTML = `
-    <div class="add-task-form">
-      <input type="text" id="taskTitle" placeholder="Task title...">
-      <textarea id="taskPrompt" rows="3" placeholder="What should the AI do?"></textarea>
-      <div class="form-row">
-        <input type="datetime-local" id="taskTime">
-        <button class="btn btn-primary" onclick="addScheduledTask()" style="white-space:nowrap;">Add Task</button>
-      </div>
-    </div>
-    ${tasks.length === 0 ? `
-      <div class="empty-state">
-        <div class="empty-state-icon">📋</div>
-        <div class="empty-state-title">No scheduled tasks</div>
-        <div class="empty-state-desc">Add a task above to schedule AI prompts</div>
-      </div>
-    ` : tasks.map(t => `
-      <div class="task-item">
-        <div class="task-header">
-          <span class="task-title">${escapeHtml(t.title)}</span>
-          <span class="task-time">${new Date(t.time).toLocaleString()}</span>
-        </div>
-        <div class="task-prompt">${escapeHtml(t.prompt)}</div>
-        <div class="task-actions">
-          <button class="task-btn" onclick="runTaskNow('${t.id}')">Run Now</button>
-          <button class="task-btn" onclick="deleteTask('${t.id}')">Delete</button>
-        </div>
-      </div>
-    `).join('')}
-  `;
-}
-
-function getScheduledTasks() {
-  try {
-    return JSON.parse(localStorage.getItem('nvidia_tasks') || '[]');
-  } catch(e) { return []; }
-}
-
-function saveTasks(tasks) {
-  localStorage.setItem('nvidia_tasks', JSON.stringify(tasks));
-}
-
-function addScheduledTask() {
-  const title = document.getElementById('taskTitle').value.trim();
-  const prompt = document.getElementById('taskPrompt').value.trim();
-  const time = document.getElementById('taskTime').value;
-
-  if (!title || !prompt || !time) {
-    showToast('Please fill in all fields', 'error');
-    return;
-  }
-
-  const tasks = getScheduledTasks();
-  tasks.push({ id: 'task_' + Date.now(), title, prompt, time: new Date(time).toISOString() });
-  saveTasks(tasks);
-  renderTasksPanel(document.getElementById('panelBody'));
-  showToast('Task scheduled');
-}
-
-function runTaskNow(id) {
-  const tasks = getScheduledTasks();
-  const task = tasks.find(t => t.id === id);
-  if (task) {
-    document.getElementById('inputBox').value = task.prompt;
-    autoResize(document.getElementById('inputBox'));
-    closePanel();
-    sendMessage();
-  }
-}
-
-function deleteTask(id) {
-  let tasks = getScheduledTasks();
-  tasks = tasks.filter(t => t.id !== id);
-  saveTasks(tasks);
-  renderTasksPanel(document.getElementById('panelBody'));
-  showToast('Task deleted');
-}
-
-function checkScheduledTasks() {
-  const tasks = getScheduledTasks();
-  const now = new Date().toISOString();
-  const due = tasks.filter(t => t.time <= now);
-
-  due.forEach(task => {
-    showToast(`Task due: ${task.title}`);
-    // Could auto-run here if desired
-  });
-}
-
-// ==================== KEYBOARD SHORTCUTS ====================
-function setupKeyboardShortcuts() {
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-      closeSettings();
-      closePanel();
-      document.getElementById('modelDropdown').classList.remove('open');
-    }
-  });
-}
-
-// ==================== EXPORT & SHARE ====================
-function exportToPDF() {
-  const rows = state.messages.map(m => {
-    const role = m.role === 'user' ? 'You' : 'NVIDIA AI';
-    return `<section class="msg"><h2>${escapeHtml(role)}</h2><pre>${escapeHtml(m.content || '')}</pre></section>`;
-  }).join('');
-
-  const printWindow = window.open('', '_blank');
-  if (!printWindow) {
-    showToast('Pop-up blocked. Allow pop-ups to export PDF.', 'error');
-    return;
-  }
-
-  printWindow.document.write(`<!doctype html><html><head><title>NVIDIA Chat Export</title>
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <style>
-      body{font-family:Arial,sans-serif;margin:32px;color:#111;}
-      h1{font-size:22px;margin-bottom:4px;} .date{color:#555;margin-bottom:24px;}
-      .msg{border-top:1px solid #ddd;padding:16px 0;} h2{font-size:15px;margin:0 0 8px;}
-      pre{white-space:pre-wrap;word-wrap:break-word;font-family:Arial,sans-serif;font-size:13px;line-height:1.5;}
-      @media print{body{margin:18mm}.no-print{display:none}}
-    </style></head><body>
-    <button class="no-print" onclick="window.print()" style="padding:8px 14px;margin-bottom:16px;">Save / Print PDF</button>
-    <h1>NVIDIA AI Chat Export</h1><div class="date">${new Date().toLocaleString()}</div>${rows}</body></html>`);
-  printWindow.document.close();
-  setTimeout(() => printWindow.print(), 350);
-  showToast('PDF export opened');
-}
-
-function shareChat() {
-  const content = state.messages.map(m => `${m.role}: ${m.content}`).join('\n\n');
-  if (navigator.share) {
-    navigator.share({ title: 'NVIDIA AI Chat', text: content }).catch(() => copyText(content).then(() => showToast('Chat copied to clipboard')));
+  saveSettings();
+  showConnectionStatus('Testing connection…', true);
+  const count = await refreshModelsFromNvidia(false);
+  if (count) {
+    state.lastConnection = { ok: true, at: Date.now(), count };
+    showConnectionStatus(`Connection OK. Loaded ${count} live models.\nMode: ${state.settings.proxyUrl ? 'Proxy' : 'Direct'}`, true);
   } else {
-    copyText(content).then(() => showToast('Chat copied to clipboard')).catch(() => showToast('Share failed', 'error'));
+    state.lastConnection = { ok: false, at: Date.now() };
+    showConnectionStatus('Connection failed. Check API key and Worker URL.', false);
+  }
+  updateStatus();
+}
+async function refreshModelsFromSettings() { saveSettings(); await refreshModelsFromNvidia(true); }
+function showConnectionStatus(text, success) { const el = document.getElementById('connectionStatus'); if (el) { el.style.display = 'block'; el.textContent = text; el.className = `connection-status ${success ? 'success' : 'error'}`; } }
+function applyTheme() { document.body.classList.toggle('light-theme', state.settings.theme === 'light'); }
+
+function updateStatus() {
+  const status = document.getElementById('statusText');
+  const name = document.getElementById('statusName');
+  const avatar = document.getElementById('statusAvatar');
+  const connected = !!state.settings.apiKey && !!state.liveModels.length;
+  if (name) name.textContent = state.settings.userName || 'User';
+  if (avatar) avatar.textContent = (state.settings.userName || 'U').slice(0, 1).toUpperCase();
+  if (status) status.textContent = connected ? `🟢 ${state.liveModels.length} live models` : state.settings.apiKey ? '🟡 Key saved' : '🔴 Disconnected';
+  const agentBadge = document.getElementById('agentBadge'); if (agentBadge) agentBadge.textContent = getAgent().name;
+}
+
+function openPanel(title, html) { document.getElementById('panelTitle').textContent = title; document.getElementById('panelBody').innerHTML = html; document.getElementById('panelOverlay').classList.add('open'); document.getElementById('sidePanel').classList.add('open'); }
+function closePanel() { document.getElementById('panelOverlay').classList.remove('open'); document.getElementById('sidePanel').classList.remove('open'); }
+
+
+function boolText(value) { return value ? 'On' : 'Off'; }
+function pluginToggleHtml(key, icon, name, desc, disabled = false) {
+  const enabled = !!state.settings.plugins[key];
+  return `<div class="plugin-item ${disabled ? 'disabled' : ''}">
+    <div class="plugin-icon">${icon}</div>
+    <div class="plugin-info"><div class="plugin-name">${escapeHtml(name)}</div><div class="plugin-desc">${escapeHtml(desc)}</div></div>
+    <button class="toggle-switch ${enabled ? 'on' : ''}" ${disabled ? 'disabled' : ''} onclick="togglePlugin('${key}')" title="${boolText(enabled)}"></button>
+  </div>`;
+}
+
+function openPluginsPanel() {
+  const p = state.settings.plugins;
+  const html = `
+    <div class="mode-help-card"><h3>Real plugins</h3><p>These toggles now change what the app does. Web Search uses your Cloudflare Worker plus a search provider, then injects results into the NVIDIA model prompt.</p></div>
+    ${pluginToggleHtml('webSearch', '🌐', 'Web Search', 'Uses Brave Search/Tavily through your Worker before asking the model.')}
+    <div class="plugin-settings ${p.webSearch ? '' : 'muted'}">
+      <label class="setting-label">Search provider</label>
+      <select class="setting-select" onchange="setPluginSetting('webSearchProvider', this.value)">
+        <option value="brave" ${p.webSearchProvider === 'brave' ? 'selected' : ''}>Brave Search API - recommended</option>
+        <option value="tavily" ${p.webSearchProvider === 'tavily' ? 'selected' : ''}>Tavily Search API - LLM/RAG focused</option>
+        <option value="worker-secret" ${p.webSearchProvider === 'worker-secret' ? 'selected' : ''}>Use Worker secret BRAVE_SEARCH_API_KEY</option>
+      </select>
+      <label class="setting-label" style="margin-top:10px;">Search API key</label>
+      <input class="setting-input" type="password" value="${escapeAttr(p.webSearchApiKey || '')}" placeholder="Brave or Tavily API key" autocomplete="off" oninput="setPluginSetting('webSearchApiKey', this.value, false)">
+      <div class="setting-desc">Recommended: Brave Search API. DuckDuckGo is not included because its free Instant Answer API is not a full web search results API.</div>
+      <div class="form-row plugin-form-row">
+        <div><label class="setting-label">Results</label><input class="setting-input" type="number" min="1" max="10" value="${Number(p.webSearchResults || 6)}" onchange="setPluginSetting('webSearchResults', this.value)"></div>
+        <div><label class="setting-label">Behaviour</label><select class="setting-select" onchange="setPluginSetting('webSearchMode', this.value)"><option value="auto" ${p.webSearchMode === 'auto' ? 'selected' : ''}>Auto-detect current queries</option><option value="always" ${p.webSearchMode === 'always' ? 'selected' : ''}>Search every prompt</option></select></div>
+      </div>
+      <div class="btn-row" style="margin-top:10px;"><button class="btn btn-secondary" onclick="testWebSearchPlugin()">Test Web Search</button></div>
+      <div id="pluginTestStatus" class="connection-status" style="display:none;"></div>
+    </div>
+    ${pluginToggleHtml('fileReader', '📁', 'File Reader', 'Reads attached text/code/CSV/Markdown files into the prompt.')}
+    ${pluginToggleHtml('downloadButtons', '⬇️', 'Download Buttons', 'Shows Download buttons on generated code/file blocks.')}
+    ${pluginToggleHtml('thinkingDisplay', '🧠', 'Thinking Display', 'Shows Thinking… and plugin progress while waiting/streaming.')}
+    ${pluginToggleHtml('longContext', '📄', 'Long Context', 'Sends more chat history to the model. Uses more tokens.')}
+    ${pluginToggleHtml('codeInterpreter', '💻', 'Code Interpreter', 'Disabled: needs a real backend sandbox, not just GitHub Pages.', true)}
+  `;
+  openPanel('Plugins', html);
+}
+
+function togglePlugin(key) {
+  if (key === 'codeInterpreter') { showToast('Code Interpreter needs a backend sandbox before it can be enabled.', 'error'); return; }
+  state.settings.plugins[key] = !state.settings.plugins[key];
+  if (key === 'thinkingDisplay') state.settings.showThinking = !!state.settings.plugins.thinkingDisplay;
+  persistSettings();
+  openPluginsPanel();
+  updateStatus();
+  showToast(`${key} ${state.settings.plugins[key] ? 'enabled' : 'disabled'}`);
+}
+
+function setPluginSetting(key, value, reopen = false) {
+  if (key === 'webSearchResults') value = Math.max(1, Math.min(10, Number(value || 6)));
+  state.settings.plugins[key] = value;
+  persistSettings();
+  if (reopen) openPluginsPanel();
+}
+
+function showPluginTestStatus(text, success) {
+  const el = document.getElementById('pluginTestStatus');
+  if (!el) return;
+  el.style.display = 'block';
+  el.textContent = text;
+  el.className = `connection-status ${success ? 'success' : 'error'}`;
+}
+
+async function testWebSearchPlugin() {
+  const p = state.settings.plugins;
+  if (!p.webSearch) { showPluginTestStatus('Turn Web Search on first.', false); return; }
+  if (!p.webSearchApiKey && p.webSearchProvider !== 'worker-secret') { showPluginTestStatus('Add a Brave/Tavily search API key first.', false); return; }
+  showPluginTestStatus('Testing web search…', true);
+  try {
+    const results = await runWebSearch('NVIDIA latest AI models');
+    showPluginTestStatus(`Web Search OK. Found ${results.length} result(s).\n${results.slice(0, 3).map((r, i) => `${i + 1}. ${r.title}`).join('\n')}`, true);
+  } catch (err) {
+    showPluginTestStatus(friendlyError(err), false);
   }
 }
 
-// ==================== CLOSE DROPDOWN ON CLICK OUTSIDE ====================
-document.addEventListener('click', (e) => {
-  const dropdown = document.getElementById('modelDropdown');
-  const btn = document.getElementById('modelSelectBtn');
-  if (!dropdown.contains(e.target) && !btn.contains(e.target)) {
-    dropdown.classList.remove('open');
-  }
-});
+function openAgentPanel() {
+  openPanel('Agent Swarm', `<p style="font-size:12px;color:var(--text-secondary);line-height:1.5;margin-bottom:12px;">Agents are real now: the selected agent adds an extra system prompt to every message.</p>${AGENTS.map(a => `<div class="agent-card ${state.settings.currentAgent === a.key ? 'selected' : ''}" onclick="selectAgent('${a.key}')"><div class="agent-header"><div class="agent-avatar">${a.emoji}</div><div><div class="agent-name">${escapeHtml(a.name)}</div><div class="agent-role">${escapeHtml(a.role)}</div></div></div><div class="agent-desc">${escapeHtml(a.prompt || 'No extra prompt. Balanced default behaviour.')}</div></div>`).join('')}`);
+}
+function selectAgent(key) { state.settings.currentAgent = key; persistSettings(); openAgentPanel(); updateStatus(); showToast(`Agent: ${getAgent().name}`); }
 
-// ==================== INIT ON LOAD ====================
-document.addEventListener('DOMContentLoaded', init);
+function openHelpPanel() {
+  const modes = MODES.map(m => `<div class="mode-help-card"><h3>${m.icon} ${escapeHtml(m.label)}</h3><p>${escapeHtml(m.short)}</p><p style="margin-top:6px;color:var(--text-muted);">Changes the system prompt sent to the model.</p></div>`).join('');
+  const badges = ['reasoning','coding','research','vision','image','speech','long','fast','free','paid','enterprise','live'].map(c => `<span class="capability-tag ${c}">${escapeHtml(badgeLabel(c))}</span>`).join(' ');
+  openPanel('Help / Modes and Badges', `${modes}<div class="mode-help-card"><h3>Model capability badges</h3><p>Badges are inferred from NVIDIA live model metadata and model names. They help you pick models, but the app will not fake pricing or capabilities when NVIDIA does not expose them.</p><div class="capability-bar" style="margin-top:10px;">${badges}</div></div><div class="mode-help-card"><h3>Streaming</h3><p>The app sends stream: true, shows Thinking… immediately, then parses NVIDIA streaming chunks. If a model or endpoint returns full JSON instead, it falls back to the full response.</p></div><div class="mode-help-card"><h3>Plugins</h3><p>Web Search is real when enabled: the app calls your Worker, the Worker calls Brave/Tavily, then the results are injected into the model prompt. File Reader, Download Buttons, Thinking Display and Long Context also change app behaviour. Code Interpreter is shown as disabled because browser-only GitHub Pages cannot safely run Python.</p></div>`);
+}
 
-if ('serviceWorker' in navigator && location.protocol === 'https:') {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').catch(() => {});
+function openStatusPanel() {
+  const model = getCurrentModel();
+  openPanel('Account / App Status', `<div class="status-grid-card"><h3>Connection</h3><p>${state.settings.apiKey ? 'API key saved locally.' : 'No API key saved.'}<br>Proxy: ${escapeHtml(state.settings.proxyUrl || 'Direct NVIDIA call')}<br>Live models: ${state.liveModels.length}<br>Favorites: ${state.favourites.size}</p></div><div class="status-grid-card"><h3>Current setup</h3><p>Model: ${escapeHtml(model?.name || 'None')}<br>Mode: ${escapeHtml(getMode().label)}<br>Agent: ${escapeHtml(getAgent().name)}<br>Streaming: ${state.settings.stream ? 'On' : 'Off'}<br>Web Search: ${state.settings.plugins.webSearch ? 'On' : 'Off'}<br>Long Context: ${state.settings.plugins.longContext ? 'On' : 'Off'}</p></div><div class="btn-row"><button class="btn btn-secondary" onclick="testConnection()">Test Connection</button><button class="btn btn-secondary" onclick="refreshModelsFromNvidia(true)">Refresh Models</button><button class="btn btn-danger" onclick="clearApiKey(); closePanel();">Clear API Key</button></div>`);
+}
+
+
+function handleFileSelect(event) {
+  const file = event.target.files?.[0];
+  event.target.value = '';
+  if (!file) return;
+  if (!state.settings.plugins.fileReader) { showToast('File Reader plugin is off. Enable it in Plugins first.', 'error'); return; }
+  if (!isSupportedTextFile(file)) { showToast('This app currently reads text/code files only. PDFs/images need a separate parser or vision flow.', 'error'); return; }
+  if (file.size > 2 * 1024 * 1024) { showToast('File is over 2 MB. Split it or upload a smaller text file.', 'error'); return; }
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    const name = file.name || 'attachment.txt';
+    const ext = (name.split('.').pop() || 'txt').toLowerCase();
+    const languageMap = { js: 'javascript', jsx: 'javascript', ts: 'typescript', tsx: 'typescript', py: 'python', md: 'markdown', html: 'html', css: 'css', json: 'json', csv: 'csv', txt: 'text', ps1: 'powershell', sh: 'bash', sql: 'sql', yml: 'yaml', yaml: 'yaml' };
+    state.pendingAttachments.push({
+      id: uid('att'),
+      name,
+      size: file.size,
+      type: file.type || 'text/plain',
+      language: languageMap[ext] || ext || 'text',
+      content: String(reader.result || '')
+    });
+    renderPendingAttachments();
+    updateSendButton();
+    showToast(`Attached ${name}. It will be sent privately with your prompt, not pasted into chat.`);
+  };
+  reader.onerror = () => showToast(`Could not read ${file.name}`, 'error');
+  reader.readAsText(file);
+}
+
+
+function toggleVoiceInput() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) { showToast('Voice input is not supported in this browser.', 'error'); return; }
+  const btn = document.getElementById('voiceBtn');
+  if (state.voiceRecognition) { state.voiceRecognition.stop(); state.voiceRecognition = null; btn?.classList.remove('recording'); return; }
+  const rec = new SpeechRecognition();
+  rec.lang = 'en-GB'; rec.continuous = false; rec.interimResults = true;
+  rec.onresult = ev => {
+    let text = '';
+    for (let i = ev.resultIndex; i < ev.results.length; i++) text += ev.results[i][0].transcript;
+    const input = document.getElementById('inputBox'); input.value = (input.value + ' ' + text).trim(); autoResize(input); updateSendButton();
+  };
+  rec.onend = () => { state.voiceRecognition = null; btn?.classList.remove('recording'); };
+  state.voiceRecognition = rec; btn?.classList.add('recording'); rec.start();
+}
+
+function exportToPDF() {
+  if (!state.currentChat?.messages.length) { showToast('No chat to export.', 'error'); return; }
+  const html = `<html><head><title>${escapeHtml(state.currentChat.title)}</title><style>body{font-family:Arial,sans-serif;padding:32px;line-height:1.5}pre{white-space:pre-wrap;background:#f2f2f2;padding:12px;border-radius:8px}.role{font-weight:bold;margin-top:18px}</style></head><body><h1>${escapeHtml(state.currentChat.title)}</h1>${state.currentChat.messages.map(m => `<div class="role">${escapeHtml(m.role)}</div><div>${renderMarkdown(m.content || '')}</div>`).join('')}<script>print()<\/script></body></html>`;
+  const w = window.open('', '_blank'); if (w) { w.document.write(html); w.document.close(); } else showToast('Popup blocked. Allow popups to export PDF.', 'error');
+}
+async function shareChat() {
+  const text = state.currentChat?.messages.map(m => `${m.role.toUpperCase()}: ${m.content}`).join('\n\n') || '';
+  if (navigator.share) await navigator.share({ title: state.currentChat?.title || 'NVIDIA AI Chat', text }).catch(() => {});
+  else { await navigator.clipboard?.writeText(text); showToast('Chat copied'); }
+}
+function toggleSidebar() { document.getElementById('sidebar')?.classList.toggle('collapsed'); }
+
+function showToast(text, type = 'success') {
+  const c = document.getElementById('toastContainer'); if (!c) return;
+  const t = document.createElement('div'); t.className = `toast ${type}`; t.innerHTML = `<div class="toast-icon">${type === 'error' ? '⚠️' : '✓'}</div><div class="toast-text">${escapeHtml(text)}</div>`; c.appendChild(t); setTimeout(() => t.remove(), 3500);
+}
+
+function renderAll() {
+  renderModeNav(); renderChatHistory(); renderMessages(); renderModelList(); updateModeIndicator(); updateSelectedModelLabel(); updateStatus(); updateSendButton();
+}
+
+function registerShortcuts() {
+  document.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); newChat(); }
+    if (e.key === 'Escape') { closeSettings(); closePanel(); document.getElementById('modelDropdown')?.classList.remove('open'); }
+  });
+  document.addEventListener('click', e => {
+    const dd = document.getElementById('modelDropdown');
+    if (dd && !e.target.closest('.model-selector')) dd.classList.remove('open');
   });
 }
+
+function init() {
+  loadState();
+  if (!state.currentChat) state.currentChat = createChat(false);
+  if (!state.chats.includes(state.currentChat)) state.chats.unshift(state.currentChat);
+  registerShortcuts(); renderAll();
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+
+window.addEventListener('load', init);
+
 </script>
 </body>
 </html>

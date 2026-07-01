@@ -1,60 +1,110 @@
-# NVIDIA AI Desktop — GitHub Pages Version
+# NVIDIA AI Desktop - Real Plugins + Web Search
 
-This is the cleaned GitHub Pages version of the NVIDIA/Kimi-style desktop chat app.
+This build restores the Plugins tab and makes the useful toggles actually change app behaviour.
 
-## What is included
+## What is new
 
-- `index.html` — main page for GitHub Pages
-- `styles.css` — UI styling
-- `app.js` — app logic, chat, settings, model picker, downloads, PDF export, voice input
-- `manifest.webmanifest`, `sw.js`, `icon.svg` — installable web app support for iPhone/iPad/desktop browsers
-- `cloudflare-worker.js` — optional CORS proxy for GitHub Pages/iOS
+- **Web Search plugin** now works through your Cloudflare Worker.
+- **Brave Search API** is the recommended provider.
+- **Tavily** is also supported if you prefer an LLM/RAG-focused search API.
+- **File Reader** toggle controls whether uploaded text/code files are read into prompts.
+- **Download Buttons** toggle controls generated file/code download buttons.
+- **Thinking Display** toggle controls Thinking/search progress UI.
+- **Long Context** toggle sends more chat history to the model.
+- **Code Interpreter** is shown but disabled because GitHub Pages cannot safely run Python/browser sandbox execution by itself.
 
-## Deploy to GitHub Pages
+## Upload app to GitHub Pages
 
-1. Create a GitHub repository.
-2. Upload all files in this folder to the repo root.
-3. Go to **Settings > Pages**.
-4. Set **Source** to **Deploy from a branch**.
-5. Choose `main` and `/root`.
-6. Open the Pages URL GitHub gives you.
+Replace these files in your GitHub repo root:
 
-## First run
+```text
+index.html
+styles.css
+app.js
+manifest.webmanifest
+sw.js
+icon.svg
+README.md
+cloudflare-worker.js
+nvidia-ai-desktop-standalone.html
+```
 
-1. Open the app.
-2. Click the settings cog.
-3. Paste your NVIDIA `nvapi-...` key.
-4. Click **Test Connection**.
-5. Click **Refresh Models** or use the model dropdown **Refresh** button.
-6. Save settings.
+Commit and wait for GitHub Pages to redeploy. Then open your site with a cache buster, for example:
 
-## If you see “Failed to fetch”
+```text
+https://YOURNAME.github.io/nvidia-ai-desktop/?v=plugins1
+```
 
-That usually means direct browser requests to NVIDIA are blocked by CORS. Use the included Cloudflare Worker:
+If the old UI still appears, unregister the old service worker in DevTools > Application > Service Workers, then clear site data.
 
-1. Go to Cloudflare Workers.
-2. Create a Worker.
-3. Paste the contents of `cloudflare-worker.js`.
-4. Deploy it.
-5. Copy the Worker URL, for example `https://your-worker.yourname.workers.dev`.
-6. In the app, open **Settings** and paste it into **API Proxy URL**.
-7. Click **Test Connection** again.
+## Update Cloudflare Worker
 
-The Worker does not need your API key hard-coded. The app sends your local key to your Worker, and the Worker forwards it to NVIDIA.
+Replace your Worker source file:
 
-## iPhone/iPad use
+```text
+C:\Users\lukew\OneDrive\Desktop\Nvidaapp\nvidia-ai-proxy\nvidia-ai-proxy\src\index.js
+```
 
-Open the GitHub Pages URL in Safari, then use **Share > Add to Home Screen**. The app will open like a normal iOS app. Voice input depends on browser support and may not work on every iOS browser.
+with the included:
 
-## Security notes
+```text
+cloudflare-worker.js
+```
 
-- Do not put your NVIDIA key inside `index.html`, `app.js`, GitHub Actions, or commits.
-- The key is stored in your browser localStorage only.
-- If you shared a temporary/test key while building, revoke/delete it after testing.
+or the identical helper file:
+
+```text
+index.worker.js
+```
+
+Then deploy:
+
+```powershell
+cd C:\Users\lukew\OneDrive\Desktop\Nvidaapp\nvidia-ai-proxy\nvidia-ai-proxy
+npx wrangler deploy
+```
+
+Open your Worker URL. It should list:
+
+```text
+/v1/models
+/v1/chat/completions
+/v1/web-search
+```
+
+## Web Search setup
+
+In the app:
+
+1. Open **Settings**.
+2. Add your NVIDIA API key.
+3. Add your Worker URL.
+4. Save settings.
+5. Open **Plugins**.
+6. Turn **Web Search** on.
+7. Choose **Brave Search API - recommended**.
+8. Paste your Brave Search API key.
+9. Click **Test Web Search**.
+
+You can also choose Tavily if you have a Tavily key.
+
+## Safer search key option
+
+Instead of storing your Brave key in the browser, you can add it as a Cloudflare Worker secret:
+
+```powershell
+npx wrangler secret put BRAVE_SEARCH_API_KEY
+```
+
+Then in Plugins choose:
+
+```text
+Use Worker secret BRAVE_SEARCH_API_KEY
+```
+
+The app will not need the Brave key in the browser.
 
 
-## Refresh model list
+## File upload behaviour
 
-The app now calls `/v1/models` and stores the returned model list in localStorage. The hard-coded list is only a fallback. Use **Settings > Refresh Models** or the **Refresh** button inside the model picker. Fetched models appear under the **Live** tab and also under **All**.
-
-NVIDIA does not always expose free/paid/enterprise tier metadata from `/v1/models`, so newly fetched models are marked **live** unless the response includes useful tier information. This avoids incorrectly labelling paid models as free.
+Uploaded text/code files now appear as attachment cards instead of dumping the whole file into the chat input. When File Reader is enabled, the file content is sent privately with the prompt to the model. The visible chat only shows the file name, type and size.
