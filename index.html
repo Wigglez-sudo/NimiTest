@@ -71,9 +71,13 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
           Agent Swarm <span class="nav-badge" id="agentBadge">General</span>
         </div>
-        <div class="nav-item" data-action="help">
+        <div class="nav-item nav-item-guide" data-action="help">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.82 1c0 2-3 2-3 4"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-          Help / What modes do
+          App Guide
+        </div>
+        <div class="nav-item" data-action="status">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19h16"/><path d="M6 17V9"/><path d="M12 17V5"/><path d="M18 17v-6"/></svg>
+          App Status
         </div>
       </div>
       <div class="nav-divider"></div>
@@ -91,7 +95,7 @@
         <div class="user-name" id="statusName">Luke</div>
         <div class="user-plan" id="statusText">Disconnected</div>
       </div>
-      <span class="app-version-badge" id="appVersionLabel">v3.0.17</span>
+      <span class="app-version-badge" id="appVersionLabel">v3.1.0</span>
     </button>
   </aside>
 
@@ -151,16 +155,12 @@
                 <div class="model-dropdown-header">
                   <button class="model-tab active" data-action="model-tab" data-tab="all">All</button>
                   <button class="model-tab" data-action="model-tab" data-tab="favorites">Favorites</button>
-                  <button class="model-tab" data-action="model-tab" data-tab="free_endpoint">Free Endpoint</button>
-                  <button class="model-tab" data-action="model-tab" data-tab="api">API Available</button>
-                  <button class="model-tab" data-action="model-tab" data-tab="catalog">Catalog</button>
+                  <button class="model-tab" data-action="model-tab" data-tab="free_endpoint">Free</button>
+                  <button class="model-tab" data-action="model-tab" data-tab="fast">Fast</button>
                   <button class="model-tab" data-action="model-tab" data-tab="reasoning">Reasoning</button>
                   <button class="model-tab" data-action="model-tab" data-tab="coding">Coding</button>
-                  <button class="model-tab" data-action="model-tab" data-tab="vision">Vision</button>
-                  <button class="model-tab" data-action="model-tab" data-tab="image">Image</button>
-                  <button class="model-tab" data-action="model-tab" data-tab="speech">Speech</button>
-                  <button class="model-tab" data-action="model-tab" data-tab="long">Long</button>
-                  <button class="model-tab" data-action="model-tab" data-tab="fast">Fast</button>
+                  <button class="model-tab" data-action="model-tab" data-tab="api">API</button>
+                  <button class="model-tab" data-action="model-tab" data-tab="catalog">More</button>
                 </div>
                 <div class="model-search">
                   <div class="model-toolbar">
@@ -168,10 +168,10 @@
                     <button class="model-refresh-btn" type="button" data-action="refresh-models">Refresh</button>
                   </div>
                   <div class="model-recommendations">
-                    <button type="button" data-action="recommend-model" data-rec="coding">Best coding</button>
-                    <button type="button" data-action="recommend-model" data-rec="reasoning">Best reasoning</button>
-                    <button type="button" data-action="recommend-model" data-rec="free">Best free</button>
-                    <button type="button" data-action="recommend-model" data-rec="fast">Fastest</button>
+                    <button type="button" data-action="recommend-model" data-rec="coding">Pick coding</button>
+                    <button type="button" data-action="recommend-model" data-rec="reasoning">Pick reasoning</button>
+                    <button type="button" data-action="recommend-model" data-rec="free">Pick free</button>
+                    <button type="button" data-action="recommend-model" data-rec="fast">Pick fast</button>
                   </div>
                   <div class="model-meta" id="modelMeta"></div>
                 </div>
@@ -196,6 +196,7 @@
         </button>
       </div>
       <div class="modal-body">
+        <div class="settings-section-title">Connection</div>
         <div class="setting-group">
           <label class="setting-label">NVIDIA API Key</label>
           <div class="setting-desc">Your nvapi- key. Stored only in this browser. Never put it in GitHub.</div>
@@ -203,7 +204,7 @@
         </div>
         <div class="setting-group">
           <label class="setting-label">API Proxy URL</label>
-          <div class="setting-desc">Use your Cloudflare Worker URL for GitHub Pages/iPhone. Do not add /v1/... — the app appends paths itself.</div>
+          <div class="setting-desc">Use your Cloudflare Worker URL. Do not add /v1 paths because the app appends routes itself.</div>
           <input type="url" class="setting-input" id="proxyUrlInput" placeholder="https://nvidia-ai-proxy.lukewai.workers.dev" autocomplete="off" autocapitalize="none" spellcheck="false">
         </div>
         <div class="setting-group">
@@ -217,11 +218,14 @@
         </div>
         <div class="setting-group">
           <label class="setting-label">User display name</label>
+          <div class="setting-desc">Shown on your messages and the sidebar status card.</div>
           <input type="text" class="setting-input" id="userNameInput" placeholder="Luke">
         </div>
+
+        <div class="settings-section-title">Model & response</div>
         <div class="setting-group">
           <label class="setting-label">Temperature</label>
-          <div class="setting-desc">Lower = focused. Higher = creative.</div>
+          <div class="setting-desc">Lower is focused and deterministic. Higher is more creative.</div>
           <div style="display:flex;align-items:center;">
             <input type="range" class="setting-slider" id="tempSlider" min="0" max="2" step="0.1" value="0.7" data-action="temp-slider">
             <span class="slider-value" id="tempValue">0.7</span>
@@ -229,46 +233,54 @@
         </div>
         <div class="setting-group">
           <label class="setting-label">Max Tokens</label>
+          <div class="setting-desc">Caps reply length. Higher values help long files but may be slower.</div>
           <select class="setting-select" id="maxTokensSelect">
             <option value="512">512 tokens</option><option value="1024">1,024 tokens</option><option value="2048" selected>2,048 tokens</option><option value="4096">4,096 tokens</option><option value="8192">8,192 tokens</option><option value="16384">16,384 tokens</option><option value="32768">32,768 tokens</option>
           </select>
         </div>
         <div class="setting-group">
-          <label class="setting-label">Streaming</label>
+          <label class="setting-label">Stream answer live</label>
+          <div class="setting-desc">Shows text as it arrives. Turn off if a model endpoint hangs while streaming.</div>
           <select class="setting-select" id="streamSelect">
             <option value="yes" selected>Yes - stream text live</option>
             <option value="no">No - wait for full response</option>
           </select>
         </div>
+
+        <div class="settings-section-title">Activity & reasoning</div>
         <div class="setting-group">
-          <label class="setting-label">Show Thinking Indicator</label>
+          <label class="setting-label">Show Activity Panel</label>
+          <div class="setting-desc">Shows progress, content preview, web search, retry notes, and reasoning when the model returns it.</div>
           <select class="setting-select" id="thinkingSelect">
-            <option value="yes" selected>Yes - show Thinking… while waiting</option>
+            <option value="yes" selected>Yes - show activity while waiting</option>
             <option value="no">No</option>
           </select>
         </div>
         <div class="setting-group">
-          <label class="setting-label">Request Model Thinking</label>
-          <div class="setting-desc">When a model appears to support reasoning, send NVIDIA thinking parameters and show any public reasoning fields returned by the API.</div>
+          <label class="setting-label">Ask for public reasoning</label>
+          <div class="setting-desc">Requests public reasoning fields on models that appear to support them. Some NVIDIA models reject this; the app retries without it.</div>
           <select class="setting-select" id="forceReasoningSelect">
             <option value="yes" selected>Yes - request public reasoning when supported</option>
             <option value="no">No - do not add reasoning parameters</option>
           </select>
         </div>
         <div class="setting-group">
-          <label class="setting-label">Stream Diagnostics</label>
-          <div class="setting-desc">Shows raw stream counters, response headers, and raw SSE/JSON samples under each assistant response so you can see what NVIDIA actually returned.</div>
+          <label class="setting-label">Show raw stream debug</label>
+          <div class="setting-desc">Advanced troubleshooting. Adds raw event details inside the Activity Panel when you need to inspect what NVIDIA returned.</div>
           <select class="setting-select" id="diagnosticsSelect">
             <option value="yes" selected>Yes - show stream diagnostics</option>
             <option value="no">No</option>
           </select>
         </div>
+
+        <div class="settings-section-title">App</div>
         <div class="setting-group">
           <label class="setting-label">Theme</label>
           <select class="setting-select" id="themeSelect"><option value="dark" selected>Dark NVIDIA</option><option value="light">Light</option></select>
         </div>
         <div class="setting-group">
           <label class="setting-label">Custom Mode Prompt</label>
+          <div class="setting-desc">Used only when the sidebar mode is Custom. It becomes the hidden system instruction for that mode.</div>
           <textarea class="setting-input" id="customPromptInput" rows="5" placeholder="Write your own system prompt for Custom mode..."></textarea>
         </div>
         <div class="setting-group">

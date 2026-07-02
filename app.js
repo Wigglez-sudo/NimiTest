@@ -1,6 +1,6 @@
 /* NVIDIA AI Desktop - GitHub Pages / Cloudflare Worker build */
-const APP_VERSION = '3.0.17';
-const BUILD_ID = '2026-07-chat-history-dedupe';
+const APP_VERSION = '3.1.0';
+const BUILD_ID = '2026-07-ui-clarity-pass';
 const NVIDIA_DIRECT_BASE = 'https://integrate.api.nvidia.com/v1';
 const DEFAULT_PROXY_URL = 'https://nvidia-ai-proxy.lukewai.workers.dev';
 const STREAM_FIRST_TOKEN_TIMEOUT_MS = 45000;
@@ -121,26 +121,26 @@ function isVerifiedFreeEndpoint(value, raw = {}) {
 }
 
 const MODES = [
-  { key: 'chat', icon: '💬', label: 'Chat', short: 'General assistant for normal questions and tasks.', prompt: 'You are a helpful NVIDIA AI desktop assistant. Be clear, practical and honest. When code or files are useful, use fenced code blocks with a filename line such as filename: app.js.' },
-  { key: 'coding', icon: '💻', label: 'Coding', short: 'Programming, debugging, Docker, Git, APIs and file generation.', prompt: 'You are an expert software engineer. Prioritise working code, exact commands, debugging steps, and downloadable file blocks. Ask only when required. When generating files, use fenced code blocks and put filename: path/to/file.ext as the first line.' },
-  { key: 'research', icon: '📚', label: 'Research', short: 'Deeper structured analysis and comparisons.', prompt: 'You are a careful research assistant. Give structured, evidence-aware analysis. Separate facts from assumptions. Say when live web access or a source is needed. Avoid pretending to have citations unless provided.' },
-  { key: 'writing', icon: '📝', label: 'Writing', short: 'Emails, docs, rewriting, summaries and tone changes.', prompt: 'You are a writing assistant. Improve clarity, tone, grammar and structure. Preserve the user’s intent and avoid adding unsupported claims.' },
-  { key: 'creative', icon: '🎨', label: 'Creative', short: 'Stories, ideas, roleplay, branding and brainstorming.', prompt: 'You are a creative assistant. Be imaginative, vivid and useful. Offer original ideas while staying aligned with the user’s request.' },
-  { key: 'data', icon: '📊', label: 'Data', short: 'CSV, SQL, spreadsheets, analysis and datasets.', prompt: 'You are a data analyst. Prefer clear tables, CSV/JSON when requested, formulas, assumptions, and reproducible steps. Use downloadable file blocks where useful.' },
-  { key: 'web', icon: '🌐', label: 'Web', short: 'HTML, CSS, JavaScript, websites and UI.', prompt: 'You are a web developer. Produce clean, responsive HTML/CSS/JS. Use accessible UI patterns. Put each generated file in a fenced code block with filename: as the first line.' },
-  { key: 'images', icon: '🖼️', label: 'Images', short: 'Image prompts and image-capable model guidance.', prompt: 'You help with image generation prompts and image workflows. If the selected model is not image-capable, explain that a vision/image model may be needed.' },
-  { key: 'voice', icon: '🎤', label: 'Voice', short: 'Dictation-friendly, concise speech-style responses.', prompt: 'You are a voice-friendly assistant. Keep responses conversational and easy to read aloud unless the user asks for detail.' },
-  { key: 'custom', icon: '⚙️', label: 'Custom', short: 'Uses your custom system prompt from Settings.', prompt: '' }
+  { key: 'chat', icon: 'CHAT', label: 'Chat', short: 'General assistant for normal questions and tasks.', prompt: 'You are a helpful NVIDIA AI desktop assistant. Be clear, practical and honest. When code or files are useful, use fenced code blocks with a filename line such as filename: app.js.' },
+  { key: 'coding', icon: 'CODE', label: 'Coding', short: 'Programming, debugging, Docker, Git, APIs and file generation.', prompt: 'You are an expert software engineer. Prioritise working code, exact commands, debugging steps, and downloadable file blocks. Ask only when required. When generating files, use fenced code blocks and put filename: path/to/file.ext as the first line.' },
+  { key: 'research', icon: 'READ', label: 'Research', short: 'Deeper structured analysis and comparisons.', prompt: 'You are a careful research assistant. Give structured, evidence-aware analysis. Separate facts from assumptions. Say when live web access or a source is needed. Avoid pretending to have citations unless provided.' },
+  { key: 'writing', icon: 'TEXT', label: 'Writing', short: 'Emails, docs, rewriting, summaries and tone changes.', prompt: 'You are a writing assistant. Improve clarity, tone, grammar and structure. Preserve the user\'s intent and avoid adding unsupported claims.' },
+  { key: 'creative', icon: 'IDEA', label: 'Creative', short: 'Stories, ideas, roleplay, branding and brainstorming.', prompt: 'You are a creative assistant. Be imaginative, vivid and useful. Offer original ideas while staying aligned with the user\'s request.' },
+  { key: 'data', icon: 'DATA', label: 'Data', short: 'CSV, SQL, spreadsheets, analysis and datasets.', prompt: 'You are a data analyst. Prefer clear tables, CSV/JSON when requested, formulas, assumptions, and reproducible steps. Use downloadable file blocks where useful.' },
+  { key: 'web', icon: 'WEB', label: 'Web', short: 'HTML, CSS, JavaScript, websites and UI.', prompt: 'You are a web developer. Produce clean, responsive HTML/CSS/JS. Use accessible UI patterns. Put each generated file in a fenced code block with filename: as the first line.' },
+  { key: 'images', icon: 'IMG', label: 'Images', short: 'Image prompts and image-capable model guidance.', prompt: 'You help with image generation prompts and image workflows. If the selected model is not image-capable, explain that a vision/image model may be needed.' },
+  { key: 'voice', icon: 'MIC', label: 'Voice', short: 'Dictation-friendly, concise speech-style responses.', prompt: 'You are a voice-friendly assistant. Keep responses conversational and easy to read aloud unless the user asks for detail.' },
+  { key: 'custom', icon: 'SET', label: 'Custom', short: 'Uses your custom system prompt from Settings.', prompt: '' }
 ];
 
 const AGENTS = [
-  { key: 'general', name: 'General', role: 'Balanced helper', emoji: '🟢', prompt: '' },
-  { key: 'engineer', name: 'Senior Engineer', role: 'Strict coding reviewer', emoji: '💻', prompt: 'Act as a senior engineer. Check edge cases, give practical implementation details, and point out likely breakages.' },
-  { key: 'researcher', name: 'Researcher', role: 'Careful analyst', emoji: '📚', prompt: 'Act as a cautious researcher. Avoid overclaiming, state uncertainty, and organise findings clearly.' },
-  { key: 'data', name: 'Data Analyst', role: 'Tables and analysis', emoji: '📊', prompt: 'Act as a data analyst. Prefer structured outputs, tables, calculations, and repeatable analysis.' },
-  { key: 'creative', name: 'Creative', role: 'Ideas and writing', emoji: '🎨', prompt: 'Act as a creative director. Offer bold options, names, concepts, and polished wording.' },
-  { key: 'teacher', name: 'Teacher', role: 'Explains step by step', emoji: '👨‍🏫', prompt: 'Act as a patient teacher. Explain in plain English and build up step by step.' },
-  { key: 'security', name: 'Security Reviewer', role: 'Safety and hardening', emoji: '🛡️', prompt: 'Act as a security reviewer. Highlight secrets, unsafe defaults, injection risks, and safer alternatives.' }
+  { key: 'general', name: 'General', role: 'Balanced helper', emoji: 'AI', prompt: '' },
+  { key: 'engineer', name: 'Senior Engineer', role: 'Strict coding reviewer', emoji: 'SE', prompt: 'Act as a senior engineer. Check edge cases, give practical implementation details, and point out likely breakages.' },
+  { key: 'researcher', name: 'Researcher', role: 'Careful analyst', emoji: 'R', prompt: 'Act as a cautious researcher. Avoid overclaiming, state uncertainty, and organise findings clearly.' },
+  { key: 'data', name: 'Data Analyst', role: 'Tables and analysis', emoji: 'D', prompt: 'Act as a data analyst. Prefer structured outputs, tables, calculations, and repeatable analysis.' },
+  { key: 'creative', name: 'Creative', role: 'Ideas and writing', emoji: 'C', prompt: 'Act as a creative director. Offer bold options, names, concepts, and polished wording.' },
+  { key: 'teacher', name: 'Teacher', role: 'Explains step by step', emoji: 'T', prompt: 'Act as a patient teacher. Explain in plain English and build up step by step.' },
+  { key: 'security', name: 'Security Reviewer', role: 'Safety and hardening', emoji: 'SR', prompt: 'Act as a security reviewer. Highlight secrets, unsafe defaults, injection risks, and safer alternatives.' }
 ];
 
 
@@ -176,7 +176,8 @@ const state = {
     plugins: { ...DEFAULT_PLUGINS },
     currentMode: 'chat',
     currentAgent: 'general',
-    currentModelId: ''
+    currentModelId: '',
+    recentModelIds: []
   },
   liveModels: [],
   favourites: new Set(),
@@ -307,20 +308,40 @@ function streamEventsListHtml(msg) {
   if (!state.settings.streamDiagnostics || !msg?.debug) return '';
   const events = msg.debug.events || [];
   if (!events.length) return `<div class="stream-events-empty">No stream events yet.</div>`;
-  return `<div class="stream-events-list">${events.map(e => `<div class="stream-event"><strong>${escapeHtml(e.t)}</strong><span>${escapeHtml(e.label)}${e.details ? ` — ${escapeHtml(e.details)}` : ''}</span></div>`).join('')}</div>`;
+  return `<div class="stream-events-list">${events.map(e => `<div class="stream-event"><strong>${escapeHtml(e.t)}</strong><span>${escapeHtml(e.label)}${e.details ? ` - ${escapeHtml(e.details)}` : ''}</span></div>`).join('')}</div>`;
+}
+
+function streamSummaryHtml(msg) {
+  if (!msg?.debug) return '';
+  const d = msg.debug;
+  const c = d.counters || {};
+  const http = d.http || {};
+  const elapsed = ((Date.now() - (d.startedAt || Date.now())) / 1000).toFixed(1) + 's';
+  const rows = [
+    ['Elapsed', elapsed],
+    ['HTTP', http.status ? `${http.status} ${http.contentType || ''}`.trim() : 'Waiting'],
+    ['Content', `${c.contentDeltas || 0} text chunk${(c.contentDeltas || 0) === 1 ? '' : 's'}`],
+    ['Reasoning', `${c.reasoningDeltas || 0} reasoning chunk${(c.reasoningDeltas || 0) === 1 ? '' : 's'}`],
+    ['Events', `${c.sseEvents || 0} SSE, ${c.jsonEvents || 0} JSON, ${c.chunks || 0} network chunk${(c.chunks || 0) === 1 ? '' : 's'}`]
+  ];
+  return `<div class="activity-summary-grid">${rows.map(([k, v]) => `<div><span>${escapeHtml(k)}</span><strong>${escapeHtml(v)}</strong></div>`).join('')}</div>`;
 }
 
 function thinkingDetailsHtml(msg) {
   if (!msg || msg.role === 'user') return '';
   const hasThinking = state.settings.showThinking && !!msg.thinking;
+  const hasContentPreview = state.settings.showThinking && !!msg.content;
+  const hasSummary = !!msg.debug;
   const hasEvents = state.settings.streamDiagnostics && !!msg.debug;
-  if (!hasThinking && !hasEvents) return '';
+  if (!hasThinking && !hasContentPreview && !hasSummary) return '';
   const summary = streamDebugSummary(msg) || (msg.loading ? 'working' : 'complete');
-  const thinkingText = hasThinking ? `<div class="thinking-section-title">Public reasoning / plugin notes</div><div class="thinking-public-text">${escapeHtml(msg.thinking)}</div>` : '';
-  const eventText = hasEvents ? `<div class="thinking-section-title">Event timeline</div>${streamEventsListHtml(msg)}` : '';
+  const contentText = hasContentPreview ? `<div class="thinking-section-title">Content preview</div><div class="thinking-public-text">${escapeHtml(shortText(msg.content, 3000))}</div>` : '';
+  const thinkingText = hasThinking ? `<div class="thinking-section-title">Reasoning / notes</div><div class="thinking-public-text">${escapeHtml(msg.thinking)}</div>` : '';
+  const summaryText = hasSummary ? `<div class="thinking-section-title">Stream summary</div>${streamSummaryHtml(msg)}` : '';
+  const eventText = hasEvents ? `<details class="raw-debug-details"><summary>Raw debug events</summary>${streamEventsListHtml(msg)}</details>` : '';
   const id = msg.id || '';
   const openAttr = id && state.openThinking?.has(id) ? ' open' : '';
-  return `<details class="thinking-block thinking-details" data-thinking-id="${escapeAttr(id)}"${openAttr}><summary class="thinking-header"><span>🧠</span><div class="thinking-title">Thinking</div><span class="thinking-toggle">${escapeHtml(summary)}</span></summary><div class="thinking-body">${thinkingText}${eventText}</div></details>`;
+  return `<details class="thinking-block thinking-details" data-thinking-id="${escapeAttr(id)}"${openAttr}><summary class="thinking-header"><span class="activity-icon">AI</span><div class="thinking-title">Activity Panel</div><span class="thinking-toggle">${escapeHtml(summary)}</span></summary><div class="thinking-body">${contentText}${thinkingText}${summaryText}${eventText}</div></details>`;
 }
 function streamDebugHtml(msg) {
   // Kept as a compatibility alias for older call sites. The UI now shows only
@@ -472,6 +493,7 @@ function loadState() {
   migrateLegacyStorage();
   state.settings = { ...state.settings, ...loadJson(SETTINGS_KEY, {}) };
   state.settings.plugins = { ...DEFAULT_PLUGINS, ...(state.settings.plugins || {}) };
+  state.settings.recentModelIds = Array.isArray(state.settings.recentModelIds) ? state.settings.recentModelIds.slice(0, 5) : [];
   if (!state.settings.proxyUrl) state.settings.proxyUrl = DEFAULT_PROXY_URL;
   restoreConnectionBackup();
   state.settings.showThinking = !!state.settings.plugins.thinkingDisplay;
@@ -626,7 +648,7 @@ function getCurrentModel() {
 
 function badgeLabel(cap) {
   const map = {
-    chat: '💬 Chat', reasoning: '🧠 Reasoning', coding: '💻 Coding', research: '📚 Research', vision: '👁 Vision', image: '🖼️ Image', speech: '🎤 Speech', long: '📄 Long', fast: '⚡ Fast', free_endpoint: '🟢 Free Endpoint', free: '🟢 Free', paid: '💳 Paid', enterprise: '🏢 Enterprise', api: '✅ API Available', catalog: '📚 Catalog', catalog_only: '⚠️ Catalog Only', live: 'Live'
+    chat: 'Chat', reasoning: 'Reasoning', coding: 'Coding', research: 'Research', vision: 'Vision', image: 'Image', speech: 'Speech', long: 'Long', fast: 'Fast', free_endpoint: 'Free Endpoint', free: 'Free', paid: 'Paid', enterprise: 'Enterprise', api: 'API Available', catalog: 'Catalog', catalog_only: 'Catalog Only', live: 'Live'
   };
   return map[cap] || cap;
 }
@@ -696,8 +718,9 @@ function renderModeNav() {
   const el = document.getElementById('modeNav');
   if (!el) return;
   el.innerHTML = MODES.map(m => `
-    <div class="nav-item ${state.settings.currentMode === m.key ? 'active' : ''}" data-action="set-mode" data-mode="${m.key}" title="${escapeAttr(m.short)}">
-      <span style="width:18px;text-align:center;">${m.icon}</span>${escapeHtml(m.label)}
+    <div class="nav-item nav-item-mode ${state.settings.currentMode === m.key ? 'active' : ''}" data-action="set-mode" data-mode="${m.key}" title="${escapeAttr(m.short)}">
+      <span class="mode-nav-icon">${escapeHtml(m.icon)}</span>
+      <span class="mode-nav-copy"><strong>${escapeHtml(m.label)}</strong><small>${escapeHtml(m.short)}</small></span>
     </div>`).join('');
 }
 
@@ -716,7 +739,7 @@ function getAgent() { return AGENTS.find(a => a.key === state.settings.currentAg
 function updateModeIndicator() {
   const mode = getMode();
   const el = document.getElementById('modeIndicator');
-  if (el) { el.style.display = 'inline-block'; el.textContent = `${mode.icon} ${mode.label}`; }
+  if (el) { el.style.display = 'inline-block'; el.textContent = mode.label; }
   const title = document.getElementById('chatTitle');
   if (title) title.textContent = `${mode.label} Mode`;
 }
@@ -809,13 +832,13 @@ function selectChat(id) {
 
 function welcomeHtml() {
   return `<div class="welcome-screen">
-    <div class="welcome-logo">🟢</div>
+    <div class="welcome-logo">NV</div>
     <div class="welcome-title">NViMi AI</div>
     <div class="welcome-subtitle">Use your NVIDIA Build key with live model loading, favourites, streaming, modes, editing, regeneration and downloads.</div>
     <div class="welcome-cards">
       <div class="welcome-card" data-action="open-settings"><div class="welcome-card-title">1. Settings</div><div class="welcome-card-desc">Add API key and Worker URL.</div></div>
       <div class="welcome-card" data-action="refresh-models"><div class="welcome-card-title">2. Refresh Models</div><div class="welcome-card-desc">Load live NVIDIA models.</div></div>
-      <div class="welcome-card" data-action="help"><div class="welcome-card-title">3. Help</div><div class="welcome-card-desc">See what modes and badges do.</div></div>
+      <div class="welcome-card" data-action="help"><div class="welcome-card-title">3. App Guide</div><div class="welcome-card-desc">Learn modes, plugins, files, settings, and fixes.</div></div>
     </div>
   </div>`;
 }
@@ -830,11 +853,12 @@ function renderMessages() {
 
 function messageHtml(m, idx) {
   const isUser = m.role === 'user';
-  const avatar = isUser ? (state.settings.userName || 'U').slice(0, 1).toUpperCase() : '🟢';
+  const avatar = isUser ? (state.settings.userName || 'U').slice(0, 1).toUpperCase() : 'NV';
   const author = isUser ? (state.settings.userName || 'User') : 'NViMi AI';
   const visibleContent = isUser ? stripVisibleAttachmentBlocks(m.content || '') : (m.content || '');
-  const content = m.loading && !visibleContent ? thinkingHtml(m.status || 'Thinking') : renderMarkdown(visibleContent);
+  const content = m.loading && !visibleContent ? thinkingHtml(m.status || 'Thinking') : renderMarkdown(visibleContent, { hideGeneratedFiles: !isUser });
   const generatedFiles = (!isUser && visibleContent && state.settings.plugins.downloadButtons) ? generatedFilesPanelHtml(visibleContent) : '';
+  const webSearch = !isUser ? webSearchCardHtml(m) : '';
   const attachments = isUser ? attachmentSummaryHtml(m.attachments || []) : '';
   const thinking = !isUser ? thinkingDetailsHtml(m) : '';
   const debug = '';
@@ -842,7 +866,7 @@ function messageHtml(m, idx) {
     <div class="message-avatar ${isUser ? 'user' : 'assistant'}">${escapeHtml(avatar)}</div>
     <div class="message-content">
       <div class="message-header"><div class="message-author">${escapeHtml(author)}</div><div class="message-time">${escapeHtml(m.time || '')}</div>${m.model ? `<div class="message-time">${escapeHtml(m.model)}</div>` : ''}</div>
-      <div class="message-body" id="body_${escapeAttr(m.id)}">${thinking}${debug}${generatedFiles}${content}${attachments}</div>
+      <div class="message-body" id="body_${escapeAttr(m.id)}">${thinking}${debug}${webSearch}${generatedFiles}${content}${attachments}</div>
       ${messageActions(m, idx)}
     </div>
   </div>`;
@@ -851,6 +875,20 @@ function messageHtml(m, idx) {
 function thinkingHtml(label = 'Thinking') {
   const safeLabel = state.settings.showThinking ? label : 'Generating response';
   return `<span class="thinking-line">${escapeHtml(safeLabel)} <span class="thinking-dots"><span></span><span></span><span></span></span></span>`;
+}
+
+function webSearchCardHtml(msg) {
+  const search = msg?.webSearch;
+  if (!search) return '';
+  const results = Array.isArray(search.results) ? search.results : [];
+  const sourceRows = results.slice(0, 8).map((r, i) => {
+    const title = r.title || r.url || `Result ${i + 1}`;
+    const url = r.url || '';
+    return `<li>${url ? `<a href="${escapeAttr(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(title)}</a>` : escapeHtml(title)}</li>`;
+  }).join('');
+  const sourceDetails = sourceRows ? `<details class="web-search-sources"><summary>Sources used</summary><ol>${sourceRows}</ol></details>` : '';
+  const status = search.error ? `Search failed: ${search.error}` : `${results.length} result${results.length === 1 ? '' : 's'} used`;
+  return `<div class="web-search-card"><div class="web-search-kicker">Web Search</div><div class="web-search-title">${escapeHtml(search.query || 'Current information')}</div><div class="web-search-meta">${escapeHtml(search.provider || 'search')} - ${escapeHtml(status)}</div>${sourceDetails}</div>`;
 }
 
 function messageActions(m, idx) {
@@ -935,30 +973,31 @@ function extractCodeBlockMeta(langRaw, codeRaw, before = '') {
 }
 
 function generatedFilesPanelHtml(text) {
-  const files = parseGeneratedFilesFromMarkdown(text, { includeInferred: true });
+  const files = parseGeneratedFilesFromMarkdown(text, { includeInferred: false });
   if (!files.length) return '';
   const allPayload = files.map(f => ({ filename: f.filename, code: f.code, lang: f.lang }));
   const allPayloadId = storeGeneratedPayload(allPayload);
   const canPreview = state.settings.plugins.artifactPreview && canPreviewFiles(allPayload);
-  const explicitCount = files.filter(f => f.explicit).length;
-  const label = explicitCount ? 'Artifacts' : 'Copyable code files';
-  const sublabel = explicitCount
-    ? `${files.length} file${files.length === 1 ? '' : 's'} detected from the model response`
-    : `${files.length} code block${files.length === 1 ? '' : 's'} made downloadable with safe filenames`;
+  const sublabel = `${files.length} file${files.length === 1 ? '' : 's'} ready to copy or download`;
   const cards = files.map(f => {
     const singlePayloadId = storeGeneratedPayload({ filename: f.filename, code: f.code, lang: f.lang });
     const kind = fileKind(f);
-    return `<div class="generated-file-card ${f.explicit ? '' : 'inferred-file'}">
-      <div class="generated-file-icon">${f.explicit ? 'DOC' : 'CODE'}</div>
-      <div class="generated-file-info"><div class="generated-file-name">${escapeHtml(f.filename)}</div><div class="generated-file-meta"><span class="artifact-kind">${escapeHtml(kind)}</span> ${escapeHtml(f.lang)} - ${formatBytes(new Blob([f.code]).size)}${f.explicit ? '' : ' - inferred filename'}</div></div>
-      <div class="generated-file-actions"><button class="file-btn" data-action="copy-code" data-payload-id="${singlePayloadId}">Copy</button><button class="file-btn primary" data-action="download-code" data-payload-id="${singlePayloadId}">Download</button></div>
+    return `<div class="generated-file-card">
+      <div class="generated-file-icon">${escapeHtml(kind.toUpperCase().slice(0, 4))}</div>
+      <div class="generated-file-main">
+        <div class="generated-file-top">
+          <div class="generated-file-info"><div class="generated-file-name">${escapeHtml(f.filename)}</div><div class="generated-file-meta"><span class="artifact-kind">${escapeHtml(kind)}</span> ${escapeHtml(f.lang)} - ${formatBytes(new Blob([f.code]).size)}</div></div>
+          <div class="generated-file-actions"><button class="file-btn" data-action="copy-code" data-payload-id="${singlePayloadId}">Copy</button><button class="file-btn primary" data-action="download-code" data-payload-id="${singlePayloadId}">Download</button></div>
+        </div>
+        <details class="generated-source-details"><summary>Show source</summary><pre><code>${escapeHtml(`filename: ${f.filename}\n${f.code}`)}</code></pre></details>
+      </div>
     </div>`;
   }).join('');
-  const previewButton = canPreview ? `<button class="file-btn primary" data-action="preview-artifacts" data-payload-id="${allPayloadId}">Preview app</button>` : '';
+  const previewButton = canPreview ? `<button class="file-btn" data-action="preview-artifacts" data-payload-id="${allPayloadId}">Preview</button>` : '';
   const multi = files.length > 1
     ? `${previewButton}<button class="file-btn" data-action="open-artifacts" data-payload-id="${allPayloadId}">Open drawer</button><button class="file-btn" data-action="copy-all-files" data-payload-id="${allPayloadId}">Copy all</button><button class="file-btn primary" data-action="download-zip" data-payload-id="${allPayloadId}">Download ZIP</button>`
     : `${previewButton}<button class="file-btn" data-action="open-artifacts" data-payload-id="${allPayloadId}">Open drawer</button><button class="file-btn primary" data-action="download-all-files" data-payload-id="${allPayloadId}">Download</button>`;
-  return `<div class="generated-files-panel"><div class="generated-files-header"><div><strong>${label}</strong><span>${sublabel}</span></div><div class="generated-files-buttons">${multi}</div></div>${cards}</div>`;
+  return `<div class="generated-files-panel"><div class="generated-files-header"><div><strong>Generated Files</strong><span>${sublabel}</span></div><div class="generated-files-buttons">${multi}</div></div>${cards}</div>`;
 }
 
 function fileKind(file = {}) {
@@ -996,16 +1035,20 @@ function buildArtifactPreviewHtml(files = []) {
   if (injectedJs) html = /<\/body>/i.test(html) ? html.replace(/<\/body>/i, `${injectedJs}\n</body>`) : `${html}\n${injectedJs}`;
   return html;
 }
-function renderMarkdown(text) {
+function renderMarkdown(text, options = {}) {
   let src = String(text || '');
   const codeBlocks = [];
   src = src.replace(/```([^\n`]*)\n([\s\S]*?)(?:```|$)/g, (full, langRaw, codeRaw, offset) => {
     const before = src.slice(Math.max(0, offset - 260), offset);
     const meta = extractCodeBlockMeta(langRaw, codeRaw, before);
+    if (options.hideGeneratedFiles && meta.explicit) return '';
     const id = uid('code');
     codeBlocks.push({ id, lang: meta.lang, code: meta.code, filename: meta.filename || inferFilename(meta.lang), explicit: meta.explicit });
     return `@@CODEBLOCK_${codeBlocks.length - 1}@@`;
   });
+  if (options.hideGeneratedFiles) {
+    src = src.replace(/^\s*(?:filename|file|path)\s*[:=]\s*`?[^`\n]+`?\s*$/gmi, '');
+  }
   let html = escapeHtml(src)
     .replace(/^### (.*)$/gm, '<h3>$1</h3>')
     .replace(/^## (.*)$/gm, '<h2>$1</h2>')
@@ -1546,6 +1589,7 @@ async function maybeBuildWebSearchContext(assistantId) {
   const msg = getMessage(assistantId);
   if (msg) {
     msg.status = 'Searching the web';
+    msg.webSearch = { provider: state.settings.plugins.webSearchProvider || 'brave', query: text, results: [], error: '' };
     if (state.settings.showThinking) msg.thinking += `Web Search plugin: searching ${state.settings.plugins.webSearchProvider} for current results...\n`;
     updateAssistantDom(msg);
   }
@@ -1554,6 +1598,7 @@ async function maybeBuildWebSearchContext(assistantId) {
     if (!results.length) return 'WEB SEARCH PLUGIN: Search ran but returned no useful results. Tell the user that live search produced no useful result and answer cautiously.';
     if (msg) {
       msg.status = 'Building answer from web results';
+      msg.webSearch = { ...(msg.webSearch || {}), results };
       if (state.settings.showThinking) msg.thinking += `Web Search plugin: found ${results.length} result(s).\n`;
       updateAssistantDom(msg);
     }
@@ -1561,6 +1606,7 @@ async function maybeBuildWebSearchContext(assistantId) {
   } catch (err) {
     if (state.stopRequested || isAbortLike(err)) throw err;
     if (msg) {
+      msg.webSearch = { ...(msg.webSearch || { provider: state.settings.plugins.webSearchProvider || 'brave', query: text, results: [] }), error: friendlyError(err) };
       msg.thinking += `Web Search plugin failed: ${friendlyError(err)}\n`;
       updateAssistantDom(msg);
     }
@@ -1901,7 +1947,8 @@ function updateAssistantDom(msg) {
     const debug = '';
     const progress = msg.loading && !msg.content ? thinkingHtml(msg.status || 'Thinking') : '';
     const generatedFiles = (msg.content && state.settings.plugins.downloadButtons) ? generatedFilesPanelHtml(msg.content) : '';
-    body.innerHTML = thinking + debug + generatedFiles + (msg.content ? renderMarkdown(msg.content) : progress);
+    const webSearch = webSearchCardHtml(msg);
+    body.innerHTML = thinking + debug + webSearch + generatedFiles + (msg.content ? renderMarkdown(msg.content, { hideGeneratedFiles: true }) : progress);
   }
   scrollToBottom(true);
 }
@@ -2082,7 +2129,14 @@ function getModelsForCurrentTab() {
   if (state.modelTab === 'favorites') models = models.filter(m => state.favourites.has(m.id));
   else if (state.modelTab !== 'all') models = models.filter(m => m.capabilities?.includes(state.modelTab));
   if (search) models = models.filter(m => `${m.name} ${m.id} ${m.desc} ${(m.capabilities || []).join(' ')}`.toLowerCase().includes(search));
-  return models.sort((a, b) => Number(state.favourites.has(b.id)) - Number(state.favourites.has(a.id)) || a.name.localeCompare(b.name));
+  const recent = new Map((state.settings.recentModelIds || []).map((id, idx) => [id, idx]));
+  return models.sort((a, b) =>
+    Number(state.favourites.has(b.id)) - Number(state.favourites.has(a.id)) ||
+    (recent.has(a.id) ? recent.get(a.id) : 99) - (recent.has(b.id) ? recent.get(b.id) : 99) ||
+    Number(b.capabilities?.includes('free_endpoint')) - Number(a.capabilities?.includes('free_endpoint')) ||
+    Number(b.capabilities?.includes('api')) - Number(a.capabilities?.includes('api')) ||
+    modelSortName(a).localeCompare(modelSortName(b))
+  );
 }
 
 function renderModelList() {
@@ -2090,26 +2144,30 @@ function renderModelList() {
   const models = getModelsForCurrentTab();
   const current = getCurrentModel();
   if (!state.liveModels.length) {
-    list.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🟢</div><div class="empty-state-title">No live models loaded</div><div class="empty-state-desc">Add your API key and Worker URL, then click Refresh Models.</div></div>`;
+    list.innerHTML = `<div class="empty-state"><div class="empty-state-icon">NV</div><div class="empty-state-title">No live models loaded</div><div class="empty-state-desc">Add your API key and Worker URL, then click Refresh Models.</div></div>`;
     setModelMeta('No live models loaded. Click Refresh Models.');
     return;
   }
   if (!models.length) {
-    list.innerHTML = `<div class="empty-state"><div class="empty-state-icon">⭐</div><div class="empty-state-title">No models here</div><div class="empty-state-desc">Try Refresh Models. If this is the Free Endpoint tab, the app now uses verified fallback tags as well as NVIDIA metadata.</div></div>`;
-    setModelMeta(`${state.liveModels.length} live models loaded • ${state.favourites.size} favourites`);
+    list.innerHTML = `<div class="empty-state"><div class="empty-state-icon">AI</div><div class="empty-state-title">No models here</div><div class="empty-state-desc">Try Refresh Models or another filter. Free/API labels come from NVIDIA metadata plus verified fallback tags.</div></div>`;
+    setModelMeta(`${state.liveModels.length} live models loaded - ${state.favourites.size} favourites`);
     return;
   }
-  list.innerHTML = models.map(m => `
-    <div class="model-item ${current?.id === m.id ? 'selected' : ''}">
+  const recent = new Set(state.settings.recentModelIds || []);
+  list.innerHTML = models.map(m => {
+    const status = m.catalogOnly ? 'Catalog only' : m.capabilities?.includes('free_endpoint') ? 'Free API' : m.capabilities?.includes('api') ? 'API ready' : 'Live';
+    const marker = state.favourites.has(m.id) ? 'Favorite' : recent.has(m.id) ? 'Recent' : '';
+    return `<div class="model-item ${current?.id === m.id ? 'selected' : ''}" data-action="select-model" data-model-id="${escapeAttr(m.id)}">
       <button class="model-star ${state.favourites.has(m.id) ? 'active' : ''}" data-action="toggle-fav" data-model-id="${escapeAttr(m.id)}" title="Favourite">${state.favourites.has(m.id) ? '★' : '☆'}</button>
-      <div class="model-item-info" data-action="select-model" data-model-id="${escapeAttr(m.id)}">
-        <div class="model-item-name">${escapeHtml(m.name)}${m.catalogOnly ? ' <span class="capability-tag catalog_only">Catalog only</span>' : ''}</div>
-        <div class="model-item-desc">${escapeHtml(m.desc || 'Live NVIDIA model')}</div>
+      <div class="model-item-info">
+        <div class="model-item-title-row"><div class="model-item-name">${escapeHtml(m.name)}</div><span class="model-status-pill">${escapeHtml(status)}</span></div>
         <div class="model-item-desc"><code>${escapeHtml(m.id)}</code></div>
+        ${marker ? `<div class="model-item-desc">${escapeHtml(marker)}</div>` : ''}
         ${capabilityHtml(m)}
       </div>
-    </div>`).join('');
-  setModelMeta(`${models.length} shown • ${state.liveModels.length} live models • ${state.favourites.size} favourites`);
+    </div>`;
+  }).join('');
+  setModelMeta(`${models.length} shown - ${state.liveModels.length} live models - ${state.favourites.size} favourites`);
 }
 
 function switchModelTab(tab, el) {
@@ -2123,13 +2181,13 @@ function selectModel(id) {
   const model = state.liveModels.find(m => m.id === id);
   if (model?.catalogOnly) showToast('Catalog-only model selected. If chat fails, NVIDIA may require a different exact model ID or endpoint.', 'error');
   state.settings.currentModelId = id;
+  state.settings.recentModelIds = [id, ...(state.settings.recentModelIds || []).filter(x => x !== id)].slice(0, 5);
   persistSettings();
   updateSelectedModelLabel();
   renderModelList();
   updateStatus(); updateSendButton();
   document.getElementById('modelDropdown')?.classList.remove('open');
-}
-function recommendModel(type) {
+}function recommendModel(type) {
   if (!state.liveModels.length) { showToast('Load models first.', 'error'); return; }
   const profiles = {
     coding: { positives: ['coding', 'code', 'qwen', 'coder', 'deepseek', 'nemotron'], negatives: ['embedding', 'rerank', 'image', 'speech'] },
@@ -2335,7 +2393,7 @@ function updateStatus() {
   }
   const card = document.getElementById('statusCard');
   if (card) card.title = 'Open account and app status';
-  if (status) status.textContent = connected ? `🟢 ${state.liveModels.length} live models` : state.settings.apiKey ? '🟡 Key saved' : '🔴 Disconnected';
+  if (status) status.textContent = connected ? `${state.liveModels.length} live models` : state.settings.apiKey ? 'Key saved' : 'Disconnected';
   const agentBadge = document.getElementById('agentBadge'); if (agentBadge) agentBadge.textContent = getAgent().name;
 }
 
@@ -2387,11 +2445,14 @@ function closePanel() {
 
 
 function boolText(value) { return value ? 'On' : 'Off'; }
-function pluginToggleHtml(key, icon, name, desc, disabled = false) {
+function pluginBadgesHtml(badges = []) {
+  return badges.map(b => `<span class="plugin-badge">${escapeHtml(b)}</span>`).join('');
+}
+function pluginToggleHtml(key, icon, name, desc, badges = [], disabled = false) {
   const enabled = !!state.settings.plugins[key];
   return `<div class="plugin-item ${disabled ? 'disabled' : ''}">
-    <div class="plugin-icon">${icon}</div>
-    <div class="plugin-info"><div class="plugin-name">${escapeHtml(name)}</div><div class="plugin-desc">${escapeHtml(desc)}</div></div>
+    <div class="plugin-icon">${escapeHtml(icon)}</div>
+    <div class="plugin-info"><div class="plugin-name">${escapeHtml(name)}</div><div class="plugin-desc">${escapeHtml(desc)}</div><div class="plugin-badges">${pluginBadgesHtml(badges)}</div></div>
     <button class="toggle-switch ${enabled ? 'on' : ''}" ${disabled ? 'disabled' : ''} data-action="toggle-plugin" data-key="${key}" title="${boolText(enabled)}"></button>
   </div>`;
 }
@@ -2399,10 +2460,12 @@ function pluginToggleHtml(key, icon, name, desc, disabled = false) {
 function openPluginsPanel() {
   const p = state.settings.plugins;
   const html = `
-    <div class="mode-help-card"><h3>Real plugins</h3><p>These toggles now change what the app does. Web Search uses your Cloudflare Worker plus a search provider, then injects results into the NVIDIA model prompt.</p></div>
-    ${pluginToggleHtml('webSearch', '🌐', 'Web Search', 'Uses Brave Search/Tavily through your Worker before asking the model.')}
+    <div class="mode-help-card guide-hero"><h3>Plugins</h3><p>Plugins either add context to the prompt, change how files are shown, or display what the model is doing. Web Search is the only plugin that calls an outside search service through your Worker.</p></div>
+    <div class="panel-section-label">Search & context</div>
+    ${pluginToggleHtml('webSearch', 'WEB', 'Web Search', 'Searches Brave/Tavily through your Cloudflare Worker, then adds the results to the model prompt.', ['Worker', 'Prompt', 'Setup'])}
     <div class="plugin-settings ${p.webSearch ? '' : 'muted'}">
       <label class="setting-label">Search provider</label>
+      <div class="setting-desc">Choose where live web results come from. Worker-secret keeps the search key out of the browser.</div>
       <select class="setting-select" data-action="plugin-set" data-key="webSearchProvider">
         <option value="brave" ${p.webSearchProvider === 'brave' ? 'selected' : ''}>Brave Search API - recommended</option>
         <option value="tavily" ${p.webSearchProvider === 'tavily' ? 'selected' : ''}>Tavily Search API - LLM/RAG focused</option>
@@ -2410,7 +2473,7 @@ function openPluginsPanel() {
       </select>
       <label class="setting-label" style="margin-top:10px;">Search API key</label>
       <input class="setting-input" type="password" value="${escapeAttr(p.webSearchApiKey || '')}" placeholder="Brave or Tavily API key" autocomplete="off" data-action="plugin-set-input" data-key="webSearchApiKey">
-      <div class="setting-desc">Recommended: Brave Search API. Or store the key as a Worker secret (BRAVE_SEARCH_API_KEY) and choose the Worker-secret option so the key never touches the browser. DuckDuckGo is not included because its free Instant Answer API is not a full web search results API.</div>
+      <details class="setting-more"><summary>How Web Search works</summary><p>The app sends your query to the Worker. The Worker calls Brave or Tavily, returns a small result list, and the app injects that source summary into the NVIDIA model prompt. If this fails, the model should answer cautiously instead of pretending it searched.</p></details>
       <div class="form-row plugin-form-row">
         <div><label class="setting-label">Results</label><input class="setting-input" type="number" min="1" max="10" value="${Number(p.webSearchResults || 6)}" data-action="plugin-set" data-key="webSearchResults"></div>
         <div><label class="setting-label">Behaviour</label><select class="setting-select" data-action="plugin-set" data-key="webSearchMode"><option value="auto" ${p.webSearchMode === 'auto' ? 'selected' : ''}>Auto-detect current queries</option><option value="always" ${p.webSearchMode === 'always' ? 'selected' : ''}>Search every prompt</option></select></div>
@@ -2418,17 +2481,17 @@ function openPluginsPanel() {
       <div class="btn-row" style="margin-top:10px;"><button class="btn btn-secondary" data-action="test-web-search">Test Web Search</button></div>
       <div id="pluginTestStatus" class="connection-status" style="display:none;"></div>
     </div>
-    ${pluginToggleHtml('fileReader', '📁', 'File Reader', 'Reads attached text/code/CSV/Markdown files into the prompt.')}
-    ${pluginToggleHtml('downloadButtons', '⬇️', 'Download Buttons', 'Shows Download buttons on generated code/file blocks.')}
-    ${pluginToggleHtml('preferFileOutputs', 'FILES', 'Prefer File Outputs', 'Prompts models to return complete downloadable files for code, apps, docs, and structured outputs.')}
-    ${pluginToggleHtml('artifactPreview', 'PREVIEW', 'Artifact Preview', 'Adds a preview drawer for generated HTML/CSS/JS artifacts.')}
-    ${pluginToggleHtml('thinkingDisplay', '🧠', 'Thinking Display', 'Shows Thinking… and plugin progress while waiting/streaming.')}
-    ${pluginToggleHtml('longContext', '📄', 'Long Context', 'Sends more chat history to the model. Uses more tokens.')}
-    ${pluginToggleHtml('codeInterpreter', '💻', 'Code Interpreter', 'Disabled: needs a real backend sandbox, not just GitHub Pages.', true)}
+    ${pluginToggleHtml('fileReader', 'FILE', 'File Reader', 'Reads supported attached text/code/CSV/Markdown files and adds their content to the prompt.', ['Prompt', 'Files'])}
+    ${pluginToggleHtml('longContext', 'MEM', 'Extended Memory', 'Sends more chat history to the model. Better memory, but slower and uses more tokens.', ['Prompt', 'Tokens'])}
+    <div class="panel-section-label">Output tools</div>
+    ${pluginToggleHtml('downloadButtons', 'DOWN', 'Download Buttons', 'Shows Copy and Download actions for generated code and file blocks.', ['UI', 'Files'])}
+    ${pluginToggleHtml('preferFileOutputs', 'OUT', 'File Output Mode', 'Asks models to return complete downloadable files when you ask for code, docs, apps, configs, or structured outputs.', ['Prompt', 'Files'])}
+    ${pluginToggleHtml('artifactPreview', 'VIEW', 'Artifact Preview', 'Adds preview tools for generated HTML/CSS/JS artifacts.', ['UI', 'Preview'])}
+    <div class="panel-section-label">Activity</div>
+    ${pluginToggleHtml('thinkingDisplay', 'ACT', 'Activity Panel', 'Shows model progress, content preview, reasoning when returned, plugin notes, retries, and compact stream summary.', ['UI', 'Default on'])}
   `;
   openPanel('Plugins', html);
 }
-
 function togglePlugin(key) {
   if (key === 'codeInterpreter') { showToast('Code Interpreter needs a backend sandbox before it can be enabled.', 'error'); return; }
   state.settings.plugins[key] = !state.settings.plugins[key];
@@ -2477,9 +2540,25 @@ function openAgentPanel() {
 function selectAgent(key) { state.settings.currentAgent = key; persistSettings(); openAgentPanel(); updateStatus(); showToast(`Agent: ${getAgent().name}`); }
 
 function openHelpPanel() {
-  const modes = MODES.map(m => `<div class="mode-help-card"><h3>${m.icon} ${escapeHtml(m.label)}</h3><p>${escapeHtml(m.short)}</p><p style="margin-top:6px;color:var(--text-muted);">Changes the system prompt sent to the model.</p></div>`).join('');
-  const badges = ['free_endpoint','reasoning','coding','research','vision','image','speech','long','fast','free','paid','enterprise','live'].map(c => `<span class="capability-tag ${c}">${escapeHtml(badgeLabel(c))}</span>`).join(' ');
-  openPanel('Help / Modes and Badges', `${modes}<div class="mode-help-card"><h3>Model capability badges</h3><p>Badges are inferred from NVIDIA live model metadata and model names. They help you pick models, but the app will not fake pricing or capabilities when NVIDIA does not expose them.</p><div class="capability-bar" style="margin-top:10px;">${badges}</div></div><div class="mode-help-card"><h3>Reasoning / Thinking</h3><p>The app now requests NVIDIA thinking fields for reasoning-capable models when Thinking Display is on. It shows public reasoning only when NVIDIA returns it, such as reasoning, reasoning_content or visible &lt;think&gt; blocks. Stream Diagnostics shows raw chunks/counters so you can tell whether NVIDIA sent reasoning, sent only final text, or sent nothing yet.</p></div><div class="mode-help-card"><h3>Plugins</h3><p>Web Search is real when enabled: the app calls your Worker, the Worker calls Brave/Tavily, then the results are injected into the model prompt. File Reader, Download Buttons, Thinking Display and Long Context also change app behaviour. Code Interpreter is shown as disabled because browser-only GitHub Pages cannot safely run Python.</p></div>`);
+  const modes = MODES.map(m => `<div class="guide-row"><div class="guide-token">${escapeHtml(m.icon)}</div><div><h4>${escapeHtml(m.label)}</h4><p>${escapeHtml(m.short)}</p><small>Adds a hidden system instruction before your message. It does not switch models by itself.</small></div></div>`).join('');
+  const badges = ['free_endpoint','api','reasoning','coding','vision','image','speech','long','fast','catalog_only'].map(c => `<span class="capability-tag ${c}">${escapeHtml(badgeLabel(c))}</span>`).join(' ');
+  const html = `
+    <div class="mode-help-card guide-hero"><h3>App Guide</h3><p>NViMi AI runs on GitHub Pages, talks to NVIDIA through your Cloudflare Worker, and stores your key/settings only in this browser.</p><p><strong>Live app:</strong><br><code>https://wigglez-sudo.github.io/nvidia-ai-desktop/</code></p><p><strong>Worker:</strong><br><code>https://nvidia-ai-proxy.lukewai.workers.dev</code></p></div>
+    <div class="panel-section-label">Quick start</div>
+    <div class="mode-help-card"><p>Open Settings, add your NVIDIA API key and Worker URL, press Test Connection, then Refresh Models. Pick a model from the model picker and send a message.</p></div>
+    <div class="panel-section-label">Modes</div>${modes}
+    <div class="panel-section-label">Model picker</div>
+    <div class="mode-help-card"><p>Favourites and recent models appear first. Free/API labels come from NVIDIA live model metadata plus verified fallback tags. Refresh Models pulls the latest available model list.</p><div class="capability-bar" style="margin-top:10px;">${badges}</div></div>
+    <div class="panel-section-label">Activity Panel</div>
+    <div class="mode-help-card"><p>The Activity Panel shows content preview, public reasoning when a model returns it, web search/file notes, retry notes, and a compact stream summary. Raw debug events only appear when stream diagnostics are enabled.</p></div>
+    <div class="panel-section-label">Generated files</div>
+    <div class="mode-help-card"><p>When a model returns fenced blocks with a first line like <code>filename: app.js</code>, the app turns them into Generated Files cards. Each file has Copy, Download, and its own collapsible source. Multiple files can download together as a ZIP.</p></div>
+    <div class="panel-section-label">Plugins</div>
+    <div class="mode-help-card"><p>Web Search calls the Worker and injects source summaries into the prompt. File Reader adds supported attachments to the prompt. File Output Mode asks models for complete downloadable files. Extended Memory sends more chat history and uses more tokens.</p></div>
+    <div class="panel-section-label">Troubleshooting</div>
+    <div class="mode-help-card"><p><strong>No models:</strong> check API key and Worker URL, then Test Connection.<br><strong>Model hangs:</strong> try Kimi, turn streaming off, or use Test Current Model.<br><strong>Web search fails:</strong> check provider/key or Worker secret, then Test Web Search.<br><strong>Files greyed on iOS:</strong> iOS may restrict picker types; try Files app or another extension.<br><strong>Old version stuck:</strong> Settings -> Update app now.<br><strong>Downloads messy:</strong> ask for complete files with filename lines; use Generated Files cards.</p></div>
+  `;
+  openPanel('App Guide', html);
 }
 
 function openStatusPanel() {
@@ -2488,41 +2567,32 @@ function openStatusPanel() {
   const p = state.settings.plugins;
   const freeCount = state.liveModels.filter(m => m.capabilities?.includes('free_endpoint')).length;
   const conn = !!state.settings.apiKey && !!state.liveModels.length;
-  const connLabel = conn ? '🟢 Connected' : state.settings.apiKey ? '🟡 Key saved, models not loaded' : '🔴 No API key';
+  const connLabel = conn ? 'Connected' : state.settings.apiKey ? 'Key saved, models not loaded' : 'No API key';
   const routes = Array.isArray(d.workerRoutes) && d.workerRoutes.length ? d.workerRoutes.join(', ') : 'Not probed yet';
   const html = `
-    <div class="status-grid-card"><h3>App</h3><p>Version: <code>${escapeHtml(APP_VERSION)}</code><br>Build: <code>${escapeHtml(BUILD_ID)}</code><br>Loaded: ${escapeHtml(state.loadedAt || '—')}<br>Service worker: ${escapeHtml(d.swStatus || 'unknown')}</p></div>
-    <div class="status-grid-card"><h3>Connection</h3><p>${escapeHtml(connLabel)}<br>Proxy: ${escapeHtml(state.settings.proxyUrl || 'Direct NVIDIA call')}<br>Worker version: ${escapeHtml(d.workerVersion || 'Not probed')}<br>Worker routes: ${escapeHtml(routes)}</p></div>
-    <div class="status-grid-card"><h3>Models</h3><p>Live models: ${state.liveModels.length}<br>Free Endpoint: ${freeCount}<br>Favourites: ${state.favourites.size}<br>Chats: ${state.chats.length}</p></div>
-    <div class="status-grid-card"><h3>Current setup</h3><p>Model: ${escapeHtml(model?.name || 'None')}<br>Mode: ${escapeHtml(getMode().label)}<br>Agent: ${escapeHtml(getAgent().name)}<br>Streaming: ${state.settings.stream ? 'On' : 'Off'}<br>Reasoning req: ${state.settings.forceReasoning ? 'On' : 'Off'}<br>Web Search: ${p.webSearch ? 'On (' + escapeHtml(p.webSearchProvider) + ')' : 'Off'}<br>Long Context: ${p.longContext ? 'On' : 'Off'}</p></div>
-    <div class="status-grid-card"><h3>Last request</h3><p>Status: ${escapeHtml(String(d.lastStatus || '—'))}<br>Content-type: ${escapeHtml(d.lastContentType || '—')}<br>Stream events: ${escapeHtml(String(d.lastEvents ?? '—'))}<br>Last error: ${d.lastError ? escapeHtml(shortText(d.lastError, 240)) : 'None'}</p></div>
+    <div class="mode-help-card guide-hero"><h3>App Status & Tools</h3><p>Check connection state, run targeted tests, export backups, and clear local browser data.</p></div>
+    <div class="panel-section-label">Current setup</div>
+    <div class="status-grid-card"><h3>App</h3><p>Version: <code>${escapeHtml(APP_VERSION)}</code><br>Build: <code>${escapeHtml(BUILD_ID)}</code><br>Loaded: ${escapeHtml(state.loadedAt || '-')}<br>Service worker: ${escapeHtml(d.swStatus || 'unknown')}</p></div>
+    <div class="status-grid-card"><h3>Connection</h3><p>Status: ${escapeHtml(connLabel)}<br>Proxy: ${escapeHtml(state.settings.proxyUrl || 'Direct NVIDIA call')}<br>Worker version: ${escapeHtml(d.workerVersion || 'Not probed')}<br>Worker routes: ${escapeHtml(routes)}</p></div>
+    <div class="status-grid-card"><h3>Models and chat</h3><p>Live models: ${state.liveModels.length}<br>Free Endpoint: ${freeCount}<br>Favourites: ${state.favourites.size}<br>Chats: ${state.chats.length}</p></div>
+    <div class="status-grid-card"><h3>Active behaviour</h3><p>Model: ${escapeHtml(model?.name || 'None')}<br>Mode: ${escapeHtml(getMode().label)}<br>Agent: ${escapeHtml(getAgent().name)}<br>Stream answer live: ${state.settings.stream ? 'On' : 'Off'}<br>Public reasoning request: ${state.settings.forceReasoning ? 'On' : 'Off'}<br>Web Search: ${p.webSearch ? 'On (' + escapeHtml(p.webSearchProvider) + ')' : 'Off'}<br>Extended Memory: ${p.longContext ? 'On' : 'Off'}</p></div>
+    <details class="status-grid-card"><summary><h3>Last request technical details</h3></summary><p>Status: ${escapeHtml(String(d.lastStatus || '-'))}<br>Content-type: ${escapeHtml(d.lastContentType || '-')}<br>Stream events: ${escapeHtml(String(d.lastEvents ?? '-'))}<br>Last error: ${d.lastError ? escapeHtml(shortText(d.lastError, 240)) : 'None'}</p></details>
     <div id="diagTestStatus" class="connection-status" style="display:none;"></div>
-    <div class="panel-section-label">Tests</div>
-    <div class="btn-row">
-      <button class="btn btn-secondary" data-action="diag-probe-worker">Probe Worker</button>
-      <button class="btn btn-secondary" data-action="diag-test-models">Test NVIDIA models</button>
-      <button class="btn btn-secondary" data-action="diag-test-chat">Test chat completion</button>
-      <button class="btn btn-secondary" data-action="diag-test-search">Test web search</button>
-      <button class="btn btn-secondary" data-action="diag-test-catalog">Test build catalog</button>
+    <div class="panel-section-label">Connection tests</div>
+    <div class="tool-list">
+      <button class="tool-card" data-action="diag-probe-worker"><strong>Probe Worker</strong><span>Checks whether the Cloudflare Worker is reachable.</span></button>
+      <button class="tool-card" data-action="diag-test-models"><strong>Test NVIDIA models</strong><span>Loads the live NVIDIA model list with your key.</span></button>
+      <button class="tool-card" data-action="diag-test-chat"><strong>Test current model</strong><span>Sends a tiny non-stream request to the selected model.</span></button>
+      <button class="tool-card" data-action="diag-test-search"><strong>Test web search</strong><span>Checks Brave/Tavily search through the Worker.</span></button>
+      <button class="tool-card" data-action="diag-test-catalog"><strong>Test build catalog</strong><span>Checks NVIDIA Build catalog enrichment.</span></button>
     </div>
     <div class="panel-section-label">Maintenance</div>
-    <div class="btn-row">
-      <button class="btn btn-secondary" data-action="new-chat-close">New chat</button>
-      <button class="btn btn-secondary" data-action="export-debug">Export debug logs</button>
-      <button class="btn btn-secondary" data-action="export-settings">Export settings</button>
-      <button class="btn btn-secondary" data-action="import-settings">Import settings</button>
-    </div>
-    <div class="btn-row">
-      <button class="btn btn-primary" data-action="clear-cache">Clear cache &amp; reload latest</button>
-    </div>
-    <div class="btn-row">
-      <button class="btn btn-danger" data-action="delete-all-chats">Delete all chats</button>
-      <button class="btn btn-danger" data-action="clear-key-close">Clear API key</button>
-      <button class="btn btn-danger" data-action="clear-all-data">Clear all local data</button>
-    </div>`;
-  openPanel('Diagnostics & Status', html);
+    <div class="btn-row"><button class="btn btn-secondary" data-action="new-chat-close">New chat</button><button class="btn btn-secondary" data-action="export-debug">Export debug logs</button><button class="btn btn-secondary" data-action="export-settings">Export settings</button><button class="btn btn-secondary" data-action="import-settings">Import settings</button></div>
+    <div class="btn-row"><button class="btn btn-primary" data-action="clear-cache">Clear cache &amp; reload latest</button></div>
+    <div class="panel-section-label danger-zone-label">Danger zone</div>
+    <div class="btn-row"><button class="btn btn-danger" data-action="delete-all-chats">Delete all chats</button><button class="btn btn-danger" data-action="clear-key-close">Clear API key</button><button class="btn btn-danger" data-action="clear-all-data">Clear all local data</button></div>`;
+  openPanel('App Status & Tools', html);
 }
-
 function showDiagStatus(text, success) {
   const el = document.getElementById('diagTestStatus');
   if (!el) { showToast(text, success ? 'success' : 'error'); return; }

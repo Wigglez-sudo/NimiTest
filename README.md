@@ -7,7 +7,7 @@ A NVIDIA-powered, Kimi-style AI chat app that runs as a static site on **GitHub 
 - Live site: https://wigglez-sudo.github.io/nvidia-ai-desktop/
 - Worker: https://nvidia-ai-proxy.lukewai.workers.dev
 
-This is **v3.0.17**, a chat-history cleanup patch on top of the v3.0.16 iOS browser viewport baseline. The proven engine (streaming, model catalog, generated-file parsing, Free Endpoint model handling, and the Worker) was kept; the app was patched in place without a rewrite.
+This is **v3.1.0**, a UI clarity and generated-files cleanup on top of the v3.0.17 chat-history baseline. The proven engine (streaming, model catalog, generated-file parsing, Free Endpoint model handling, plugins, and the Worker) was kept; the app was patched in place without a rewrite.
 
 ---
 
@@ -27,7 +27,7 @@ This is **v3.0.17**, a chat-history cleanup patch on top of the v3.0.16 iOS brow
 **New quality-of-life features**
 - **Clear cache & reload latest** button (in Diagnostics) — unregisters the service worker, clears caches, and reloads with a cache-buster. Fixes the recurring "GitHub updated but I still see the old version" problem.
 - **App version badge** shown in the sidebar footer.
-- **Diagnostics & Status panel** (click your name/status at the bottom-left): app/build version, service-worker state, Worker version + routes (Probe Worker), model/free-endpoint counts, last request status/content-type/error, and test buttons: Test NVIDIA models, Test chat completion, Test web search, Test build catalog, Export debug logs.
+- **App Status & Tools panel** (click your name/status at the bottom-left): app/build version, service-worker state, Worker version + routes (Probe Worker), model/free-endpoint counts, last request status/content-type/error, and test buttons: Test NVIDIA models, Test chat completion, Test web search, Test build catalog, Export debug logs.
 - **Compact Thinking timeline** — stream/reasoning events now appear inside one collapsed `Thinking` block. Raw request JSON and raw SSE payloads no longer flood the chat view.
 - **Download all generated files as ZIP** (plus Copy all) — a real, dependency-free ZIP, not a burst of individual downloads.
 - **Chat management**: rename, pin (pinned chats float to the top), search, and delete — all from the sidebar.
@@ -65,7 +65,7 @@ index.worker.js
 Commit and wait for Pages to deploy. Then open with a cache-buster:
 
 ```
-https://wigglez-sudo.github.io/nvidia-ai-desktop/?v=3.0.17
+https://wigglez-sudo.github.io/nvidia-ai-desktop/?v=3.1.0
 ```
 
 If you ever see a stale version again, just click **Clear cache & reload latest** in the Diagnostics panel (bottom-left of the sidebar).
@@ -74,7 +74,7 @@ If you ever see a stale version again, just click **Clear cache & reload latest*
 
 ## Deploy the Cloudflare Worker
 
-The Worker source is still a single file: **`worker/index.js`**. Its behaviour is unchanged in v3.0.17. **No Worker change is required for this patch** unless you want to redeploy the included copy for consistency.
+The Worker source is still a single file: **`worker/index.js`**. Its behaviour is unchanged in v3.1.0. **No Worker change is required for this patch** unless you want to redeploy the included copy for consistency.
 
 Copy it to your local Wrangler project and deploy:
 
@@ -118,12 +118,12 @@ Do **not** add `/v1/models`, `/v1/chat/completions`, etc. — the app appends pa
 
 ## Test checklist
 
-After uploading, open the site with `?v=3.0.17` and check:
+After uploading, open the site with `?v=3.1.0` and check:
 
 1. Startup splash appears with `Created by Wigglez + Claude + ChatGPT Codex`.
 2. Splash **Save, Load Models & Enter** saves the NVIDIA key and Worker URL, pulls models, and closes into the app.
 3. Settings → **Update app now** clears service-worker/cache storage and reloads with a fresh cache-buster.
-4. Sidebar name/status (bottom-left) opens the **Diagnostics** panel; version badge shows `v3.0.17`.
+4. Sidebar name/status (bottom-left) opens **App Status & Tools**; version badge shows `v3.1.0`.
 5. Settings → **Test Connection** loads models.
 6. Model picker → **Refresh**; the **Free Endpoint** and **API Available** tabs have models.
 7. Send a message → a reply renders (this is the path that used to be broken).
@@ -131,7 +131,7 @@ After uploading, open the site with `?v=3.0.17` and check:
 9. Attach multiple files and drag/drop files → attachment chips only (no pasted file text in the chat).
 10. Edit a sent message; Regenerate a reply.
 11. Rename, pin, search, and delete chats in the sidebar.
-12. Diagnostics → **Probe Worker**, **Test chat completion**, **Test build catalog**; turn on Web Search and **Test web search**.
+12. App Status → **Probe Worker**, **Test chat completion**, **Test build catalog**; turn on Web Search and **Test web search**.
 13. Settings → **Export settings** / **Import settings**.
 14. On iPhone/Safari: the top toolbar sits below the status/dynamic-island area, pinch zoom is blocked, the sidebar opens as a drawer with a backdrop, and the model picker opens as a compact bottom sheet with horizontally scrollable chips.
 15. On iPhone/Safari and desktop: tap/click the paperclip, choose a text/code file, and confirm an attachment chip appears before sending.
@@ -304,4 +304,16 @@ No Cloudflare Worker change is required for this patch unless you want to redepl
 - Added chat-history de-duplication on load/persist so existing duplicated saved chat IDs collapse back to one.
 - Diagnostics chat count now reflects the cleaned chat list.
 - Bumped the service-worker cache to `nvidia-ai-desktop-v3-0-17`.
+- No Cloudflare Worker change is required for this frontend-only patch.
+
+## v3.1.0 — UI clarity and generated files
+
+- Redesigned generated-file replies so file cards appear once, with Copy/Download actions and per-file collapsed source.
+- Activity Panel now groups content preview, reasoning/notes, stream summary, and optional raw debug events instead of showing noisy line-by-line content deltas.
+- Model picker now has cleaner filters, favourites/recent ordering, clearer model status pills, and a roomier mobile sheet.
+- Settings now uses clearer sections and explanations for connection, response, activity/reasoning, and app controls.
+- Plugins are grouped by purpose with small badges; Code Interpreter is hidden from the visible plugin list because this GitHub Pages app has no backend sandbox.
+- Help was replaced by a deeper App Guide, and App Status is available from both the sidebar and status card.
+- Replaced unreliable emoji labels in key UI surfaces with stable text tokens.
+- Bumped the service-worker cache to `nvidia-ai-desktop-v3-1-0`.
 - No Cloudflare Worker change is required for this frontend-only patch.
