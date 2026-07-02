@@ -26,7 +26,7 @@
   --danger: #ef4444; --success: #22c55e; --warning: #f59e0b;
   --radius-sm: 6px; --radius-md: 10px; --radius-lg: 14px;
   --shadow: 0 4px 20px rgba(0,0,0,0.5); --transition: all 0.2s ease;
-  --app-height: 100dvh; --vv-top: 0px; --browser-top-pad: 0px;
+  --app-height: 100dvh; --vv-top: 0px; --browser-top-pad: 0px; --composer-height: 112px;
 }
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
@@ -870,8 +870,23 @@ button, input, textarea, select { font: inherit; }
 @media (max-width: 768px) {
   body { min-height: var(--app-height); }
   .input-area { padding-bottom: calc(14px + env(safe-area-inset-bottom)); }
-  body.keyboard-open .main { height: var(--app-height); max-height: var(--app-height); }
-  body.keyboard-open .input-area { padding-bottom: 6px; }
+  body.keyboard-open .main { height: var(--app-height); max-height: var(--app-height); padding-bottom: var(--composer-height); }
+  body.keyboard-open .chat-container { padding-bottom: calc(var(--composer-height) + 8px); }
+  body.keyboard-open .input-area {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 160;
+    padding: 8px 10px 6px;
+    background: var(--bg-secondary);
+  }
+  body.keyboard-open .editing-banner,
+  body.keyboard-open .input-wrapper {
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+  }
   .model-dropdown {
     position: fixed;
     left: 10px;
@@ -1542,7 +1557,7 @@ body.dragging-files::after {
         <div class="user-name" id="statusName">Luke</div>
         <div class="user-plan" id="statusText">Disconnected</div>
       </div>
-      <span class="app-version-badge" id="appVersionLabel">v3.1.4</span>
+      <span class="app-version-badge" id="appVersionLabel">v3.1.5</span>
     </button>
   </aside>
 
@@ -1767,8 +1782,8 @@ body.dragging-files::after {
   <div class="toast-container" id="toastContainer"></div>
   <script>
 /* NVIDIA AI Desktop - GitHub Pages / Cloudflare Worker build */
-const APP_VERSION = '3.1.4';
-const BUILD_ID = '2026-07-ios-keyboard-gap';
+const APP_VERSION = '3.1.5';
+const BUILD_ID = '2026-07-ios-fixed-composer';
 const NVIDIA_DIRECT_BASE = 'https://integrate.api.nvidia.com/v1';
 const DEFAULT_PROXY_URL = 'https://nvidia-ai-proxy.lukewai.workers.dev';
 const STREAM_FIRST_TOKEN_TIMEOUT_MS = 45000;
@@ -3186,6 +3201,7 @@ function renderPendingAttachments() {
       </div>
       <button class="attachment-remove" type="button" data-action="remove-attachment" data-att-id="${escapeAttr(att.id)}" title="Remove attachment">x</button>
     </div>`).join('');
+  syncComposerMetrics();
 }
 
 function removePendingAttachment(id) {
@@ -3271,6 +3287,17 @@ function shouldAutoScrollChat(container) {
   const typingInComposer = focused?.id === 'inputBox' || !!focused?.closest?.('.input-area');
   if (typingInComposer) return false;
   return container.scrollHeight - container.scrollTop - container.clientHeight < 160;
+}
+
+function syncComposerMetrics() {
+  const area = document.getElementById('inputArea');
+  if (!area) return;
+  const height = Math.max(88, Math.ceil(area.getBoundingClientRect().height || area.offsetHeight || 0));
+  document.documentElement.style.setProperty('--composer-height', `${height}px`);
+  if (isMobile() && document.body.classList.contains('keyboard-open')) {
+    try { window.scrollTo(0, 0); } catch (_) {}
+    try { document.documentElement.scrollTop = 0; document.body.scrollTop = 0; } catch (_) {}
+  }
 }
 
 function stopResponse() {
@@ -4926,6 +4953,7 @@ function syncVisualViewportVars() {
   document.documentElement.style.setProperty('--app-height', `${height}px`);
   document.documentElement.style.setProperty('--vv-top', `${top}px`);
   document.documentElement.style.setProperty('--browser-top-pad', `${browserTopPad}px`);
+  syncComposerMetrics();
 }
 
 function registerVisualViewportSync() {
@@ -4942,9 +4970,9 @@ function bindInputHandlers() {
   const input = document.getElementById('inputBox');
   if (input) {
     input.addEventListener('keydown', handleKeydown);
-    input.addEventListener('input', () => { autoResize(input); updateSendButton(); syncVisualViewportVars(); });
-    input.addEventListener('focus', () => setTimeout(syncVisualViewportVars, 80));
-    input.addEventListener('blur', () => setTimeout(syncVisualViewportVars, 120));
+    input.addEventListener('input', () => { autoResize(input); updateSendButton(); syncVisualViewportVars(); syncComposerMetrics(); });
+    input.addEventListener('focus', () => setTimeout(() => { syncVisualViewportVars(); syncComposerMetrics(); }, 80));
+    input.addEventListener('blur', () => setTimeout(() => { syncVisualViewportVars(); syncComposerMetrics(); }, 120));
   }
 }
 
@@ -5003,6 +5031,7 @@ function init() {
   registerFileDropZone();
   if (isMobile()) collapseSidebar();
   renderAll();
+  setTimeout(syncComposerMetrics, 0);
   registerServiceWorker();
   if (shouldShowSplash()) openSplash();
 }

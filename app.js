@@ -1,6 +1,6 @@
 /* NVIDIA AI Desktop - GitHub Pages / Cloudflare Worker build */
-const APP_VERSION = '3.1.4';
-const BUILD_ID = '2026-07-ios-keyboard-gap';
+const APP_VERSION = '3.1.5';
+const BUILD_ID = '2026-07-ios-fixed-composer';
 const NVIDIA_DIRECT_BASE = 'https://integrate.api.nvidia.com/v1';
 const DEFAULT_PROXY_URL = 'https://nvidia-ai-proxy.lukewai.workers.dev';
 const STREAM_FIRST_TOKEN_TIMEOUT_MS = 45000;
@@ -1418,6 +1418,7 @@ function renderPendingAttachments() {
       </div>
       <button class="attachment-remove" type="button" data-action="remove-attachment" data-att-id="${escapeAttr(att.id)}" title="Remove attachment">x</button>
     </div>`).join('');
+  syncComposerMetrics();
 }
 
 function removePendingAttachment(id) {
@@ -1503,6 +1504,17 @@ function shouldAutoScrollChat(container) {
   const typingInComposer = focused?.id === 'inputBox' || !!focused?.closest?.('.input-area');
   if (typingInComposer) return false;
   return container.scrollHeight - container.scrollTop - container.clientHeight < 160;
+}
+
+function syncComposerMetrics() {
+  const area = document.getElementById('inputArea');
+  if (!area) return;
+  const height = Math.max(88, Math.ceil(area.getBoundingClientRect().height || area.offsetHeight || 0));
+  document.documentElement.style.setProperty('--composer-height', `${height}px`);
+  if (isMobile() && document.body.classList.contains('keyboard-open')) {
+    try { window.scrollTo(0, 0); } catch (_) {}
+    try { document.documentElement.scrollTop = 0; document.body.scrollTop = 0; } catch (_) {}
+  }
 }
 
 function stopResponse() {
@@ -3158,6 +3170,7 @@ function syncVisualViewportVars() {
   document.documentElement.style.setProperty('--app-height', `${height}px`);
   document.documentElement.style.setProperty('--vv-top', `${top}px`);
   document.documentElement.style.setProperty('--browser-top-pad', `${browserTopPad}px`);
+  syncComposerMetrics();
 }
 
 function registerVisualViewportSync() {
@@ -3174,9 +3187,9 @@ function bindInputHandlers() {
   const input = document.getElementById('inputBox');
   if (input) {
     input.addEventListener('keydown', handleKeydown);
-    input.addEventListener('input', () => { autoResize(input); updateSendButton(); syncVisualViewportVars(); });
-    input.addEventListener('focus', () => setTimeout(syncVisualViewportVars, 80));
-    input.addEventListener('blur', () => setTimeout(syncVisualViewportVars, 120));
+    input.addEventListener('input', () => { autoResize(input); updateSendButton(); syncVisualViewportVars(); syncComposerMetrics(); });
+    input.addEventListener('focus', () => setTimeout(() => { syncVisualViewportVars(); syncComposerMetrics(); }, 80));
+    input.addEventListener('blur', () => setTimeout(() => { syncVisualViewportVars(); syncComposerMetrics(); }, 120));
   }
 }
 
@@ -3235,6 +3248,7 @@ function init() {
   registerFileDropZone();
   if (isMobile()) collapseSidebar();
   renderAll();
+  setTimeout(syncComposerMetrics, 0);
   registerServiceWorker();
   if (shouldShowSplash()) openSplash();
 }
