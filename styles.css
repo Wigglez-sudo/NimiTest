@@ -967,12 +967,14 @@ button, input, textarea, select { font: inherit; }
   flex-wrap: wrap;
   gap: 8px;
   margin-top: 10px;
+  max-width: 100%;
 }
 .attachment-chip {
   display: flex;
   align-items: center;
   gap: 8px;
   max-width: 320px;
+  min-width: 0;
   padding: 8px 10px;
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
@@ -1010,6 +1012,9 @@ button, input, textarea, select { font: inherit; }
   max-width: 230px;
 }
 .attachment-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.attachment-chip:not(.attachment-chip-add-more) {
+  flex: 1 1 220px;
+}
 .attachment-remove {
   width: 20px;
   height: 20px;
@@ -1021,6 +1026,26 @@ button, input, textarea, select { font: inherit; }
   flex-shrink: 0;
 }
 .attachment-remove:hover { color: var(--danger); background: rgba(239,68,68,0.12); }
+
+@media (max-width: 768px) {
+  .pending-attachments {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .pending-attachments::-webkit-scrollbar {
+    display: none;
+  }
+  .attachment-chip {
+    max-width: 78vw;
+    flex: 0 0 auto;
+  }
+  .attachment-name {
+    max-width: 42vw;
+  }
+}
 .message-attachments {
   display: flex;
   flex-direction: column;
