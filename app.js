@@ -1,6 +1,6 @@
 /* NVIDIA AI Desktop - GitHub Pages / Cloudflare Worker build */
-const APP_VERSION = '3.1.5';
-const BUILD_ID = '2026-07-ios-fixed-composer';
+const APP_VERSION = '3.1.6';
+const BUILD_ID = '2026-07-send-scroll-bottom';
 const NVIDIA_DIRECT_BASE = 'https://integrate.api.nvidia.com/v1';
 const DEFAULT_PROXY_URL = 'https://nvidia-ai-proxy.lukewai.workers.dev';
 const STREAM_FIRST_TOKEN_TIMEOUT_MS = 45000;
@@ -1576,6 +1576,7 @@ async function sendMessage(overrideText = null) {
   state.activeAbortController = new AbortController();
   state.activeAssistantId = assistantMsg.id;
   renderAll();
+  requestAnimationFrame(() => scrollToBottom(true));
   updateSendButton();
 
   try {
