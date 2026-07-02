@@ -1822,6 +1822,16 @@ async function requestAssistantResponse(assistantId) {
       }
       const retryPayload = profile.stripReasoningOnFallback ? stripReasoningExtras(payload) : payload;
       await sendPayload({ ...retryPayload, stream: false }, ` (retry without streaming${profile.stripReasoningOnFallback ? ', no reasoning flags' : ''})`);
+    } else if (payload.stream && /HTTP 500|HTTP 502|HTTP 503|HTTP 504|EngineCore/i.test(text)) {
+      const msg = getMessage(assistantId);
+      if (msg) {
+        msg.content = '';
+        msg.status = 'Retrying without streaming';
+        recordStreamEvent(msg, 'Retrying after server error', text);
+        updateAssistantDom(msg);
+      }
+      const retryPayload = profile.stripReasoningOnFallback ? stripReasoningExtras(payload) : payload;
+      await sendPayload({ ...retryPayload, stream: false }, ' (retry after server error)');
     } else if ((payload.chat_template_kwargs || payload.include_reasoning || payload.thinking_token_budget) && /HTTP (400|422|500)|invalid|unsupported|chat_template|thinking|reasoning/i.test(text)) {
       const msg = getMessage(assistantId);
       if (msg) {
