@@ -8,12 +8,13 @@
   --danger: #ef4444; --success: #22c55e; --warning: #f59e0b;
   --radius-sm: 6px; --radius-md: 10px; --radius-lg: 14px;
   --shadow: 0 4px 20px rgba(0,0,0,0.5); --transition: all 0.2s ease;
+  --app-height: 100dvh; --vv-top: 0px; --browser-top-pad: 0px;
 }
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   background: var(--bg-primary); color: var(--text-primary);
-  height: 100vh; overflow: hidden; display: flex;
+  height: var(--app-height); overflow: hidden; display: flex;
 }
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -732,7 +733,7 @@ body {
 
 
 /* GitHub Pages + iOS polish */
-html, body { min-height: 100%; min-height: 100dvh; touch-action: pan-x pan-y; }
+html, body { min-height: 100%; min-height: var(--app-height); touch-action: pan-x pan-y; }
 body { -webkit-text-size-adjust: 100%; touch-action: manipulation; }
 button, input, textarea, select { font: inherit; }
 .file-input-native {
@@ -769,9 +770,14 @@ button, input, textarea, select { font: inherit; }
 
 @media (max-width: 768px) {
   body { overflow: hidden; }
-  .main { height: 100dvh; }
+  .main {
+    height: calc(var(--app-height) - var(--vv-top) - var(--browser-top-pad));
+    max-height: calc(var(--app-height) - var(--vv-top) - var(--browser-top-pad));
+    padding-top: calc(var(--vv-top) + var(--browser-top-pad));
+  }
   .top-bar {
     height: calc(52px + env(safe-area-inset-top));
+    min-height: calc(52px + env(safe-area-inset-top));
     padding: env(safe-area-inset-top) 10px 0;
     flex-shrink: 0;
   }
@@ -787,15 +793,15 @@ button, input, textarea, select { font: inherit; }
   #selectedModelName { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .welcome-screen { min-height: 55dvh; padding: 12px; }
   .welcome-title { font-size: 21px; }
-  .splash-overlay { align-items: stretch; padding: max(14px, env(safe-area-inset-top)) 12px max(14px, env(safe-area-inset-bottom)); }
+  .splash-overlay { align-items: stretch; padding: calc(var(--vv-top) + var(--browser-top-pad) + max(14px, env(safe-area-inset-top))) 12px max(14px, env(safe-area-inset-bottom)); }
   .splash-shell { max-height: none; padding: 20px; border-radius: 12px; }
   .splash-shell h1 { font-size: 24px; }
   .splash-actions { flex-direction: column; }
   .splash-actions .btn { width: 100%; justify-content: center; }
-  .modal { width: 94vw; max-height: 88dvh; }
+  .modal { width: 94vw; max-height: calc(var(--app-height) - 28px); }
   .modal-body { padding: 14px; }
   .modal-footer { padding: 12px 14px; }
-  .sidebar { position: fixed; top: 0; left: 0; bottom: 0; height: 100dvh; width: min(84vw, 320px); box-shadow: var(--shadow); z-index: 300; transition: transform .25s ease; transform: translateX(0); padding-top: env(safe-area-inset-top); }
+  .sidebar { position: fixed; top: calc(var(--vv-top) + var(--browser-top-pad)); left: 0; bottom: 0; height: calc(var(--app-height) - var(--vv-top) - var(--browser-top-pad)); width: min(84vw, 320px); box-shadow: var(--shadow); z-index: 300; transition: transform .25s ease; transform: translateX(0); padding-top: env(safe-area-inset-top); }
   .sidebar.collapsed { transform: translateX(-100%); width: min(84vw, 320px); border-right: 1px solid var(--border-color); overflow: hidden; }
   .file-card { align-items: flex-start; }
   .file-actions { flex-direction: column; }
@@ -844,7 +850,7 @@ button, input, textarea, select { font: inherit; }
 .code-block-wrapper { position: relative; }
 .code-download-name { color: var(--text-muted); font-size: 11px; margin-left: 8px; }
 @media (max-width: 768px) {
-  body { min-height: 100dvh; }
+  body { min-height: var(--app-height); }
   .input-area { padding-bottom: calc(14px + env(safe-area-inset-bottom)); }
   .model-dropdown {
     position: fixed;
@@ -852,7 +858,7 @@ button, input, textarea, select { font: inherit; }
     right: 10px;
     bottom: calc(86px + env(safe-area-inset-bottom));
     width: auto;
-    max-height: min(52dvh, 460px);
+    max-height: min(calc(var(--app-height) * 0.52), 460px);
     border-radius: 12px;
   }
   .model-dropdown-header,
@@ -880,7 +886,7 @@ button, input, textarea, select { font: inherit; }
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
   }
-  .modal { max-height: 90dvh; }
+  .modal { max-height: calc(var(--app-height) - 28px); }
   .top-bar {
     padding-top: env(safe-area-inset-top);
     padding-left: max(12px, env(safe-area-inset-left));

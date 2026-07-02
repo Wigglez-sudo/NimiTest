@@ -1,6 +1,6 @@
 /* NVIDIA AI Desktop - GitHub Pages / Cloudflare Worker build */
-const APP_VERSION = '3.0.15';
-const BUILD_ID = '2026-07-deepseek-plain-payload';
+const APP_VERSION = '3.0.16';
+const BUILD_ID = '2026-07-ios-browser-viewport';
 const NVIDIA_DIRECT_BASE = 'https://integrate.api.nvidia.com/v1';
 const DEFAULT_PROXY_URL = 'https://nvidia-ai-proxy.lukewai.workers.dev';
 const STREAM_FIRST_TOKEN_TIMEOUT_MS = 45000;
@@ -2952,6 +2952,27 @@ function registerIOSZoomGuards() {
   document.addEventListener('gestureend', blockGesture, { passive: false });
 }
 
+function syncVisualViewportVars() {
+  const vv = window.visualViewport;
+  const height = Math.max(320, Math.round(vv?.height || window.innerHeight || document.documentElement.clientHeight || 0));
+  const top = Math.max(0, Math.round(vv?.offsetTop || 0));
+  const standalone = window.matchMedia?.('(display-mode: standalone)')?.matches || window.navigator.standalone;
+  const browserTopPad = isMobile() && !standalone ? 12 : 0;
+  document.documentElement.style.setProperty('--app-height', `${height}px`);
+  document.documentElement.style.setProperty('--vv-top', `${top}px`);
+  document.documentElement.style.setProperty('--browser-top-pad', `${browserTopPad}px`);
+}
+
+function registerVisualViewportSync() {
+  syncVisualViewportVars();
+  window.addEventListener('resize', syncVisualViewportVars, { passive: true });
+  window.addEventListener('orientationchange', () => setTimeout(syncVisualViewportVars, 250), { passive: true });
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', syncVisualViewportVars, { passive: true });
+    window.visualViewport.addEventListener('scroll', syncVisualViewportVars, { passive: true });
+  }
+}
+
 function bindInputHandlers() {
   const input = document.getElementById('inputBox');
   if (input) {
@@ -3010,6 +3031,7 @@ function init() {
   registerShortcuts();
   registerDelegatedEvents();
   registerIOSZoomGuards();
+  registerVisualViewportSync();
   bindInputHandlers();
   registerFileDropZone();
   if (isMobile()) collapseSidebar();
