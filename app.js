@@ -1402,8 +1402,16 @@ function isSupportedImageFile(file) {
   return ['image/png', 'image/jpeg', 'image/webp', 'image/gif'].includes(type) || /\.(png|jpe?g|webp|gif)$/i.test(name);
 }
 
+function isSupportedArchiveFile(file) {
+  const name = String(file?.name || '').toLowerCase();
+  const type = String(file?.type || '').toLowerCase();
+  return type === 'application/zip' || type === 'application/x-zip-compressed' || /\.zip$/i.test(name);
+}
+
 function attachmentKindLabel(att) {
-  return att?.kind === 'image' ? 'image' : (att?.language || 'text');
+  if (att?.kind === 'image') return 'image';
+  if (att?.kind === 'archive') return 'zip archive';
+  return att?.language || 'text';
 }
 
 function renderPendingAttachments() {
@@ -1413,7 +1421,7 @@ function renderPendingAttachments() {
   el.style.display = 'flex';
   el.innerHTML = state.pendingAttachments.map(att => `
     <div class="attachment-chip" title="${escapeAttr(att.name)}">
-      <span class="attachment-icon">${att.kind === 'image' ? 'IMG' : 'FILE'}</span>
+      <span class="attachment-icon">${att.kind === 'image' ? 'IMG' : att.kind === 'archive' ? 'ZIP' : 'FILE'}</span>
       <div class="attachment-info">
         <div class="attachment-name">${escapeHtml(att.name)}</div>
         <div class="attachment-meta">${escapeHtml(attachmentKindLabel(att))} - ${escapeHtml(formatBytes(att.size))}</div>
@@ -1452,6 +1460,9 @@ function attachmentPromptText(attachments = []) {
         return `\n\n[Attached image: ${att.name}\nType: ${att.type || 'image/*'}\nSize: ${formatBytes(att.size)}]\nImage data is no longer available in this reloaded chat. Ask the user to reattach the image if visual details are needed.`;
       }
       return `\n\n[Attached image: ${att.name}\nType: ${att.type || 'image/*'}\nSize: ${formatBytes(att.size)}]\nThe image is included as a vision input. Inspect it directly when answering.`;
+    }
+    if (att.kind === 'archive') {
+      return `\n\n[Attached archive: ${att.name}\nType: ${att.type || 'application/zip'}\nSize: ${formatBytes(att.size)}]\nThis is a ZIP archive attachment. The browser keeps the file for upload, but the archive contents are not expanded inside the app.`;
     }
     const content = String(att.content || '').slice(0, 200000);
     const truncated = String(att.content || '').length > content.length ? '\n\n[File truncated to 200,000 characters.]' : '';
@@ -2907,6 +2918,23 @@ async function addFilesToPending(fileList) {
       } catch (err) {
         skipped.push(`${name} (could not read image)`);
       }
+      continue;
+    }
+
+    if (isSupportedArchiveFile(file)) {
+      if (file.size > 50 * 1024 * 1024) {
+        skipped.push(`${name} (zip over 50 MB)`);
+        continue;
+      }
+      state.pendingAttachments.push({
+        id: uid('att'),
+        kind: 'archive',
+        name,
+        size: file.size,
+        type: file.type || 'application/zip',
+        content: ''
+      });
+      added++;
       continue;
     }
 
