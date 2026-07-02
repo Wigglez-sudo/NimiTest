@@ -2243,11 +2243,11 @@ function renderModelList() {
     return;
   }
   const recent = new Set(state.settings.recentModelIds || []);
-  list.innerHTML = models.map(m => {
+  const renderCards = items => items.map(m => {
     const status = m.catalogOnly ? 'Catalog only' : m.capabilities?.includes('free_endpoint') ? 'Free API' : m.capabilities?.includes('api') ? 'API ready' : 'Live';
     const marker = state.favourites.has(m.id) ? 'Favorite' : recent.has(m.id) ? 'Recent' : '';
     return `<div class="model-item ${current?.id === m.id ? 'selected' : ''}" data-action="select-model" data-model-id="${escapeAttr(m.id)}">
-      <button class="model-star ${state.favourites.has(m.id) ? 'active' : ''}" data-action="toggle-fav" data-model-id="${escapeAttr(m.id)}" title="Favourite">${state.favourites.has(m.id) ? '*' : '+'}</button>
+      <button class="model-star ${state.favourites.has(m.id) ? 'active' : ''}" data-action="toggle-fav" data-model-id="${escapeAttr(m.id)}" title="Favourite" aria-label="Toggle favourite">${state.favourites.has(m.id) ? '*' : '+'}</button>
       <div class="model-item-info">
         <div class="model-item-title-row"><div class="model-item-name">${escapeHtml(m.name)}</div><span class="model-status-pill">${escapeHtml(status)}</span></div>
         <div class="model-item-desc"><code>${escapeHtml(m.id)}</code></div>
@@ -2256,6 +2256,18 @@ function renderModelList() {
       </div>
     </div>`;
   }).join('');
+  if (state.modelTab === 'all' && !normalizeSearch(document.getElementById('modelSearch')?.value || '')) {
+    const favModels = models.filter(m => state.favourites.has(m.id));
+    const recentModels = models.filter(m => recent.has(m.id) && !state.favourites.has(m.id));
+    const otherModels = models.filter(m => !state.favourites.has(m.id) && !recent.has(m.id));
+    const sections = [];
+    if (favModels.length) sections.push(`<section class="model-section"><div class="model-section-header"><strong>Favorites</strong><span>${favModels.length}</span></div><div class="model-section-body">${renderCards(favModels)}</div></section>`);
+    if (recentModels.length) sections.push(`<section class="model-section"><div class="model-section-header"><strong>Recents</strong><span>${recentModels.length}</span></div><div class="model-section-body">${renderCards(recentModels)}</div></section>`);
+    sections.push(`<section class="model-section"><div class="model-section-header"><strong>All models</strong><span>${otherModels.length}</span></div><div class="model-section-body">${renderCards(otherModels)}</div></section>`);
+    list.innerHTML = sections.join('');
+  } else {
+    list.innerHTML = renderCards(models);
+  }
   setModelMeta(`${models.length} shown - ${state.liveModels.length} live models - ${state.favourites.size} favourites`);
 }
 
