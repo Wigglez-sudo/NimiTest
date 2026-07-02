@@ -39,6 +39,7 @@ body {
   transition: transform .25s ease;
 }
 .update-banner.open { transform: translate(-50%, 0); }
+.update-banner a,
 .update-banner button {
   border: none;
   border-radius: var(--radius-sm);
@@ -48,6 +49,12 @@ body {
   font-size: 12px;
   font-weight: 700;
   padding: 7px 10px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.update-banner.updating {
+  pointer-events: none;
+  opacity: 0.86;
 }
 
 .splash-overlay {

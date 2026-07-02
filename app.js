@@ -1,6 +1,6 @@
 /* NVIDIA AI Desktop - GitHub Pages / Cloudflare Worker build */
-const APP_VERSION = '3.0.10';
-const BUILD_ID = '2026-07-update-banner-model-picker-layout';
+const APP_VERSION = '3.0.11';
+const BUILD_ID = '2026-07-reliable-update-button';
 const NVIDIA_DIRECT_BASE = 'https://integrate.api.nvidia.com/v1';
 const DEFAULT_PROXY_URL = 'https://nvidia-ai-proxy.lukewai.workers.dev';
 const SETTINGS_KEY = 'nvidia_ai_desktop_settings_v8_plugins';
@@ -2549,10 +2549,32 @@ function clearAllLocalData() {
 }
 
 async function clearCacheAndReload() {
-  showDiagStatus('Clearing caches and service worker...', true);
+  const banner = document.getElementById('updateBanner');
+  const updateBtn = document.getElementById('updateNowBtn') || banner?.querySelector('[data-action="clear-cache"]');
+  banner?.classList.add('updating');
+  if (updateBtn) {
+    updateBtn.textContent = 'Updating...';
+    updateBtn.setAttribute('aria-disabled', 'true');
+  }
+  showDiagStatus('Clearing caches and loading the newest build...', true);
   setSplashStatus('Clearing app cache and loading the newest GitHub Pages build...', true);
+  if (state.isBusy || state.activeAbortController) {
+    try { state.activeAbortController?.abort('Updating app'); } catch (_) {}
+    state.isBusy = false;
+    state.activeAbortController = null;
+    state.activeAssistantId = null;
+    updateSendButton();
+  }
+  const url = new URL(location.href);
+  url.searchParams.set('v', `${APP_VERSION}-${Date.now().toString(36)}`);
+  const go = () => {
+    try { window.stop?.(); } catch (_) {}
+    location.href = url.toString();
+  };
+  const fallback = setTimeout(go, 900);
   try {
     if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.controller?.postMessage('CLEAR_CACHES');
       const regs = await navigator.serviceWorker.getRegistrations();
       await Promise.all(regs.map(r => r.unregister()));
     }
@@ -2561,9 +2583,8 @@ async function clearCacheAndReload() {
       await Promise.all(keys.map(k => caches.delete(k)));
     }
   } catch (_) {}
-  const url = new URL(location.href);
-  url.searchParams.set('v', `${APP_VERSION}-${Date.now().toString(36)}`);
-  location.replace(url.toString());
+  clearTimeout(fallback);
+  go();
 }
 
 
