@@ -1,5 +1,5 @@
 /* NVIDIA AI Desktop - GitHub Pages / Cloudflare Worker build */
-const APP_VERSION = '3.2.1';
+const APP_VERSION = '3.2.2';
 const BUILD_ID = '2026-07-final-release';
 const NVIDIA_DIRECT_BASE = 'https://integrate.api.nvidia.com/v1';
 const DEFAULT_PROXY_URL = 'https://nvidia-ai-proxy.lukewai.workers.dev';
@@ -897,7 +897,8 @@ function messageHtml(m, idx) {
   const author = isUser ? (state.settings.userName || 'User') : 'NViMi AI';
   const visibleContent = isUser ? stripVisibleAttachmentBlocks(m.content || '') : (m.content || '');
   const content = m.loading && !visibleContent ? thinkingHtml(m.status || 'Thinking') : renderMarkdown(visibleContent, { hideGeneratedFiles: !isUser });
-  const generatedFiles = (!isUser && visibleContent && state.settings.plugins.downloadButtons) ? generatedFilesPanelHtml(visibleContent) : '';
+  const renderState = !isUser ? generatedFilesRenderState(visibleContent, m) : null;
+  const generatedFiles = (!isUser && visibleContent && state.settings.plugins.downloadButtons && renderState?.canParseNow) ? generatedFilesPanelHtml(visibleContent) : '';
   const webSearch = !isUser ? webSearchCardHtml(m) : '';
   const attachments = isUser ? attachmentSummaryHtml(m.attachments || []) : '';
   const thinking = !isUser ? thinkingDetailsHtml(m) : '';
@@ -973,6 +974,17 @@ function parseGeneratedFilesFromMarkdown(text, options = {}) {
   return files;
 }
 
+function generatedFilesRenderState(text = '', msg = null) {
+  const src = String(text || '');
+  const blockCount = (src.match(/```/g) || []).length / 2;
+  const tooLarge = src.length > 60000 || blockCount > 12;
+  return {
+    canParseNow: !!src && !msg?.loading && state.settings.plugins.downloadButtons && !tooLarge,
+    isLarge: tooLarge,
+    fileCountHint: blockCount
+  };
+}
+
 function extractCodeBlockMeta(langRaw, codeRaw, before = '') {
   let lang = (langRaw || '').trim() || 'text';
   let code = String(codeRaw || '').replace(/\n$/, '');
@@ -1013,6 +1025,11 @@ function extractCodeBlockMeta(langRaw, codeRaw, before = '') {
 }
 
 function generatedFilesPanelHtml(text) {
+  const renderState = generatedFilesRenderState(text);
+  if (!renderState.canParseNow) {
+    if (!renderState.isLarge) return '';
+    return `<div class="generated-files-panel generated-files-panel--compact"><div class="generated-files-header"><div><strong>Generated Files</strong><span>Large output detected. The content stays visible, but file extraction is deferred until the response finishes.</span></div></div></div>`;
+  }
   const files = parseGeneratedFilesFromMarkdown(text, { includeInferred: false });
   if (!files.length) return '';
   const allPayload = files.map(f => ({ filename: f.filename, code: f.code, lang: f.lang }));
@@ -2119,7 +2136,7 @@ function updateAssistantDom(msg) {
     const thinking = thinkingDetailsHtml(msg);
     const debug = '';
     const progress = msg.loading && !msg.content ? thinkingHtml(msg.status || 'Thinking') : '';
-    const generatedFiles = (msg.content && state.settings.plugins.downloadButtons) ? generatedFilesPanelHtml(msg.content) : '';
+    const generatedFiles = (!msg.loading && msg.content && state.settings.plugins.downloadButtons) ? generatedFilesPanelHtml(msg.content) : '';
     const webSearch = webSearchCardHtml(msg);
     body.innerHTML = thinking + debug + webSearch + generatedFiles + (msg.content ? renderMarkdown(msg.content, { hideGeneratedFiles: true }) : progress);
   }
