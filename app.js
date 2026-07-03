@@ -1022,6 +1022,8 @@ function generatedFilesPanelHtml(text) {
   const cards = files.map(f => {
     const singlePayloadId = storeGeneratedPayload({ filename: f.filename, code: f.code, lang: f.lang });
     const kind = fileKind(f);
+    const lineCount = String(f.code || '').split(/\r?\n/).length;
+    const openSource = lineCount <= 50 ? ' open' : '';
     return `<div class="generated-file-card">
       <div class="generated-file-icon">${escapeHtml(kind.toUpperCase().slice(0, 4))}</div>
       <div class="generated-file-main">
@@ -1029,7 +1031,7 @@ function generatedFilesPanelHtml(text) {
           <div class="generated-file-info"><div class="generated-file-name">${escapeHtml(f.filename)}</div><div class="generated-file-meta"><span class="artifact-kind">${escapeHtml(kind)}</span> ${escapeHtml(f.lang)} - ${formatBytes(new Blob([f.code]).size)}</div></div>
           <div class="generated-file-actions"><button class="file-btn" data-action="copy-code" data-payload-id="${singlePayloadId}">Copy</button><button class="file-btn primary" data-action="download-code" data-payload-id="${singlePayloadId}">Download</button></div>
         </div>
-        <details class="generated-source-details"><summary>Show source</summary><pre><code>${escapeHtml(`filename: ${f.filename}\n${f.code}`)}</code></pre></details>
+        <details class="generated-source-details"${openSource}><summary>Show source</summary><pre><code>${escapeHtml(`filename: ${f.filename}\n${f.code}`)}</code></pre></details>
       </div>
     </div>`;
   }).join('');
@@ -2320,12 +2322,14 @@ function renderModelList() {
   const renderCards = items => items.map(m => {
     const status = m.catalogOnly ? 'Catalog only' : m.capabilities?.includes('free_endpoint') ? 'Free API' : m.capabilities?.includes('api') ? 'API ready' : 'Live';
     const marker = state.favourites.has(m.id) ? 'Favorite' : recent.has(m.id) ? 'Recent' : '';
+    const notes = modelNotes(m);
     return `<div class="model-item ${current?.id === m.id ? 'selected' : ''}" data-action="select-model" data-model-id="${escapeAttr(m.id)}">
       <button class="model-star ${state.favourites.has(m.id) ? 'active' : ''}" data-action="toggle-fav" data-model-id="${escapeAttr(m.id)}" title="Favourite" aria-label="Toggle favourite">${state.favourites.has(m.id) ? '*' : '+'}</button>
       <div class="model-item-info">
         <div class="model-item-title-row"><div class="model-item-name">${escapeHtml(m.name)}</div><span class="model-status-pill">${escapeHtml(status)}</span></div>
         <div class="model-item-desc"><code>${escapeHtml(m.id)}</code></div>
         ${marker ? `<div class="model-item-desc">${escapeHtml(marker)}</div>` : ''}
+        ${notes.length ? `<div class="model-item-note">${escapeHtml(notes.join(' · '))}</div>` : ''}
         ${capabilityHtml(m)}
       </div>
     </div>`;
@@ -2390,6 +2394,20 @@ function scoreModel(model, positives = [], negatives = []) {
   if (state.favourites.has(model.id)) score += 2;
   return score;
 }
+
+function modelNotes(model) {
+  const caps = model?.capabilities || [];
+  const notes = [];
+  if (caps.includes('reasoning')) notes.push('Best for reasoning');
+  if (caps.includes('coding')) notes.push('Best for coding');
+  if (caps.includes('vision')) notes.push('Best for vision');
+  if (caps.includes('speech')) notes.push('Best for voice');
+  if (caps.includes('fast')) notes.push('Fast pick');
+  if (caps.includes('free_endpoint')) notes.push('Free endpoint');
+  if (caps.includes('long')) notes.push('Long context');
+  return notes.slice(0, 2);
+}
+
 function toggleFavourite(id, event) {
   event?.stopPropagation();
   if (state.favourites.has(id)) state.favourites.delete(id); else state.favourites.add(id);
@@ -3014,6 +3032,7 @@ async function addFilesToPending(fileList) {
     return;
   }
 
+  const supportedHint = 'Supported: images, ZIP archives, and text/code/CSV/Markdown files.';
   let added = 0;
   const skipped = [];
 
@@ -3050,7 +3069,7 @@ async function addFilesToPending(fileList) {
 
     if (isSupportedArchiveFile(file)) {
       if (file.size > 50 * 1024 * 1024) {
-        skipped.push(`${name} (zip over 50 MB)`);
+        skipped.push(`${name} (ZIP over 50 MB)`);
         continue;
       }
       state.pendingAttachments.push({
@@ -3098,7 +3117,7 @@ async function addFilesToPending(fileList) {
     showToast(`Attached ${added} file${added === 1 ? '' : 's'}. Content will be sent privately with your prompt.`);
   }
   if (skipped.length) {
-    showToast(`Skipped ${skipped.length} file${skipped.length === 1 ? '' : 's'}: ${skipped.slice(0, 3).join(', ')}${skipped.length > 3 ? '...' : ''}`, 'error');
+    showToast(`Skipped ${skipped.length} file${skipped.length === 1 ? '' : 's'}: ${skipped.slice(0, 3).join(', ')}${skipped.length > 3 ? '...' : ''}. ${supportedHint}`, 'error');
   }
 }
 
