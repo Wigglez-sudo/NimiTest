@@ -1,5 +1,5 @@
 /* NVIDIA AI Desktop - GitHub Pages / Cloudflare Worker build */
-const APP_VERSION = '3.2.0';
+const APP_VERSION = '3.2.1';
 const BUILD_ID = '2026-07-final-release';
 const NVIDIA_DIRECT_BASE = 'https://integrate.api.nvidia.com/v1';
 const DEFAULT_PROXY_URL = 'https://nvidia-ai-proxy.lukewai.workers.dev';
@@ -2339,7 +2339,7 @@ function renderModelList() {
         <div class="model-item-title-row"><div class="model-item-name">${escapeHtml(m.name)}</div><span class="model-status-pill">${escapeHtml(status)}</span></div>
         <div class="model-item-desc"><code>${escapeHtml(m.id)}</code></div>
         ${marker ? `<div class="model-item-desc">${escapeHtml(marker)}</div>` : ''}
-        ${notes.length ? `<div class="model-item-note">${escapeHtml(notes.join(' · '))}</div>` : ''}
+        ${notes.length ? `<div class="model-item-note">${escapeHtml(notes.join(' Â· '))}</div>` : ''}
         ${capabilityHtml(m)}
       </div>
     </div>`;
