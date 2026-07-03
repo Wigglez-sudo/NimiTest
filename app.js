@@ -1,5 +1,5 @@
 /* NVIDIA AI Desktop - GitHub Pages / Cloudflare Worker build */
-const APP_VERSION = '3.2.4';
+const APP_VERSION = '3.2.5';
 const BUILD_ID = '2026-07-final-release';
 const NVIDIA_DIRECT_BASE = 'https://integrate.api.nvidia.com/v1';
 const DEFAULT_PROXY_URL = 'https://nvidia-ai-proxy.lukewai.workers.dev';
@@ -167,7 +167,7 @@ const state = {
     proxyUrl: DEFAULT_PROXY_URL,
     userName: DEFAULT_USER_NAME,
     temperature: 0.7,
-    maxTokens: 2048,
+    maxTokens: 8192,
     stream: true,
     showThinking: true,
     streamDiagnostics: true,
@@ -1839,7 +1839,7 @@ async function requestAssistantResponse(assistantId) {
     model: model.id,
     messages: buildConversationMessages(webContext),
     temperature: Number(state.settings.temperature || 0.7),
-    max_tokens: Math.max(Number(state.settings.maxTokens || 2048), modelSupportsReasoning(model) && state.settings.showThinking ? 4096 : 1),
+    max_tokens: Math.max(Number(state.settings.maxTokens || 8192), 8192, modelSupportsReasoning(model) && state.settings.showThinking ? 4096 : 1),
     stream: !!state.settings.stream && !profile.preferNonStream
   };
   const rawPayload = { ...basePayload, ...reasoningExtrasForModel(model) };
