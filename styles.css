@@ -804,9 +804,10 @@ button, input, textarea, select { font: inherit; }
 @media (max-width: 768px) {
   body { overflow: hidden; }
   .main {
-    height: calc(var(--app-height) - var(--vv-top) - var(--browser-top-pad));
-    max-height: calc(var(--app-height) - var(--vv-top) - var(--browser-top-pad));
-    padding-top: calc(var(--vv-top) + var(--browser-top-pad));
+    height: 100%;
+    max-height: 100%;
+    padding-top: 0;
+    min-height: 0;
   }
   .top-bar {
     height: calc(52px + env(safe-area-inset-top));
@@ -816,7 +817,7 @@ button, input, textarea, select { font: inherit; }
   }
   .top-bar-right { gap: 2px; }
   .chat-title { max-width: 42vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .chat-container { padding: 12px 0; }
+  .chat-container { padding: 12px 0; min-height: 0; }
   .chat-messages { padding: 0 12px; gap: 18px; }
   .input-area { padding: 10px 10px 14px; }
   .input-wrapper { padding: 10px; border-radius: 12px; }
@@ -834,7 +835,7 @@ button, input, textarea, select { font: inherit; }
   .modal { width: 94vw; max-height: calc(var(--app-height) - 28px); }
   .modal-body { padding: 14px; }
   .modal-footer { padding: 12px 14px; }
-  .sidebar { position: fixed; top: calc(var(--vv-top) + var(--browser-top-pad)); left: 0; bottom: 0; height: calc(var(--app-height) - var(--vv-top) - var(--browser-top-pad)); width: min(84vw, 320px); box-shadow: var(--shadow); z-index: 300; transition: transform .25s ease; transform: translateX(0); padding-top: env(safe-area-inset-top); }
+  .sidebar { position: fixed; top: 0; left: 0; bottom: 0; height: 100%; width: min(84vw, 320px); box-shadow: var(--shadow); z-index: 300; transition: transform .25s ease; transform: translateX(0); padding-top: env(safe-area-inset-top); }
   .sidebar.collapsed { transform: translateX(-100%); width: min(84vw, 320px); border-right: 1px solid var(--border-color); overflow: hidden; }
   .file-card { align-items: flex-start; }
   .file-actions { flex-direction: column; }
@@ -885,39 +886,6 @@ button, input, textarea, select { font: inherit; }
 @media (max-width: 768px) {
   body { min-height: var(--app-height); }
   .input-area { padding-bottom: calc(14px + env(safe-area-inset-bottom)); }
-  body.keyboard-open .main { height: var(--app-height); max-height: var(--app-height); padding-bottom: 0; }
-  body.keyboard-open .chat-container { padding-bottom: calc(var(--composer-height) + 8px); }
-  body.keyboard-open .input-area {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: calc(var(--keyboard-gap, 0px) + env(safe-area-inset-bottom));
-    z-index: 160;
-    padding: 8px 10px 6px;
-    background: var(--bg-secondary);
-  }
-  body.keyboard-open .editing-banner,
-  body.keyboard-open .input-wrapper {
-    max-width: 800px;
-    margin-left: auto;
-    margin-right: auto;
-  }
-  body.keyboard-open .input-wrapper { padding: 10px 12px; }
-  body.keyboard-open .input-box {
-    max-height: 160px;
-    min-width: 0;
-    overflow-x: hidden;
-    overflow-wrap: anywhere;
-    word-break: break-word;
-  }
-  body.keyboard-open .input-area::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    border-top: 1px solid var(--border-color);
-  }
-  body.keyboard-open .input-footer { margin-top: 6px; padding-top: 6px; }
   .model-dropdown {
     position: fixed;
     left: 10px;

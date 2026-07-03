@@ -1,5 +1,5 @@
 /* NVIDIA AI Desktop - GitHub Pages / Cloudflare Worker build */
-const APP_VERSION = '3.2.3';
+const APP_VERSION = '3.2.4';
 const BUILD_ID = '2026-07-final-release';
 const NVIDIA_DIRECT_BASE = 'https://integrate.api.nvidia.com/v1';
 const DEFAULT_PROXY_URL = 'https://nvidia-ai-proxy.lukewai.workers.dev';
@@ -1597,7 +1597,7 @@ function handleKeydown(event) {
   if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); sendMessage(); }
 }
 function autoResize(el) {
-  const maxHeight = isMobile() && document.body.classList.contains('keyboard-open') ? 160 : 220;
+  const maxHeight = isMobile() ? 200 : 220;
   el.style.height = 'auto';
   el.style.height = Math.min(el.scrollHeight, maxHeight) + 'px';
   el.style.overflowY = el.scrollHeight > maxHeight ? 'auto' : 'hidden';
@@ -1617,10 +1617,6 @@ function syncComposerMetrics() {
   if (!area) return;
   const height = Math.max(88, Math.ceil(area.getBoundingClientRect().height || area.offsetHeight || 0));
   document.documentElement.style.setProperty('--composer-height', `${height}px`);
-  if (isMobile() && document.body.classList.contains('keyboard-open')) {
-    try { window.scrollTo(0, 0); } catch (_) {}
-    try { document.documentElement.scrollTop = 0; document.body.scrollTop = 0; } catch (_) {}
-  }
 }
 
 function stopResponse() {
@@ -3427,19 +3423,13 @@ function syncVisualViewportVars() {
   const vv = window.visualViewport;
   const layoutHeight = window.innerHeight || document.documentElement.clientHeight || 0;
   const visualHeight = vv?.height || layoutHeight;
-  const focusedField = /^(TEXTAREA|INPUT|SELECT)$/.test(document.activeElement?.tagName || '');
-  const keyboardOpen = isMobile() && focusedField;
   const height = Math.max(320, Math.round(visualHeight));
-  const top = keyboardOpen ? 0 : Math.max(0, Math.round(vv?.offsetTop || 0));
-  const keyboardGap = Math.max(0, Math.round(layoutHeight - visualHeight - (vv?.offsetTop || 0)));
-  const standalone = window.matchMedia?.('(display-mode: standalone)')?.matches || window.navigator.standalone;
-  const browserTopPad = isMobile() && !standalone ? 12 : 0;
-  document.body.classList.toggle('keyboard-open', keyboardOpen);
+  const top = Math.max(0, Math.round(vv?.offsetTop || 0));
+  document.body.classList.remove('keyboard-open');
   document.documentElement.style.setProperty('--app-height', `${height}px`);
   document.documentElement.style.setProperty('--vv-top', `${top}px`);
-  document.documentElement.style.setProperty('--browser-top-pad', `${browserTopPad}px`);
-  document.documentElement.style.setProperty('--keyboard-gap', `${keyboardGap}px`);
-  syncComposerMetrics();
+  document.documentElement.style.setProperty('--browser-top-pad', '0px');
+  document.documentElement.style.setProperty('--keyboard-gap', '0px');
 }
 
 function registerVisualViewportSync() {
@@ -3460,11 +3450,9 @@ function bindInputHandlers() {
       autoResize(input);
       updateSendButton();
       saveComposerDraft(input.value);
-      syncVisualViewportVars();
-      syncComposerMetrics();
     });
-    input.addEventListener('focus', () => setTimeout(() => { syncVisualViewportVars(); syncComposerMetrics(); }, 80));
-    input.addEventListener('blur', () => setTimeout(() => { syncVisualViewportVars(); syncComposerMetrics(); }, 120));
+    input.addEventListener('focus', () => setTimeout(syncVisualViewportVars, 80));
+    input.addEventListener('blur', () => setTimeout(syncVisualViewportVars, 120));
   }
 }
 
