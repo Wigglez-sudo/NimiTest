@@ -885,13 +885,13 @@ button, input, textarea, select { font: inherit; }
 @media (max-width: 768px) {
   body { min-height: var(--app-height); }
   .input-area { padding-bottom: calc(14px + env(safe-area-inset-bottom)); }
-  body.keyboard-open .main { height: var(--app-height); max-height: var(--app-height); padding-bottom: var(--composer-height); }
+  body.keyboard-open .main { height: var(--app-height); max-height: var(--app-height); padding-bottom: 0; }
   body.keyboard-open .chat-container { padding-bottom: calc(var(--composer-height) + 8px); }
   body.keyboard-open .input-area {
     position: fixed;
     left: 0;
     right: 0;
-    bottom: 0;
+    bottom: calc(var(--keyboard-gap, 0px) + env(safe-area-inset-bottom));
     z-index: 160;
     padding: 8px 10px 6px;
     background: var(--bg-secondary);
@@ -909,6 +909,13 @@ button, input, textarea, select { font: inherit; }
     overflow-x: hidden;
     overflow-wrap: anywhere;
     word-break: break-word;
+  }
+  body.keyboard-open .input-area::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-top: 1px solid var(--border-color);
   }
   body.keyboard-open .input-footer { margin-top: 6px; padding-top: 6px; }
   .model-dropdown {

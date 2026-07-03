@@ -3383,12 +3383,14 @@ function syncVisualViewportVars() {
   const keyboardOpen = isMobile() && focusedField;
   const height = Math.max(320, Math.round(visualHeight));
   const top = keyboardOpen ? 0 : Math.max(0, Math.round(vv?.offsetTop || 0));
+  const keyboardGap = Math.max(0, Math.round(layoutHeight - visualHeight - (vv?.offsetTop || 0)));
   const standalone = window.matchMedia?.('(display-mode: standalone)')?.matches || window.navigator.standalone;
   const browserTopPad = isMobile() && !standalone ? 12 : 0;
   document.body.classList.toggle('keyboard-open', keyboardOpen);
   document.documentElement.style.setProperty('--app-height', `${height}px`);
   document.documentElement.style.setProperty('--vv-top', `${top}px`);
   document.documentElement.style.setProperty('--browser-top-pad', `${browserTopPad}px`);
+  document.documentElement.style.setProperty('--keyboard-gap', `${keyboardGap}px`);
   syncComposerMetrics();
 }
 
