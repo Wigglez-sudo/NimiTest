@@ -1045,24 +1045,29 @@ button, input, textarea, select { font: inherit; }
 
 @media (max-width: 768px) {
   .pending-attachments {
+    flex-direction: column;
     flex-wrap: nowrap;
-    overflow-x: auto;
+    overflow-y: auto;
+    overflow-x: hidden;
     padding-bottom: 2px;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
+    max-height: 36vh;
   }
   .pending-attachments::-webkit-scrollbar {
     display: none;
   }
   .attachment-chip {
-    max-width: 78vw;
+    width: 100%;
+    max-width: none;
     flex: 0 0 auto;
   }
   .attachment-chip-summary {
-    max-width: 58vw;
+    width: 100%;
+    max-width: none;
   }
   .attachment-name {
-    max-width: 42vw;
+    max-width: 62vw;
   }
 }
 .message-attachments {

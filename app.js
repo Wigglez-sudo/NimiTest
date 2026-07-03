@@ -1,5 +1,5 @@
 /* NVIDIA AI Desktop - GitHub Pages / Cloudflare Worker build */
-const APP_VERSION = '3.2.2';
+const APP_VERSION = '3.2.3';
 const BUILD_ID = '2026-07-final-release';
 const NVIDIA_DIRECT_BASE = 'https://integrate.api.nvidia.com/v1';
 const DEFAULT_PROXY_URL = 'https://nvidia-ai-proxy.lukewai.workers.dev';
@@ -1440,7 +1440,10 @@ function formatBytes(bytes) {
 function isSupportedTextFile(file) {
   const name = String(file?.name || '').toLowerCase();
   const type = String(file?.type || '').toLowerCase();
-  return type.startsWith('text/') || type === 'application/manifest+json' || /\.(txt|md|markdown|json|csv|tsv|py|js|jsx|ts|tsx|html|css|scss|xml|yaml|yml|toml|ini|cfg|conf|log|ps1|bat|cmd|sh|sql|java|c|cpp|h|hpp|cs|go|rs|php|rb|swift|kt|dockerfile|env|webmanifest)$/i.test(name);
+  return type.startsWith('text/')
+    || ['application/manifest+json', 'application/json', 'text/plain', 'application/octet-stream'].includes(type)
+    || /\.(txt|md|markdown|json|csv|tsv|py|js|jsx|ts|tsx|html|css|scss|xml|yaml|yml|toml|ini|cfg|conf|log|ps1|bat|cmd|sh|sql|java|c|cpp|h|hpp|cs|go|rs|php|rb|swift|kt|dockerfile|env|webmanifest|manifest)$/i.test(name)
+    || /(^|[\/._-])manifest([\/._-]|$)/i.test(name);
 }
 
 function isSupportedImageFile(file) {
@@ -1453,6 +1456,15 @@ function isSupportedArchiveFile(file) {
   const name = String(file?.name || '').toLowerCase();
   const type = String(file?.type || '').toLowerCase();
   return type === 'application/zip' || type === 'application/x-zip-compressed' || /\.zip$/i.test(name);
+}
+
+function isWebManifestLikeFile(file) {
+  const name = String(file?.name || '').toLowerCase();
+  const type = String(file?.type || '').toLowerCase();
+  return type === 'application/manifest+json'
+    || type === 'application/json'
+    || /(?:^|[\/._-])manifest(?:[\/._-]|$)/i.test(name)
+    || /\.webmanifest$/i.test(name);
 }
 
 function attachmentKindLabel(att) {
@@ -3108,6 +3120,25 @@ async function addFilesToPending(fileList) {
         content: ''
       });
       added++;
+      continue;
+    }
+
+    if (isWebManifestLikeFile(file)) {
+      try {
+        const content = await readFileAsTextPromise(file);
+        state.pendingAttachments.push({
+          id: uid('att'),
+          kind: 'text',
+          name,
+          size: file.size,
+          type: file.type || 'application/manifest+json',
+          language: 'json',
+          content
+        });
+        added++;
+      } catch (err) {
+        skipped.push(`${name} (could not read manifest)`);
+      }
       continue;
     }
 
