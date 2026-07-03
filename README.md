@@ -2,7 +2,7 @@
 
 NViMi AI is a browser-based NVIDIA chat app with a Kimi-style UI, live model loading, Free Endpoint handling, plugins, generated-file downloads, diagnostics, and iOS/PWA support.
 
-Final release: `v3.2.5`
+Final release: `v3.2.7`
 
 | Link | URL |
 | --- | --- |
@@ -80,7 +80,7 @@ Final release: `v3.2.5`
 
 | Version | Theme |
 | --- | --- |
-| `v3.2.5` | Higher token budget to stop cut-off responses, composer visibility fix, attachment tray cleanup, manifest support, runtime freeze guard for generated file responses, iOS wrapping, chat delete touch targets, model picker refinement, username cleanup. |
+| `v3.2.7` | Finish-reason surfacing so cut-off responses are visible, higher token budget to stop cut-off responses, composer visibility fix, attachment tray cleanup, manifest support, runtime freeze guard for generated file responses, iOS wrapping, chat delete touch targets, model picker refinement, username cleanup. |
 | `v3.1.x` | iOS keyboard, composer, activity panel, send-scroll, and vision upload hardening. |
 | `v3.0.9` | NViMi branding, iOS uploads, and thinking/activity improvements. |
 | `v3.0.8` | Artifact and model-picker polish plus service-worker update banner. |
@@ -94,14 +94,14 @@ Final release: `v3.2.5`
 
 ## Full Release History
 
-### v3.2.5 - Higher token budget
+### v3.2.7 - Finish reason surfacing
 
 - Merged the safest beta fixes back into the main app.
 - Fixed iOS long-prompt wrapping in the composer.
 - Fixed individual chat delete buttons on touch devices.
 - Replaced the default personal display name with a generic user profile.
 - Refined the model picker into a clearer, grouped model list.
-- Bumped service-worker cache to `nvidia-ai-desktop-v3-2-5`.
+- Bumped service-worker cache to `nvidia-ai-desktop-v3-2-7`.
 - Regenerated the standalone HTML build from the final app files.
 
 ### v3.1.7 - iOS focus composer
@@ -206,7 +206,7 @@ Final release: `v3.2.5`
 - Do not commit `.env` files or private Worker secrets.
 - The browser frontend talks to NVIDIA through the Cloudflare Worker.
 - The included Worker source is in `worker/index.js`.
-- This `v3.2.5` release changes frontend files only. Cloudflare Worker redeploy is not required.
+- This `v3.2.7` release changes frontend files only. Cloudflare Worker redeploy is not required.
 
 ## Files
 
@@ -230,19 +230,19 @@ Push these files to the GitHub Pages repository:
 
 ```bash
 git add index.html styles.css app.js sw.js manifest.webmanifest icon.svg nvidia-ai-desktop-standalone.html README.md worker/index.js
-git commit -m "Release v3.2.5 higher token budget"
+git commit -m "Release v3.2.7 finish reason surfacing"
 git push
 ```
 
 Then open:
 
 ```text
-https://wigglez-sudo.github.io/nvidia-ai-desktop/?v=3.2.5
+https://wigglez-sudo.github.io/nvidia-ai-desktop/?v=3.2.7
 ```
 
 ### Cloudflare Worker
 
-No Worker change is required for `v3.2.5`.
+No Worker change is required for `v3.2.7`.
 
 If you intentionally change `worker/index.js`, redeploy with:
 

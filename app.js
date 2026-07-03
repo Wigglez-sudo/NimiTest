@@ -1,5 +1,5 @@
 /* NVIDIA AI Desktop - GitHub Pages / Cloudflare Worker build */
-const APP_VERSION = '3.2.5';
+const APP_VERSION = '3.2.7';
 const BUILD_ID = '2026-07-final-release';
 const NVIDIA_DIRECT_BASE = 'https://integrate.api.nvidia.com/v1';
 const DEFAULT_PROXY_URL = 'https://nvidia-ai-proxy.lukewai.workers.dev';
@@ -338,6 +338,7 @@ function streamSummaryHtml(msg) {
     ['Reasoning', `${c.reasoningDeltas || 0} reasoning chunk${(c.reasoningDeltas || 0) === 1 ? '' : 's'}`],
     ['Events', `${c.sseEvents || 0} SSE, ${c.jsonEvents || 0} JSON, ${c.chunks || 0} network chunk${(c.chunks || 0) === 1 ? '' : 's'}`]
   ];
+  if (msg.finishReason) rows.push(['Finish', String(msg.finishReason)]);
   return `<div class="activity-summary-grid">${rows.map(([k, v]) => `<div><span>${escapeHtml(k)}</span><strong>${escapeHtml(v)}</strong></div>`).join('')}</div>`;
 }
 
@@ -352,13 +353,16 @@ function thinkingDetailsHtml(msg) {
   const summary = streamDebugSummary(msg) || (msg.loading ? 'working' : 'complete');
   const contentText = hasContentPreview ? `<div class="thinking-section-title">Content preview</div><div class="thinking-public-text">${escapeHtml(shortText(msg.content, 3000))}</div>` : '';
   const thinkingText = hasThinking ? `<div class="thinking-section-title">Reasoning / notes</div><div class="thinking-public-text">${escapeHtml(visibleThinking)}</div>` : '';
+  const finishWarning = msg.finishReason === 'length'
+    ? `<div class="thinking-finish-warning">Model stopped because it hit its output limit. Increase max tokens or ask for a shorter answer.</div>`
+    : '';
   const summaryText = hasSummary ? `<div class="thinking-section-title">Stream summary</div>${streamSummaryHtml(msg)}` : '';
   const id = msg.id || '';
   const openAttr = id && state.openThinking?.has(id) ? ' open' : '';
   const rawId = id ? `${id}:raw` : '';
   const rawOpenAttr = rawId && state.openRawDebug?.has(rawId) ? ' open' : '';
   const eventText = hasEvents ? `<details class="raw-debug-details" data-raw-debug-id="${escapeAttr(rawId)}"${rawOpenAttr}><summary>Raw debug events</summary>${streamEventsListHtml(msg)}</details>` : '';
-  return `<details class="thinking-block thinking-details" data-thinking-id="${escapeAttr(id)}"${openAttr}><summary class="thinking-header"><span class="activity-icon">AI</span><div class="thinking-title">Activity Panel</div><span class="thinking-toggle">${escapeHtml(summary)}</span></summary><div class="thinking-body">${contentText}${thinkingText}${summaryText}${eventText}</div></details>`;
+  return `<details class="thinking-block thinking-details" data-thinking-id="${escapeAttr(id)}"${openAttr}><summary class="thinking-header"><span class="activity-icon">AI</span><div class="thinking-title">Activity Panel</div><span class="thinking-toggle">${escapeHtml(summary)}</span></summary><div class="thinking-body">${contentText}${thinkingText}${finishWarning}${summaryText}${eventText}</div></details>`;
 }
 function streamDebugHtml(msg) {
   // Kept as a compatibility alias for older call sites. The UI now shows only
@@ -1959,6 +1963,7 @@ async function readJsonResponse(response, assistantId) {
   ensureStreamDebug(msg);
   recordStreamEvent(msg, 'Non-stream JSON parsed');
   recordRawStreamSample(msg, JSON.stringify(data, null, 2));
+  applyFinishReason(msg, data?.choices?.[0]?.finish_reason || data?.finish_reason || '');
   const reasoning = extractFullReasoning(data);
   if (reasoning && state.settings.showThinking) appendPublicReasoning(msg, reasoning);
   const content = extractFullResponse(data) || JSON.stringify(data, null, 2);
@@ -1986,6 +1991,7 @@ async function readStream(response, assistantId, mayFail = false, firstChunkTime
     if (!msg) return false;
     const debug = ensureStreamDebug(msg);
     if (!delta.content && !delta.thinking) { if (debug) debug.counters.emptyDeltas++; return false; }
+    if (delta.finishReason) applyFinishReason(msg, delta.finishReason);
     if (delta.thinking && state.settings.showThinking) { appendPublicReasoning(msg, delta.thinking); if (debug) debug.counters.reasoningDeltas++; recordStreamEvent(msg, 'Reasoning delta', shortText(delta.thinking, 160)); }
     if (delta.content) { appendAssistantVisibleOrReasoning(msg, delta.content); if (debug) debug.counters.contentDeltas++; recordStreamEvent(msg, 'Content delta', shortText(delta.content, 160)); }
     if (delta.content || delta.thinking) msg.status = delta.thinking && !delta.content ? 'Receiving public reasoning' : 'Writing response';
@@ -2000,6 +2006,7 @@ async function readStream(response, assistantId, mayFail = false, firstChunkTime
       const json = JSON.parse(clean);
       const msg = getMessage(assistantId);
       if (msg) { const debug = ensureStreamDebug(msg); if (debug) debug.counters.jsonEvents++; }
+      if (msg) applyFinishReason(msg, json?.choices?.[0]?.finish_reason || json?.finish_reason || '');
       return applyDelta(extractDelta(json));
     } catch (_) {
       return false;
@@ -2078,6 +2085,7 @@ async function readStream(response, assistantId, mayFail = false, firstChunkTime
         const msg = getMessage(assistantId);
         if (msg) {
           appendAssistantVisibleOrReasoning(msg, content);
+          applyFinishReason(msg, json?.choices?.[0]?.finish_reason || json?.finish_reason || '');
           msg.status = 'Done';
           updateAssistantDom(msg);
           sawChunk = true;
@@ -2088,6 +2096,7 @@ async function readStream(response, assistantId, mayFail = false, firstChunkTime
         const msg = getMessage(assistantId);
         if (msg) {
           appendAssistantVisibleOrReasoning(msg, rawText.trim());
+          applyFinishReason(msg, '');
           msg.status = 'Done';
           updateAssistantDom(msg);
           sawChunk = true;
@@ -2131,8 +2140,21 @@ function extractDelta(json) {
   const delta = choice.delta || choice.message || choice;
   return {
     content: contentToString(delta.content) || contentToString(delta.text) || contentToString(json.output_text) || contentToString(json.content),
-    thinking: contentToString(delta.reasoning_content) || contentToString(delta.reasoning) || contentToString(delta.thinking) || contentToString(delta.thought) || contentToString(delta.reasoning_details) || contentToString(json.reasoning_content) || contentToString(json.reasoning) || contentToString(json.thinking)
+    thinking: contentToString(delta.reasoning_content) || contentToString(delta.reasoning) || contentToString(delta.thinking) || contentToString(delta.thought) || contentToString(delta.reasoning_details) || contentToString(json.reasoning_content) || contentToString(json.reasoning) || contentToString(json.thinking),
+    finishReason: choice.finish_reason || json.finish_reason || ''
   };
+}
+
+function applyFinishReason(msg, finishReason) {
+  if (!msg || !finishReason) return;
+  msg.finishReason = String(finishReason);
+  if (msg.finishReason === 'length') msg.status = 'Completed but hit output limit';
+}
+
+function applyFinishReason(msg, finishReason) {
+  if (!msg || !finishReason) return;
+  msg.finishReason = String(finishReason);
+  if (msg.finishReason === 'length') msg.status = 'Completed but hit output limit';
 }
 
 function updateAssistantDom(msg) {
