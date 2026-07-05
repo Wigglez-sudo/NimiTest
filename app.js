@@ -1,5 +1,5 @@
 /* NVIDIA AI Desktop - GitHub Pages / Cloudflare Worker build */
-const APP_VERSION = '3.3.4';
+const APP_VERSION = '3.3.5';
 const BUILD_ID = '2026-07-final-release';
 const NVIDIA_DIRECT_BASE = 'https://integrate.api.nvidia.com/v1';
 const DEFAULT_PROXY_URL = 'https://nvidia-ai-proxy.lukewai.workers.dev';
@@ -2367,7 +2367,9 @@ async function refreshModelsFromNvidia(manual = false) {
     if (catalog.models.length) merged = mergeCatalogIntoApiModels(apiModels, catalog.models);
 
     state.liveModels = merged.models.sort((a, b) => modelSortName(a).localeCompare(modelSortName(b)));
-    if (!getCurrentModel()) state.settings.currentModelId = state.liveModels.find(m => !m.catalogOnly)?.id || state.liveModels[0]?.id || '';
+    if (!state.liveModels.some(m => m.id === state.settings.currentModelId)) {
+      state.settings.currentModelId = state.liveModels.find(m => !m.catalogOnly)?.id || state.liveModels[0]?.id || '';
+    }
     persistModels(); persistSettings();
     renderModelList(); updateSelectedModelLabel(); updateStatus(); updateSendButton();
 
@@ -3577,6 +3579,13 @@ function init() {
   restoreComposerDraft();
   setTimeout(syncComposerMetrics, 0);
   registerServiceWorker();
+  if (state.settings.apiKey && state.settings.proxyUrl) {
+    setTimeout(() => {
+      refreshModelsFromNvidia(false).catch(err => {
+        console.warn('Silent model refresh failed:', err);
+      });
+    }, 150);
+  }
   if (shouldShowSplash()) openSplash();
 }
 
