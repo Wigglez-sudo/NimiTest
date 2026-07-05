@@ -2,13 +2,13 @@
 
 NViMi AI is a browser-based NVIDIA chat app with a Kimi-style UI, live model loading, Free Endpoint handling, plugins, generated-file downloads, diagnostics, and iOS/PWA support.
 
-Final release: `v3.3.5`
+Final release: `v3.3.7`
 
 | Link | URL |
 | --- | --- |
 | Live app | <https://wigglez-sudo.github.io/nvidia-ai-desktop/> |
 | Worker | <https://nvidia-ai-proxy.lukewai.workers.dev> |
-| GitHub Pages cache-bust | <https://wigglez-sudo.github.io/nvidia-ai-desktop/?v=3.2.5> |
+| GitHub Pages cache-bust | <https://wigglez-sudo.github.io/nvidia-ai-desktop/?v=3.3.7> |
 
 ## Quick Start
 
@@ -40,6 +40,7 @@ Final release: `v3.3.5`
 - The default personal name was removed from the UI. Users can choose their own display name in Settings.
 - Composer drafts now restore per chat after refresh or chat switching.
 - App Status now includes a quick find-in-chat search for the current conversation.
+- Max Tokens now follows the selected model's exposed output limit when NVIDIA provides one.
 - The chat engine, model loading, plugins, file handling, diagnostics, and generated-file downloads were kept intact.
 - API keys stay out of source code and are stored only in the browser.
 
@@ -80,6 +81,7 @@ Final release: `v3.3.5`
 
 | Version | Theme |
 | --- | --- |
+| `v3.3.7` | Model-specific max token limits now follow the selected NVIDIA model when the API exposes a cap, while still clamping safely when it does not. |
 | `v3.3.5` | Broader audit pass: duplicate finish-reason handler removed, File Reader gating fixed for images and manifests, markdown paragraph/table rendering improved, mono font token added, and mobile model-tab overflow smoothed. |
 | `v3.1.x` | iOS keyboard, composer, activity panel, send-scroll, and vision upload hardening. |
 | `v3.0.9` | NViMi branding, iOS uploads, and thinking/activity improvements. |
@@ -103,6 +105,13 @@ Final release: `v3.3.5`
 - Refined the model picker into a clearer, grouped model list.
 - Bumped service-worker cache to `nvidia-ai-desktop-v3-3-3`.
 - Regenerated the standalone HTML build from the final app files.
+
+### v3.3.7 - Model-aware max tokens
+
+- Max Tokens now rebuilds from the selected model's exposed limit when NVIDIA reports one.
+- The request payload clamps to the selected model limit so replies stay inside the model's own output cap.
+- The settings description now explains that the app falls back safely when the model does not expose a limit.
+- Bumped the service-worker cache to `nvidia-ai-desktop-v3-3-7`.
 
 ### v3.1.7 - iOS focus composer
 
@@ -206,7 +215,7 @@ Final release: `v3.3.5`
 - Do not commit `.env` files or private Worker secrets.
 - The browser frontend talks to NVIDIA through the Cloudflare Worker.
 - The included Worker source is in `worker/index.js`.
-- This `v3.3.5` release changes frontend files only. Cloudflare Worker redeploy is not required.
+- This `v3.3.7` release changes frontend files only. Cloudflare Worker redeploy is not required.
 
 ## Files
 
@@ -230,7 +239,7 @@ Push these files to the GitHub Pages repository:
 
 ```bash
 git add index.html styles.css app.js sw.js manifest.webmanifest icon.svg nvidia-ai-desktop-standalone.html README.md worker/index.js
-git commit -m "Release v3.3.5 audit cleanup pass"
+git commit -m "Release v3.3.7 model-aware max tokens"
 git push
 ```
 
@@ -242,7 +251,7 @@ https://wigglez-sudo.github.io/nvidia-ai-desktop/?v=3.3.0
 
 ### Cloudflare Worker
 
-No Worker change is required for `v3.3.5`.
+No Worker change is required for `v3.3.7`.
 
 If you intentionally change `worker/index.js`, redeploy with:
 

@@ -1,5 +1,5 @@
 /* NVIDIA AI Desktop - GitHub Pages / Cloudflare Worker build */
-const APP_VERSION = '3.3.5';
+const APP_VERSION = '3.3.7';
 const BUILD_ID = '2026-07-final-release';
 const NVIDIA_DIRECT_BASE = 'https://integrate.api.nvidia.com/v1';
 const DEFAULT_PROXY_URL = 'https://nvidia-ai-proxy.lukewai.workers.dev';
@@ -228,6 +228,84 @@ function modelSupportsReasoning(model) {
   const id = `${model.id || ''} ${model.name || ''}`.toLowerCase();
   const caps = model.capabilities || [];
   return caps.includes('reasoning') || /reason|thinking|deepseek|qwen|qwq|glm|nemotron|kimi|gemma-3|gpt-oss/.test(id);
+}
+
+function toPositiveInt(value) {
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
+}
+
+function modelTokenLimit(model) {
+  if (!model) return 32768;
+  const raw = model.raw || {};
+  const candidates = [
+    raw.max_output_tokens,
+    raw.maxOutputTokens,
+    raw.max_completion_tokens,
+    raw.maxCompletionTokens,
+    raw.output_token_limit,
+    raw.outputTokenLimit,
+    raw.max_tokens,
+    raw.maxTokens,
+    raw.token_limit,
+    raw.tokenLimit,
+    raw.limits?.max_output_tokens,
+    raw.limits?.maxOutputTokens,
+    raw.limits?.max_completion_tokens,
+    raw.limits?.maxCompletionTokens,
+    raw.limits?.output_token_limit,
+    raw.limits?.max_tokens,
+    raw.context_length,
+    raw.contextLength,
+    raw.max_context_length,
+    raw.maxContextLength,
+    raw.limits?.context_length,
+    raw.limits?.max_context_length
+  ].map(toPositiveInt).filter(Boolean);
+  if (!candidates.length) return 32768;
+  const outputLike = candidates.filter(v => v <= 131072);
+  return Math.max(512, Math.min(...(outputLike.length ? outputLike : candidates)));
+}
+
+function tokenPresetOptions(limit) {
+  const max = Math.max(512, Math.min(131072, toPositiveInt(limit) || 32768));
+  const presets = [512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072]
+    .filter(v => v <= max || v === max)
+    .filter((v, i, arr) => arr.indexOf(v) === i);
+  if (!presets.includes(max)) presets.push(max);
+  return [...new Set(presets)].sort((a, b) => a - b);
+}
+
+function renderTokenOptions(limit) {
+  const current = toPositiveInt(state.settings.maxTokens) || 8192;
+  const options = tokenPresetOptions(limit);
+  return options.map(v => `<option value="${v}" ${v === current ? 'selected' : ''}>${v.toLocaleString()} tokens</option>`).join('');
+}
+
+function syncMaxTokensToModel(model = getCurrentModel()) {
+  const limit = modelTokenLimit(model);
+  if (toPositiveInt(state.settings.maxTokens) > limit) {
+    state.settings.maxTokens = limit;
+    const select = document.getElementById('maxTokensSelect');
+    if (select) select.value = String(limit);
+    persistSettings();
+  }
+  return limit;
+}
+
+function refreshMaxTokensSelect() {
+  const select = document.getElementById('maxTokensSelect');
+  if (!select) return;
+  const model = getCurrentModel();
+  const limit = modelTokenLimit(model);
+  select.innerHTML = renderTokenOptions(limit);
+  const current = toPositiveInt(state.settings.maxTokens) || 8192;
+  select.value = String(Math.min(current, limit));
+  const desc = select.closest('.setting-group')?.querySelector('.setting-desc');
+  if (desc) {
+    const base = 'Caps reply length. Higher values help long files but may be slower.';
+    desc.textContent = model ? `${base} Selected model limit: up to ${limit.toLocaleString()} tokens when NVIDIA exposes it, otherwise the app falls back to a safe ceiling.` : base;
+  }
 }
 
 function reasoningExtrasForModel(model) {
@@ -1876,7 +1954,7 @@ async function requestAssistantResponse(assistantId) {
     model: model.id,
     messages: buildConversationMessages(webContext),
     temperature: Number(state.settings.temperature || 0.7),
-    max_tokens: Math.max(Number(state.settings.maxTokens || 8192), 8192, modelSupportsReasoning(model) && state.settings.showThinking ? 4096 : 1),
+    max_tokens: Math.max(1, Math.min(modelTokenLimit(model), Number(state.settings.maxTokens || 8192))),
     stream: !!state.settings.stream && !profile.preferNonStream
   };
   const rawPayload = { ...basePayload, ...reasoningExtrasForModel(model) };
@@ -2370,6 +2448,7 @@ async function refreshModelsFromNvidia(manual = false) {
     if (!state.liveModels.some(m => m.id === state.settings.currentModelId)) {
       state.settings.currentModelId = state.liveModels.find(m => !m.catalogOnly)?.id || state.liveModels[0]?.id || '';
     }
+    syncMaxTokensToModel(getCurrentModel());
     persistModels(); persistSettings();
     renderModelList(); updateSelectedModelLabel(); updateStatus(); updateSendButton();
 
@@ -2461,6 +2540,7 @@ function selectModel(id) {
   if (model?.catalogOnly) showToast('Catalog-only model selected. If chat fails, NVIDIA may require a different exact model ID or endpoint.', 'error');
   state.settings.currentModelId = id;
   state.settings.recentModelIds = [id, ...(state.settings.recentModelIds || []).filter(x => x !== id)].slice(0, 5);
+  syncMaxTokensToModel(model);
   persistSettings();
   updateSelectedModelLabel();
   renderModelList();
@@ -2652,7 +2732,7 @@ function openSettings() {
   document.getElementById('userNameInput').value = state.settings.userName || '';
   document.getElementById('tempSlider').value = state.settings.temperature;
   document.getElementById('tempValue').textContent = state.settings.temperature;
-  document.getElementById('maxTokensSelect').value = String(state.settings.maxTokens);
+  refreshMaxTokensSelect();
   document.getElementById('streamSelect').value = state.settings.stream ? 'yes' : 'no';
   document.getElementById('thinkingSelect').value = state.settings.plugins.thinkingDisplay ? 'yes' : 'no';
   const diagSelect = document.getElementById('diagnosticsSelect'); if (diagSelect) diagSelect.value = state.settings.streamDiagnostics ? 'yes' : 'no';
