@@ -1,11 +1,11 @@
 /* NVIDIA AI Desktop - GitHub Pages / Cloudflare Worker build */
-const APP_VERSION = '3.3.1';
+const APP_VERSION = '3.3.2';
 const BUILD_ID = '2026-07-final-release';
 const NVIDIA_DIRECT_BASE = 'https://integrate.api.nvidia.com/v1';
 const DEFAULT_PROXY_URL = 'https://nvidia-ai-proxy.lukewai.workers.dev';
 const DEFAULT_USER_NAME = 'User';
-const STREAM_FIRST_TOKEN_TIMEOUT_MS = 45000;
-const NON_STREAM_RETRY_TIMEOUT_MS = 90000;
+const STREAM_FIRST_TOKEN_TIMEOUT_MS = 120000;
+const NON_STREAM_RETRY_TIMEOUT_MS = 180000;
 const SETTINGS_KEY = 'nvidia_ai_desktop_settings_v8_plugins';
 const SETTINGS_SECRET_BACKUP_KEY = 'nvidia_ai_desktop_connection_backup_v1';
 const SPLASH_SEEN_KEY = 'nvidia_ai_desktop_splash_seen_v1';
@@ -713,7 +713,7 @@ function apiHeaders(stream = false) {
   return headers;
 }
 
-async function fetchWithTimeout(url, options = {}, timeoutMs = 45000) {
+async function fetchWithTimeout(url, options = {}, timeoutMs = 120000) {
   const controller = new AbortController();
   const externalSignal = options.signal;
   const abortFromExternal = () => controller.abort(externalSignal?.reason || 'Request aborted');
@@ -1756,6 +1756,7 @@ async function sendMessage(overrideText = null) {
 function friendlyError(err) {
   if (isAbortLike(err)) return 'Stopped by user.';
   const raw = err?.message || String(err);
+  if (/Request timed out|first token timeout|timed out waiting/i.test(raw)) return 'The model is taking longer than expected. Try again, or disable streaming for this model in Settings if it keeps timing out.';
   if (/failed to fetch/i.test(raw)) return 'Failed to fetch. Check your Cloudflare Worker proxy URL, internet connection, and CORS.';
   if (/401/.test(raw)) return 'HTTP 401. Check your NVIDIA API key.';
   if (/404/.test(raw)) return 'HTTP 404. Check the proxy URL and model endpoint.';
