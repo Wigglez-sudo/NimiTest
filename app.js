@@ -1,5 +1,5 @@
 /* NVIDIA AI Desktop - GitHub Pages / Cloudflare Worker build */
-const APP_VERSION = '3.3.3';
+const APP_VERSION = '3.3.4';
 const BUILD_ID = '2026-07-final-release';
 const NVIDIA_DIRECT_BASE = 'https://integrate.api.nvidia.com/v1';
 const DEFAULT_PROXY_URL = 'https://nvidia-ai-proxy.lukewai.workers.dev';
@@ -1969,6 +1969,20 @@ async function requestAssistantResponse(assistantId) {
       }
       const retryPayload = profile.stripReasoningOnFallback ? stripReasoningExtras(payload) : payload;
       await sendPayload({ ...retryPayload, stream: false }, ' (retry after server error)');
+    } else if (/HTTP 404/i.test(text)) {
+      const msg = getMessage(assistantId);
+      if (msg) {
+        msg.content = '';
+        msg.status = 'Refreshing models and retrying';
+        recordStreamEvent(msg, 'Retrying after 404', text);
+        updateAssistantDom(msg);
+      }
+      try {
+        await refreshModelsFromNvidia(false);
+      } catch (_) {}
+      const refreshedModel = getCurrentModel();
+      const retryPayload = profile.stripReasoningOnFallback ? stripReasoningExtras(payload) : payload;
+      await sendPayload({ ...retryPayload, model: refreshedModel?.id || payload.model, stream: false }, ' (retry after refresh)');
     } else if ((payload.chat_template_kwargs || payload.include_reasoning || payload.thinking_token_budget) && /HTTP (400|422|500)|invalid|unsupported|chat_template|thinking|reasoning/i.test(text)) {
       const msg = getMessage(assistantId);
       if (msg) {
