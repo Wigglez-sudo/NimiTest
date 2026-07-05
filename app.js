@@ -286,6 +286,7 @@ function modelProfile(m){
 }
 
 function stripReasoning(p){const{include_reasoning,chat_template_kwargs,thinking_token_budget,...r}=p||{};return r;}
+function isRetryableHttpStatus(status){return [502,503,504,524].includes(Number(status));}
 
 function badgeLabel(c){const map={chat:'Chat',reasoning:'Reasoning',coding:'Coding',vision:'Vision',image:'Image',speech:'Speech',long:'Long Ctx',fast:'Fast',free_endpoint:'Free',free:'Free',paid:'Paid',api:'API',catalog:'Catalog',live:'Live'};return map[c]||c;}
 function capHtml(m){
@@ -303,6 +304,9 @@ function apiHeaders(stream=false){
   const h={'Content-Type':'application/json',Accept:stream?'text/event-stream':'application/json',Authorization:`Bearer ${state.settings.apiKey||''}`};
   if(stripSlash(state.settings.proxyUrl))h['X-Nvidia-Api-Key']=state.settings.apiKey||'';
   return h;
+}
+function directApiHeaders(stream=false){
+  return {'Content-Type':'application/json',Accept:stream?'text/event-stream':'application/json',Authorization:`Bearer ${state.settings.apiKey||''}`};
 }
 async function fetchTimeout(url,opts={},t=120000){
   const ctrl=new AbortController();
@@ -1106,6 +1110,15 @@ async function callStreaming(assistant,model,allMsgs){
     if(!resp.ok){
       const text=await resp.text().catch(()=>'');
       recordEvent(assistant,'HTTP error',`${resp.status} ${text.slice(0,200)}`);
+      if(isRetryableHttpStatus(resp.status) && stripSlash(state.settings.proxyUrl)){
+        recordEvent(assistant,'Retry','Direct NVIDIA after proxy timeout');
+        const directUrl=`${NVIDIA_DIRECT_BASE}/chat/completions`;
+        const directHeaders=directApiHeaders(!!payload.stream);
+        const directResp=await fetchTimeout(directUrl,{method:'POST',headers:directHeaders,body:JSON.stringify(payload)},payload.stream?STREAM_FIRST_TOKEN_TIMEOUT_MS:NON_STREAM_RETRY_TIMEOUT_MS);
+        if(!directResp.ok){const dt=await directResp.text().catch(()=>'');throw new Error(`Direct retry failed: ${directResp.status} - ${dt.slice(0,200)}`);}
+        await handleResponse(directResp,assistant,!!payload.stream,model);
+        return;
+      }
       if(resp.status===422&&payload.stream&&profile.preferNonStream){
         recordEvent(assistant,'Retry','Non-stream fallback');
         const alt={...payload,stream:false};delete alt.stream;
