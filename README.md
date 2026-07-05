@@ -2,7 +2,7 @@
 
 NViMi AI is a browser-based NVIDIA chat app with a Kimi-style UI, live model loading, Free Endpoint handling, plugins, generated-file downloads, diagnostics, and iOS/PWA support.
 
-Final release: `v3.3.2`
+Final release: `v3.3.3`
 
 | Link | URL |
 | --- | --- |
@@ -80,7 +80,7 @@ Final release: `v3.3.2`
 
 | Version | Theme |
 | --- | --- |
-| `v3.3.2` | Broader audit pass: duplicate finish-reason handler removed, File Reader gating fixed for images and manifests, markdown paragraph/table rendering improved, mono font token added, and mobile model-tab overflow smoothed. |
+| `v3.3.3` | Broader audit pass: duplicate finish-reason handler removed, File Reader gating fixed for images and manifests, markdown paragraph/table rendering improved, mono font token added, and mobile model-tab overflow smoothed. |
 | `v3.1.x` | iOS keyboard, composer, activity panel, send-scroll, and vision upload hardening. |
 | `v3.0.9` | NViMi branding, iOS uploads, and thinking/activity improvements. |
 | `v3.0.8` | Artifact and model-picker polish plus service-worker update banner. |
@@ -94,7 +94,7 @@ Final release: `v3.3.2`
 
 ## Full Release History
 
-### v3.3.2 - Audit cleanup pass
+### v3.3.3 - Audit cleanup pass
 
 - Merged the safest beta fixes back into the main app.
 - Fixed iOS long-prompt wrapping in the composer.
@@ -206,7 +206,7 @@ Final release: `v3.3.2`
 - Do not commit `.env` files or private Worker secrets.
 - The browser frontend talks to NVIDIA through the Cloudflare Worker.
 - The included Worker source is in `worker/index.js`.
-- This `v3.3.2` release changes frontend files only. Cloudflare Worker redeploy is not required.
+- This `v3.3.3` release changes frontend files only. Cloudflare Worker redeploy is not required.
 
 ## Files
 
@@ -230,7 +230,7 @@ Push these files to the GitHub Pages repository:
 
 ```bash
 git add index.html styles.css app.js sw.js manifest.webmanifest icon.svg nvidia-ai-desktop-standalone.html README.md worker/index.js
-git commit -m "Release v3.3.2 audit cleanup pass"
+git commit -m "Release v3.3.3 audit cleanup pass"
 git push
 ```
 
@@ -242,7 +242,7 @@ https://wigglez-sudo.github.io/nvidia-ai-desktop/?v=3.3.0
 
 ### Cloudflare Worker
 
-No Worker change is required for `v3.3.2`.
+No Worker change is required for `v3.3.3`.
 
 If you intentionally change `worker/index.js`, redeploy with:
 
