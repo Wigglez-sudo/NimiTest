@@ -1756,6 +1756,7 @@ async function sendMessage(overrideText = null) {
 function friendlyError(err) {
   if (isAbortLike(err)) return 'Stopped by user.';
   const raw = err?.message || String(err);
+  if (/HTTP 524/i.test(raw)) return 'The upstream model took too long to answer. Retrying without streaming usually helps; you can also turn streaming off for this model in Settings.';
   if (/Request timed out|first token timeout|timed out waiting/i.test(raw)) return 'The model is taking longer than expected. Try again, or disable streaming for this model in Settings if it keeps timing out.';
   if (/failed to fetch/i.test(raw)) return 'Failed to fetch. Check your Cloudflare Worker proxy URL, internet connection, and CORS.';
   if (/401/.test(raw)) return 'HTTP 401. Check your NVIDIA API key.';
@@ -1958,7 +1959,7 @@ async function requestAssistantResponse(assistantId) {
       }
       const retryPayload = profile.stripReasoningOnFallback ? stripReasoningExtras(payload) : payload;
       await sendPayload({ ...retryPayload, stream: false }, ` (retry without streaming${profile.stripReasoningOnFallback ? ', no reasoning flags' : ''})`);
-    } else if (payload.stream && /HTTP 500|HTTP 502|HTTP 503|HTTP 504|EngineCore/i.test(text)) {
+    } else if (payload.stream && /HTTP 500|HTTP 502|HTTP 503|HTTP 504|HTTP 524|EngineCore/i.test(text)) {
       const msg = getMessage(assistantId);
       if (msg) {
         msg.content = '';

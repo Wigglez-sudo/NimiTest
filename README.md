@@ -101,7 +101,7 @@ Final release: `v3.3.3`
 - Fixed individual chat delete buttons on touch devices.
 - Replaced the default personal display name with a generic user profile.
 - Refined the model picker into a clearer, grouped model list.
-- Bumped service-worker cache to `nvidia-ai-desktop-v3-3-0`.
+- Bumped service-worker cache to `nvidia-ai-desktop-v3-3-3`.
 - Regenerated the standalone HTML build from the final app files.
 
 ### v3.1.7 - iOS focus composer
