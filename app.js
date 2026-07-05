@@ -1,16 +1,17 @@
 /* ================================================================
-   NViMi AI v5.0.0 — Complete Rebuild
+   NViMi AI v5.0.2 — Complete Rebuild
    Premium NVIDIA model chat experience
    ================================================================ */
 
-const APP_VERSION = '5.0.1';
+const APP_VERSION = '5.0.2';
 const BUILD_ID = '2026-07-v5-rebuild';
 const NVIDIA_DIRECT_BASE = 'https://integrate.api.nvidia.com/v1';
 const DEFAULT_PROXY_URL = 'https://nvidia-ai-proxy.lukewai.workers.dev';
 const DEFAULT_USER_NAME = 'User';
 
-const STREAM_FIRST_TOKEN_TIMEOUT_MS = 20 * 60 * 1000;
-const NON_STREAM_RETRY_TIMEOUT_MS = 180000;
+const STREAM_FIRST_TOKEN_TIMEOUT_MS = 5 * 60 * 1000;
+const NON_STREAM_RETRY_TIMEOUT_MS = 5 * 60 * 1000;
+const MODEL_CACHE_TTL_MS = 5 * 60 * 1000;
 
 // ── Storage Keys ───────────────────────────────────────────────
 const STORAGE = {
@@ -129,6 +130,7 @@ const state = {
   activeAssistantId:null, stopRequested:false, editingMessageId:null,
   voiceRecognition:null, pendingAttachments:[], openThinking:new Set(),
   chatSearch:'', draftSaveTimer:null, scrollLocked:true,
+  modelRefreshAt:0, modelRefreshBusy:false,
 };
 
 // ── Utilities ──────────────────────────────────────────────────
@@ -147,7 +149,10 @@ function fmtBytes(b){const n=Number(b||0);if(!n)return'0 B';const u=['B','KB','M
 // ── Persistence ────────────────────────────────────────────────
 function persistSettings(){saveJson(STORAGE.settings,state.settings);}
 function persistFavs(){saveJson(STORAGE.favs,[...state.favourites]);}
-function persistModels(){saveJson(STORAGE.models,{models:state.liveModels.map(m=>m.raw||m),updatedAt:Date.now()});}
+function persistModels(){
+  state.modelRefreshAt=Date.now();
+  saveJson(STORAGE.models,{models:state.liveModels.map(m=>m.raw||m),updatedAt:state.modelRefreshAt});
+}
 function persistChats(){
   const clean=state.chats.map(c=>({...c,messages:c.messages.map(m=>({...m,attachments:Array.isArray(m.attachments)?m.attachments.map(a=>{if(a?.kind!=='image')return a;const{dataUrl,...r}=a;return{...r,imageDataPersisted:false};}):m.attachments}))}));
   saveJson(STORAGE.chats,clean);
@@ -164,6 +169,7 @@ function loadState(){
 
   const cache=loadJson(STORAGE.models,{models:[],updatedAt:0});
   state.liveModels=Array.isArray(cache.models)?cache.models.map(normalizeModel).filter(Boolean):[];
+  state.modelRefreshAt=Number(cache.updatedAt||0)||0;
   state.favourites=new Set(loadJson(STORAGE.favs,[]));
 
   state.chats=loadJson(STORAGE.chats,[]);
@@ -286,7 +292,7 @@ function modelProfile(m){
 }
 
 function stripReasoning(p){const{include_reasoning,chat_template_kwargs,thinking_token_budget,...r}=p||{};return r;}
-function isRetryableHttpStatus(status){return [502,503,504,524].includes(Number(status));}
+function isRetryableHttpStatus(status){return [404,500,502,503,504,524].includes(Number(status));}
 
 function badgeLabel(c){const map={chat:'Chat',reasoning:'Reasoning',coding:'Coding',vision:'Vision',image:'Image',speech:'Speech',long:'Long Ctx',fast:'Fast',free_endpoint:'Free',free:'Free',paid:'Paid',api:'API',catalog:'Catalog',live:'Live'};return map[c]||c;}
 function capHtml(m){
@@ -316,6 +322,21 @@ async function fetchTimeout(url,opts={},t=120000){
   const timer=setTimeout(()=>ctrl.abort('Timeout'),t);
   try{return await fetch(url,{...opts,signal:ctrl.signal});}
   finally{clearTimeout(timer);ext?.removeEventListener?.('abort',onAbort);}
+}
+async function fetchWithRetry(url,opts={},attempts=3,timeoutMs=120000,baseDelay=500){
+  let lastErr;
+  for(let i=0;i<attempts;i++){
+    try{
+      const resp=await fetchTimeout(url,opts,timeoutMs);
+      if(resp?.ok||!isRetryableHttpStatus(resp?.status))return resp;
+      lastErr=new Error(`HTTP ${resp.status}`);
+    }catch(err){lastErr=err;}
+    if(i<attempts-1){
+      const delay=baseDelay*Math.pow(2,i);
+      await new Promise(r=>setTimeout(r,delay));
+    }
+  }
+  throw lastErr||new Error('Request failed');
 }
 
 // ── Chat Functions ─────────────────────────────────────────────
@@ -799,7 +820,8 @@ function msgActionsHtml(m){
   if(m.role==='user'){
     return`<div class="message-actions"><button class="msg-action-btn" data-action="edit-message" data-id="${id}">${ICONS.edit} Edit</button><button class="msg-action-btn" data-action="copy-message" data-id="${id}">${ICONS.copy} Copy</button></div>`;
   }
-  return`<div class="message-actions"><button class="msg-action-btn" data-action="regenerate" data-id="${id}">${ICONS.refresh} Retry</button><button class="msg-action-btn" data-action="copy-message" data-id="${id}">${ICONS.copy} Copy</button><button class="msg-action-btn" data-action="download-message" data-id="${id}">${ICONS.download} Save</button></div>`;
+  const continueBtn=m.finishReason==='length'?`<button class="msg-action-btn primary" data-action="continue-response" data-id="${id}">${ICONS.refresh} Continue</button>`:'';
+  return`<div class="message-actions">${continueBtn}<button class="msg-action-btn" data-action="regenerate" data-id="${id}">${ICONS.refresh} Retry</button><button class="msg-action-btn" data-action="copy-message" data-id="${id}">${ICONS.copy} Copy</button><button class="msg-action-btn" data-action="download-message" data-id="${id}">${ICONS.download} Save</button></div>`;
 }
 
 function searchCardHtml(msg){
@@ -1046,9 +1068,10 @@ function makeSystemMsg(){
   return full?{role:'system',content:full}:null;
 }
 
-async function sendMsg(userText){
+async function sendMsg(userText,options={}){
   const input=document.getElementById('inputBox');
   const text=typeof userText==='string'?userText.trim():input?.value?.trim()||'';
+  const appendUser=options.appendUser!==false;
   if(!text&&!state.pendingAttachments.length)return;
   if(state.isBusy)return;
   if(!state.settings.apiKey){showToast('Enter your API key in Settings','error');openModal('settingsModal');return;}
@@ -1056,7 +1079,7 @@ async function sendMsg(userText){
 
   let chat=state.currentChat;if(!chat)chat=createChat();
 
-  if(state.editingMessageId){
+  if(appendUser&&state.editingMessageId){
     const idx=msgIdx(state.editingMessageId);
     if(idx>=0){
       chat.messages=chat.messages.slice(0,idx+1);
@@ -1067,12 +1090,14 @@ async function sendMsg(userText){
     }
     state.editingMessageId=null;
     document.getElementById('editingBanner').style.display='none';
-  }else{
+  }else if(appendUser){
     chat.messages.push(makeUserMsg(text));
   }
 
-  clearAttachments();
-  input.value='';input.style.height='auto';input.style.overflowY='hidden';
+  if(appendUser){
+    clearAttachments();
+    input.value='';input.style.height='auto';input.style.overflowY='hidden';
+  }
   const model=getCurrentModel();
   const assistant=makeAssistantMsg(model);
   chat.messages.push(assistant);
@@ -1567,6 +1592,9 @@ async function testConnection(){
 }
 
 async function refreshModels(){
+  if(state.modelRefreshBusy)return;
+  state.modelRefreshBusy=true;
+  setModelRefreshBusy(true);
   showToast('Loading models...');
   try{
     const models=await fetchModels();
@@ -1574,14 +1602,18 @@ async function refreshModels(){
     persistModels();updateModelLabel();updateStatus();updateSendBtn();
     showToast(`${state.liveModels.length} models loaded`);
   }catch(err){showToast(`Failed: ${String(err?.message||err)}`,'error');}
+  finally{
+    state.modelRefreshBusy=false;
+    setModelRefreshBusy(false);
+  }
 }
 
 async function fetchModels(){
   const proxy=stripSlash(state.settings.proxyUrl);
   const directUrl=`${NVIDIA_DIRECT_BASE}/models`;
   const proxyUrl=proxy?`${proxy}/v1/models`:null;
-  const dp=fetch(directUrl,{method:'GET',headers:{Authorization:`Bearer ${state.settings.apiKey||''}`}}).then(async r=>{if(!r.ok)throw new Error(`Direct ${r.status}`);return(await r.json()).data||[];});
-  const pp=proxyUrl?fetch(proxyUrl,{method:'GET',headers:{Authorization:`Bearer ${state.settings.apiKey||''}`,'X-Nvidia-Api-Key':state.settings.apiKey||''}}).then(async r=>{if(!r.ok)throw new Error(`Proxy ${r.status}`);return(await r.json()).data||[]}):Promise.resolve([]);
+  const dp=fetchWithRetry(directUrl,{method:'GET',headers:{Authorization:`Bearer ${state.settings.apiKey||''}`}},3,120000,500).then(async r=>{if(!r.ok)throw new Error(`Direct ${r.status}`);return(await r.json()).data||[];});
+  const pp=proxyUrl?fetchWithRetry(proxyUrl,{method:'GET',headers:{Authorization:`Bearer ${state.settings.apiKey||''}`,'X-Nvidia-Api-Key':state.settings.apiKey||''}},3,120000,500).then(async r=>{if(!r.ok)throw new Error(`Proxy ${r.status}`);return(await r.json()).data||[]}):Promise.resolve([]);
   let dr=[],pr=[],de=null,pe=null;
   try{dr=await dp;}catch(e){de=e;}try{pr=await pp;}catch(e){pe=e;}
   if(!dr.length&&!pr.length){if(de&&pe)throw new Error(`Direct: ${de.message}, Proxy: ${pe.message}`);if(de)throw de;if(pe)throw pe;throw new Error('No models returned');}
@@ -1591,6 +1623,32 @@ async function fetchModels(){
 }
 
 function clearKey(){if(!confirm('Clear API key?'))return;state.settings.apiKey='';persistSettings();const el=document.getElementById('apiKeyInput');if(el)el.value='';showToast('Key cleared');}
+
+function isModelCacheStale(){
+  return !state.modelRefreshAt || (Date.now()-state.modelRefreshAt)>MODEL_CACHE_TTL_MS;
+}
+
+function setModelRefreshBusy(busy){
+  document.querySelectorAll('[data-action="refresh-models"]').forEach(btn=>{
+    if(!btn)return;
+    btn.disabled=!!busy;
+    btn.classList.toggle('loading',!!busy);
+    if(btn.dataset.originalLabel==null)btn.dataset.originalLabel=btn.getAttribute('aria-label')||btn.textContent||'Refresh models';
+    if(btn.querySelector('svg'))return;
+    if('textContent' in btn)btn.textContent=busy?'Loading...':btn.dataset.originalLabel;
+  });
+}
+
+async function maybeRefreshModels(force=false){
+  if(!state.settings.apiKey||state.modelRefreshBusy)return false;
+  if(!force&&!isModelCacheStale())return false;
+  try{
+    await refreshModels();
+    return true;
+  }catch{
+    return false;
+  }
+}
 
 // ── Import / Export ────────────────────────────────────────────
 function exportSettings(){
@@ -1633,6 +1691,19 @@ function handleOnboard(saveAndLoad=false){
 }
 function maybeShowOnboard(){if(!state.settings.apiKey&&!localStorage.getItem(STORAGE.splash))document.getElementById('onboardingOverlay')?.classList.add('open');}
 
+async function continueResponse(id){
+  const msg=getMsg(id);
+  if(!msg||msg.role!=='assistant')return;
+  if(msg.finishReason!=='length'){showToast('That response was not length-limited','warning');return;}
+  if(state.isBusy){showToast('Wait for the current response first','warning');return;}
+  const prompt='Continue from where you left off. Resume the previous answer and finish it without repeating earlier text.';
+  const chat=state.currentChat;if(!chat)return;
+  const userMsg=makeUserMsg(prompt);
+  chat.messages.push(userMsg);
+  persistChats();renderMessages();scrollToBottom(false);
+  await sendMsg(prompt,{appendUser:false});
+}
+
 // ── Event Handlers ─────────────────────────────────────────────
 function setupEvents(){
   document.addEventListener('click',(e)=>{
@@ -1672,6 +1743,7 @@ function setupEvents(){
       case 'download-code':downloadFromPayload(readGen(el));break;
       case 'download-message':downloadMsg(el.dataset.id);break;
       case 'download-zip':downloadFromPayload(readGen(el));break;
+      case 'continue-response':continueResponse(el.dataset.id);break;
       case 'copy-all-files':copyFromPayload(readGen(el));break;
       case 'download-all-files':downloadFromPayload(readGen(el));break;
       case 'preview-artifacts':previewArtifacts(readGen(el));break;
@@ -1758,10 +1830,14 @@ function setupEvents(){
 
   // Visual Viewport for iOS keyboard
   if(window.visualViewport){
-    window.visualViewport.addEventListener('resize',()=>{
+    const syncViewport=()=>{
       const vv=window.visualViewport;
-      document.documentElement.style.setProperty('--vv-height',`${vv.height}px`);
+      document.documentElement.style.setProperty('--vv-height',`${vv.height*0.01}px`);
       document.documentElement.style.setProperty('--vv-offset',`${vv.offsetTop}px`);
+    };
+    syncViewport();
+    window.visualViewport.addEventListener('resize',()=>{
+      syncViewport();
       // Keep composer visible when keyboard opens
       const composer=document.getElementById('composer');
       if(composer&&document.activeElement===inputBox){
@@ -1771,7 +1847,18 @@ function setupEvents(){
         });
       }
     });
+    window.visualViewport.addEventListener('scroll',syncViewport);
   }
+
+  window.addEventListener('resize',()=>{
+    if(window.visualViewport)return;
+    document.documentElement.style.setProperty('--vv-height','1dvh');
+  });
+
+  document.addEventListener('visibilitychange',()=>{
+    if(document.hidden)return;
+    maybeRefreshModels().catch(()=>{});
+  });
 }
 
 function focusInput(){
@@ -1789,8 +1876,9 @@ function init(){
   console.log(`NViMi AI v${APP_VERSION} initialized`);
   // Register service worker
   if('serviceWorker'in navigator){
-    navigator.serviceWorker.register('./sw.js?v=5').catch(()=>{});
+    navigator.serviceWorker.register(`./sw.js?v=${APP_VERSION}`).catch(()=>{});
   }
+  maybeRefreshModels().catch(()=>{});
 }
 
 // Wait for fonts then init
