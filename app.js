@@ -582,28 +582,51 @@ function genFilesState(text='',msg=null){
   return{canParse:!!src&&!msg?.loading&&state.settings.plugins.downloadButtons&&!tooLarge,isLarge:tooLarge,count:bc};
 }
 
+function parseFileManifest(text){
+  const src=String(text||'');
+  if(!/download links|primary file|supporting file|here are the rebuilt files|here are the files ready/i.test(src))return [];
+  const lines=src.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+  const seen=new Set();
+  const files=[];
+  for(let i=0;i<lines.length;i++){
+    const line=lines[i];
+    const m=line.match(/^([A-Za-z0-9_.\-@/\\() ]+\.[A-Za-z0-9]{1,8})\s*[—-]/);
+    if(!m)continue;
+    const filename=cleanFn(m[1]);
+    if(!filename||seen.has(filename.toLowerCase()))continue;
+    seen.add(filename.toLowerCase());
+    const note=[lines[i+1],lines[i+2]].filter(Boolean).join(' ').trim();
+    files.push({filename,lang:langFromFilename(filename),code:note||'Generated file described in summary output.',explicit:false,manifestOnly:true});
+  }
+  return files;
+}
+
 function genFilesHtml(text){
   const s=genFilesState(text);
   if(!s.canParse){return s.isLarge?`<div class="generated-files-panel"><div><strong>Large output</strong><span style="color:var(--text-tertiary);font-size:11px;margin-left:8px">File extraction deferred.</span></div></div>`:'';}
   const files=parseGenFiles(text,{includeInferred:false});
-  if(!files.length)return'';
-  const all=files.map(f=>({filename:f.filename,code:f.code,lang:f.lang}));
+  const manifestFiles=parseFileManifest(text).filter(f=>!files.some(x=>x.filename.toLowerCase()===f.filename.toLowerCase()));
+  const allFiles=[...files,...manifestFiles];
+  if(!allFiles.length)return'';
+  const all=allFiles.map(f=>({filename:f.filename,code:f.code,lang:f.lang}));
   const allId=storeGen(all);
-  const canPreview=state.settings.plugins.artifactPreview&&canPreview(all);
-  const sub=`${files.length} file${files.length===1?'':'s'}`;
+  const previewable=state.settings.plugins.artifactPreview&&canPreview(all);
+  const sub=`${allFiles.length} file${allFiles.length===1?'':'s'}`;
 
-  const cards=files.map(f=>{
+  const cards=allFiles.map(f=>{
     const sid=storeGen({filename:f.filename,code:f.code,lang:f.lang});
     const k=fileKind(f);
-    return`<div class="generated-file-card"><div class="generated-file-icon">${esc(k.slice(0,4).toUpperCase())}</div><div class="generated-file-info"><div class="generated-file-name">${esc(f.filename)}</div><div class="generated-file-meta"><span class="capability-tag">${esc(k)}</span> ${esc(f.lang)} - ${fmtBytes(new Blob([f.code]).size)}</div></div><div class="generated-file-actions"><button class="file-btn" data-action="copy-code" data-payload-id="${sid}">Copy</button><button class="file-btn primary" data-action="download-code" data-payload-id="${sid}">Download</button></div></div>`;
+    const manifestNote=f.manifestOnly?'<div style="font-size:11px;color:var(--text-tertiary);margin-top:4px">Model mentioned this file in text, but did not include source content.</div>':'';
+    return`<div class="generated-file-card"><div class="generated-file-icon">${esc(k.slice(0,4).toUpperCase())}</div><div class="generated-file-info"><div class="generated-file-name">${esc(f.filename)}</div><div class="generated-file-meta"><span class="capability-tag">${esc(k)}</span> ${esc(f.lang)} - ${fmtBytes(new Blob([f.code]).size)}</div>${manifestNote}</div><div class="generated-file-actions"><button class="file-btn" data-action="copy-code" data-payload-id="${sid}">Copy</button><button class="file-btn primary" data-action="download-code" data-payload-id="${sid}">Download</button></div></div>`;
   }).join('');
 
-  const previewBtn=canPreview?`<button class="file-btn" data-action="preview-artifacts" data-payload-id="${allId}">Preview</button>`:'';
-  const multi=files.length>1
+  const previewBtn=previewable?`<button class="file-btn" data-action="preview-artifacts" data-payload-id="${allId}">Preview</button>`:'';
+  const multi=allFiles.length>1
     ?`${previewBtn}<button class="file-btn" data-action="copy-all-files" data-payload-id="${allId}">Copy all</button><button class="file-btn primary" data-action="download-zip" data-payload-id="${allId}">ZIP</button>`
     :`${previewBtn}<button class="file-btn primary" data-action="download-all-files" data-payload-id="${allId}">Download</button>`;
 
-  return`<div class="generated-files-panel"><div class="generated-files-header"><div><strong style="color:var(--nvidia)">Generated Files</strong><span style="color:var(--text-tertiary);font-size:11px;margin-left:8px">${sub}</span></div><div style="display:flex;gap:6px;flex-wrap:wrap">${multi}</div></div>${cards}</div>`;
+  const note=manifestFiles.length&&!files.length?`<div style="font-size:11px;color:var(--text-tertiary);margin-top:6px">This response lists files but does not include their source code. The download buttons will export the manifest text so you still have a usable artifact bundle.</div>`:'';
+  return`<div class="generated-files-panel"><div class="generated-files-header"><div><strong style="color:var(--nvidia)">Generated Files</strong><span style="color:var(--text-tertiary);font-size:11px;margin-left:8px">${sub}</span></div><div style="display:flex;gap:6px;flex-wrap:wrap">${multi}</div></div>${cards}${note}</div>`;
 }
 
 function fileKind(f={}){
