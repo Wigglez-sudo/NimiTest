@@ -1490,8 +1490,23 @@ function openPluginsPanel(){
     <div class="panel-section-title">Plugin Settings</div>
     <div class="setting-row"><label class="setting-label">Search API Key</label><input type="password" class="setting-input" id="pluginSearchKey" value="${esc(p.webSearchApiKey||'')}" placeholder="Brave Search API key..."></div>
     <div class="setting-row"><label class="setting-label">Search Results</label><input type="number" class="setting-input" id="pluginSearchCount" value="${p.webSearchResults||6}" min="1" max="10"></div>
-    <div class="setting-row"><label class="setting-label">Search Mode</label><select class="setting-select" id="pluginSearchMode"><option value="auto" ${p.webSearchMode==='auto'?'selected':''}>Auto</option><option value="always" ${p.webSearchMode==='always'?'selected':''}>Always</option><option value="manual" ${p.webSearchMode==='manual'?'selected':''}>Manual</option></select></div>`;
+    <div class="setting-row"><label class="setting-label">Search Mode</label><select class="setting-select" id="pluginSearchMode"><option value="auto" ${p.webSearchMode==='auto'?'selected':''}>Auto</option><option value="always" ${p.webSearchMode==='always'?'selected':''}>Always</option><option value="manual" ${p.webSearchMode==='manual'?'selected':''}>Manual</option></select></div>
+    <div class="panel-footer" style="display:flex;gap:10px;justify-content:flex-end;margin-top:18px">
+      <button class="btn btn-secondary" data-action="close-panel">Close</button>
+      <button class="btn btn-primary" data-action="save-plugin-settings">Save Brave Search</button>
+    </div>`;
   openPanel('Plugins',content);
+}
+
+function savePluginSettings(){
+  const p=state.settings.plugins;
+  const key=document.getElementById('pluginSearchKey')?.value?.trim()||'';
+  const count=Math.max(1,Math.min(10,toInt(document.getElementById('pluginSearchCount')?.value)||p.webSearchResults||6));
+  const mode=document.getElementById('pluginSearchMode')?.value||'auto';
+  state.settings.plugins={...p,webSearchApiKey:key,webSearchResults:count,webSearchMode:mode};
+  persistSettings();
+  showToast(key ? 'Brave Search key saved' : 'Brave Search settings saved');
+  openPluginsPanel();
 }
 
 function openAgentsPanel(){
@@ -1689,6 +1704,13 @@ function setupEvents(){
     if((e.ctrlKey||e.metaKey)&&e.key==='s'){e.preventDefault();openSettingsModal();}
     if((e.ctrlKey||e.metaKey)&&e.key==='b'){e.preventDefault();document.getElementById('sidebar')?.classList.toggle('collapsed');document.body.classList.toggle('sidebar-open');}
     if(e.key==='/'&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&!e.shiftKey){const input=document.getElementById('inputBox');if(input&&document.activeElement!==input){e.preventDefault();input.focus();}}
+  });
+
+  document.addEventListener('input',(e)=>{
+    const el=e.target;
+    if(['pluginSearchKey','pluginSearchCount','pluginSearchMode'].includes(el?.id||'')){
+      savePluginSettings();
+    }
   });
 
   const inputBox=document.getElementById('inputBox');
