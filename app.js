@@ -9,7 +9,7 @@ const NVIDIA_DIRECT_BASE = 'https://integrate.api.nvidia.com/v1';
 const DEFAULT_PROXY_URL = 'https://nvidia-ai-proxy.lukewai.workers.dev';
 const DEFAULT_USER_NAME = 'User';
 
-const STREAM_FIRST_TOKEN_TIMEOUT_MS = 120000;
+const STREAM_FIRST_TOKEN_TIMEOUT_MS = 20 * 60 * 1000;
 const NON_STREAM_RETRY_TIMEOUT_MS = 180000;
 
 // ── Storage Keys ───────────────────────────────────────────────
@@ -449,6 +449,7 @@ function applyFinish(msg,reason){
   if(!msg||!reason)return;
   msg.finishReason=String(reason);
   if(msg.finishReason==='length')msg.status='Hit output limit';
+  if(msg.finishReason==='length'&&!msg.content&&!msg.thinking)msg.content='Output limit reached before any text was returned.';
 }
 
 // ── Markdown Renderer ──────────────────────────────────────────
