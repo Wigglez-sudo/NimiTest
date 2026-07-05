@@ -1,17 +1,13 @@
 {
-  "id": "/nvidia-ai-desktop/",
   "name": "NViMi AI",
   "short_name": "NViMi",
-  "lang": "en",
-  "dir": "ltr",
-  "start_url": "./index.html",
-  "scope": "./",
+  "description": "Premium NVIDIA model chat experience",
+  "version": "5.0.0",
+  "start_url": "./",
   "display": "standalone",
+  "background_color": "#0a0a0b",
+  "theme_color": "#0a0a0b",
   "orientation": "any",
-  "background_color": "#0d0d0d",
-  "theme_color": "#76B900",
-  "description": "NVIDIA-powered, Kimi-style AI chat app for GitHub Pages, backed by a Cloudflare Worker proxy.",
-  "categories": ["productivity", "utilities", "developer"],
   "icons": [
     {
       "src": "icon.svg",

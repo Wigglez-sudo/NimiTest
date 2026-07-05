@@ -1,284 +1,98 @@
-# NViMi AI
-
-NViMi AI is a browser-based NVIDIA chat app with a Kimi-style UI, live model loading, Free Endpoint handling, plugins, generated-file downloads, diagnostics, and iOS/PWA support.
-
-Final release: `v3.3.7`
-
-| Link | URL |
-| --- | --- |
-| Live app | <https://wigglez-sudo.github.io/nvidia-ai-desktop/> |
-| Worker | <https://nvidia-ai-proxy.lukewai.workers.dev> |
-| GitHub Pages cache-bust | <https://wigglez-sudo.github.io/nvidia-ai-desktop/?v=3.3.7> |
-
-## Quick Start
-
-1. Open the live app.
-2. Go to Settings.
-3. Add your NVIDIA API key.
-4. Confirm the Worker URL is `https://nvidia-ai-proxy.lukewai.workers.dev`.
-5. Choose your display name.
-6. Tap `Refresh Models`.
-7. Pick a model and start chatting.
-
-## Feature Table
-
-| Area | What it includes |
-| --- | --- |
-| Chat | Streaming replies, stop response, regenerate, edit, copy, download, chat search, draft restore, and persistent chat history. |
-| Models | Live NVIDIA model loading, Free Endpoint fallback tags, favourites, recents, search, grouped results, and capability badges. |
-| iOS | PWA support, safe-area handling, fixed keyboard/composer behavior, and touch-friendly chat deletion. |
-| Files | Text/code/data/image attachments, hidden upload content where possible, generated-file detection, per-file download, and ZIP export. |
-| Plugins | Web Search, File Reader, Download Buttons, Prefer File Outputs, Artifact Preview, Thinking Display, and Long Context. |
-| Diagnostics | Worker probe, model tests, current-model test, web-search test, build-catalog test, debug export, cache clear, local-data cleanup, and current-chat search. |
-| Security | No hard-coded API keys. Keys stay in browser storage and requests go through the Cloudflare Worker. |
-
-## Final Release
-
-- Final beta merge using the best fixes from the Kimi, DeepSeek/NVIDIA, and Qwen/NVIDIA test builds.
-- iOS composer now wraps downward correctly for long prompts.
-- Individual chat delete buttons now work as real touch targets on iPhone.
-- The default personal name was removed from the UI. Users can choose their own display name in Settings.
-- Composer drafts now restore per chat after refresh or chat switching.
-- App Status now includes a quick find-in-chat search for the current conversation.
-- Max Tokens now follows the selected model's exposed output limit when NVIDIA provides one.
-- The chat engine, model loading, plugins, file handling, diagnostics, and generated-file downloads were kept intact.
-- API keys stay out of source code and are stored only in the browser.
-
-## What The App Does
+# NViMi AI v5.0.0
 
-### Chat
-
-- Streams NVIDIA model replies live.
-- Supports stop response, regenerate, copy, edit, and download.
-- Keeps chat history in local browser storage.
-- Lets users delete individual chats or clear all chats from Diagnostics.
+A premium NVIDIA model chat experience built as a single-page web app. Talk to NVIDIA AI models through a clean, modern interface with streaming responses, file uploads, code generation, and more.
 
-### Models
+## What's New in v5.0.0
 
-- Pulls the live model list from the Worker.
-- Keeps verified Free Endpoint tags as a local fallback.
-- Supports favourites, recent models, search, and capability badges.
-- Keeps working free models visible instead of replacing the model catalog with a static list.
+This is a complete ground-up rebuild focusing on mobile stability, UI polish, and reliability.
 
-### Files
+- **Full UI rewrite** — cleaner layout, better spacing, improved typography hierarchy
+- **iOS keyboard fixes** — Visual Viewport API keeps composer stable during keyboard open/close
+- **Better composer** — natural textarea expansion, no dead gaps, stays visible
+- **Redesigned model browser** — full modal with filters (All, Favorites, Free, Reasoning, Coding, Vision, Fast, API), search, and clearer capability badges
+- **Improved file uploads** — better iOS accept attributes, ZIP support, webmanifest support, clearer skip messaging
+- **Generated files panel** — cleaner cards, copy/download/ZIP actions, artifact preview
+- **Activity panel** — collapsed by default, cleaner reasoning display, hidden debug events
+- **Better chat history** — compact items, working delete on iOS, clear all button
+- **Redesigned onboarding** — cleaner card-based setup with name field
+- **Improved settings** — live temperature slider, better organization
+- **Better auto-scroll** — scroll lock detection, respects user scroll position
+- **Service worker cache bust** — v5 cache ensures clean update
+- **All known issues addressed** — see below
 
-- Accepts supported text, code, data, and image files.
-- Keeps uploaded file content hidden from the visible chat where possible.
-- Detects generated files from model responses.
-- Lets users copy or download each file, or download all generated files as a ZIP.
+## Getting Started
 
-### Plugins
+1. Open the app in a modern browser (Chrome, Firefox, Safari, Edge)
+2. On first launch, enter your NVIDIA API key (and optional Worker URL)
+3. Click "Save & Load Models" or go to Settings
+4. Open the Model Browser to select a model
+5. Start chatting
 
-- `Web Search` calls Brave/Tavily through the Worker and injects results into the prompt.
-- `File Reader` includes attached file text, code, CSV, and Markdown content in the prompt.
-- `Download Buttons` shows copy/download actions for generated code and files.
-- `Prefer File Outputs` nudges models to return complete downloadable files.
-- `Artifact Preview` opens generated HTML/CSS/JS bundles in the preview drawer.
-- `Thinking Display` shows model activity and reasoning when available.
-- `Long Context` sends more chat history when enabled.
+## Setup
 
-## Release Map
+### NVIDIA API Key
 
-| Version | Theme |
-| --- | --- |
-| `v3.3.7` | Model-specific max token limits now follow the selected NVIDIA model when the API exposes a cap, while still clamping safely when it does not. |
-| `v3.3.5` | Broader audit pass: duplicate finish-reason handler removed, File Reader gating fixed for images and manifests, markdown paragraph/table rendering improved, mono font token added, and mobile model-tab overflow smoothed. |
-| `v3.1.x` | iOS keyboard, composer, activity panel, send-scroll, and vision upload hardening. |
-| `v3.0.9` | NViMi branding, iOS uploads, and thinking/activity improvements. |
-| `v3.0.8` | Artifact and model-picker polish plus service-worker update banner. |
-| `v3.0.7` | Splash setup and force-update flow. |
-| `v3.0.6` | Settings persistence on iOS. |
-| `v3.0.5` | Safe-area toolbar fixes. |
-| `v3.0.4` | Regenerate stop behavior and Worker default stability. |
-| `v3.0.3` | Stop response button. |
-| `v3.0.2` | Generated-file download reliability. |
-| `v3.0.1` | Chat/history cleanup and early UI clarity work. |
+Get your key from [NVIDIA API Catalog](https://build.nvidia.com/explore/discover). Stored only in browser localStorage.
 
-## Full Release History
+### Cloudflare Worker Proxy (optional)
 
-### v3.3.5 - Audit cleanup pass
+Deploy the included Worker for CORS proxying, or connect directly to NVIDIA.
 
-- Merged the safest beta fixes back into the main app.
-- Fixed iOS long-prompt wrapping in the composer.
-- Fixed individual chat delete buttons on touch devices.
-- Replaced the default personal display name with a generic user profile.
-- Refined the model picker into a clearer, grouped model list.
-- Bumped service-worker cache to `nvidia-ai-desktop-v3-3-3`.
-- Regenerated the standalone HTML build from the final app files.
+## Features
 
-### v3.3.7 - Model-aware max tokens
+- **10 AI modes** — Chat, Coding, Research, Writing, Creative, Data, Web, Images, Voice, Custom
+- **7 Agents** — General, Senior Engineer, Researcher, Data Analyst, Creative, Teacher, Security
+- **File uploads** — Images (PNG/JPEG/WebP/GIF/HEIC up to 6MB), text files (up to 2MB), ZIP archives, web manifests
+- **Model browser** — Full-screen modal with search, filters, favorites, and capability badges
+- **Generated files** — Auto-detected code blocks with copy/download/ZIP/preview
+- **Web search** — Optional Brave Search integration
+- **Voice input** — Browser-native speech recognition
+- **Streaming** — Real-time response streaming with collapsible activity panels
+- **Keyboard shortcuts** — Ctrl+K new chat, Ctrl+S settings, Ctrl+B sidebar, / focus, Esc stop
+- **PWA** — Install as standalone app on desktop and mobile
 
-- Max Tokens now rebuilds from the selected model's exposed limit when NVIDIA reports one.
-- The request payload clamps to the selected model limit so replies stay inside the model's own output cap.
-- The settings description now explains that the app falls back safely when the model does not expose a limit.
-- Bumped the service-worker cache to `nvidia-ai-desktop-v3-3-7`.
+## Keyboard Shortcuts
 
-### v3.1.7 - iOS focus composer
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl+K` | New chat |
+| `Ctrl+S` | Settings |
+| `Ctrl+B` | Toggle sidebar |
+| `/` | Focus input |
+| `Esc` | Stop / Close modal |
+| `Shift+Enter` | New line |
 
-- Mobile keyboard-open mode now follows focused composer state directly instead of relying on a large viewport-difference threshold.
-- Kept the refined send-scroll behavior from the earlier patch line.
-- Bumped the service-worker cache to `nvidia-ai-desktop-v3-1-7`.
+## Architecture
 
-### v3.1.6 - send scroll polish
+Zero-dependency single-page application:
 
-- Improved send-time auto-scroll so the chat stays pinned more naturally.
-- Tightened the composer experience on mobile browsers.
-- Bumped the service-worker cache to `nvidia-ai-desktop-v3-1-6`.
+- `index.html` — semantic HTML structure
+- `styles.css` — complete design system with CSS custom properties
+- `app.js` — all application logic (~1800 lines)
+- `sw.js` — service worker for offline caching
+- `manifest.webmanifest` — PWA manifest
 
-### v3.1.5 - iOS fixed composer
+No build step required — deploy directly to GitHub Pages, Cloudflare Pages, or any static host.
 
-- Stabilised the mobile composer so iOS would not leave a huge dead gap.
-- Kept the chat box anchored in the visible viewport.
-- Bumped the service-worker cache to `nvidia-ai-desktop-v3-1-5`.
-
-### v3.1.4 - iOS direct-browser keyboard gap
-
-- Fixed the top-cut-off and keyboard gap problem when the app is opened directly in iOS Safari.
-- Preserved the existing chat and model flow.
-- Bumped the service-worker cache to `nvidia-ai-desktop-v3-1-4`.
-
-### v3.1.3 - Activity panel scroll and retry polish
-
-- Kept the Activity panel open state stable during streaming.
-- Improved retry visibility so diagnostics stay readable.
-- Bumped the service-worker cache to `nvidia-ai-desktop-v3-1-3`.
-
-### v3.1.2 - vision image attachments
-
-- Added image attachment support for vision-capable models.
-- Kept the file-upload flow working on iOS and desktop.
-- Bumped the service-worker cache to `nvidia-ai-desktop-v3-1-2`.
-
-### v3.1.1 - iOS keyboard viewport fix
-
-- Kept the app height stable when the iOS keyboard opens.
-- Removed the worst double-shrink behavior from the mobile viewport logic.
-- Bumped the service-worker cache to `nvidia-ai-desktop-v3-1-1`.
-
-### v3.1.0 - UI clarity and generated files
-
-- Redesigned generated-file replies so file cards appear once, with copy/download actions and per-file collapsed source.
-- Cleaned up the overall UI so the chat surface was easier to scan.
-- Bumped the service-worker cache to `nvidia-ai-desktop-v3-1-0`.
-
-### v3.0.9 - iOS upload, thinking state, and NViMi branding
-
-- Rebranded the app to NViMi AI while keeping the NVIDIA/Kimi-style UI.
-- Improved upload handling and thinking/activity presentation.
-- Bumped the service-worker cache to `nvidia-ai-desktop-v3-0-9`.
-
-### v3.0.8 - Artifact and model-picker polish
-
-- Added the service-worker update banner.
-- Improved artifact handling and the model picker layout.
-- Bumped the service-worker cache to `nvidia-ai-desktop-v3-0-8`.
-
-### v3.0.7 - Splash setup and force update
-
-- Added a visible setup splash for first-run configuration.
-- Added a force-update control for clearing stale cached builds.
-- Bumped the service-worker cache to `nvidia-ai-desktop-v3-0-7`.
-
-### v3.0.6 - Settings persistence on iOS
-
-- Fixed settings persistence so API keys and proxy URLs survive refreshes on iPhone and desktop.
-- Bumped the service-worker cache to `nvidia-ai-desktop-v3-0-6`.
-
-### v3.0.5 - iOS safe-area toolbar fix
-
-- Fixed the top toolbar and safe-area spacing on iOS.
-- Bumped the service-worker cache to `nvidia-ai-desktop-v3-0-5`.
-
-### v3.0.4 - Regenerate stop and Worker default
-
-- Fixed regenerate so it uses the same stop flow as normal sends.
-- Kept the Worker default path stable.
-- Bumped the service-worker cache to `nvidia-ai-desktop-v3-0-4`.
-
-### v3.0.3 - Stop response button
-
-- Added a dedicated stop response control.
-- Improved streamed reply control without breaking the main chat flow.
-
-### v3.0.2 - generated-file download reliability
-
-- Improved file download handling for generated code and app bundles.
-- Added support for filename comments in generated output.
-
-### v3.0.1 - chat and history cleanup
-
-- Fixed the chat-history cleanup flow and the early UI clarity work that the later releases build on.
-
-## Security Notes
-
-- Do not hard-code NVIDIA API keys.
-- Do not commit `.env` files or private Worker secrets.
-- The browser frontend talks to NVIDIA through the Cloudflare Worker.
-- The included Worker source is in `worker/index.js`.
-- This `v3.3.7` release changes frontend files only. Cloudflare Worker redeploy is not required.
-
-## Files
-
-```text
-index.html
-styles.css
-app.js
-sw.js
-manifest.webmanifest
-icon.svg
-nvidia-ai-desktop-standalone.html
-README.md
-worker/index.js
-```
-
-## Deploy
+## Deployment
 
 ### GitHub Pages
+1. Fork or clone this repository
+2. Go to Settings > Pages
+3. Select source branch and folder
+4. Available at `https://yourusername.github.io/repo-name/`
 
-Push these files to the GitHub Pages repository:
+### Cloudflare Worker (API Proxy)
+Deploy `index.js` (the Worker file) to Cloudflare Workers for CORS proxying.
 
-```bash
-git add index.html styles.css app.js sw.js manifest.webmanifest icon.svg nvidia-ai-desktop-standalone.html README.md worker/index.js
-git commit -m "Release v3.3.7 model-aware max tokens"
-git push
-```
+## Version History
 
-Then open:
+- **v5.0.0** — Complete rebuild. Better mobile, iOS keyboard fixes, redesigned model browser, cleaner UI
+- **v4.0.1** — Max tokens fix, history icon sizing
+- **v4.0.0** — Initial redesign with dark theme, model picker, file uploads
 
-```text
-https://wigglez-sudo.github.io/nvidia-ai-desktop/?v=3.3.0
-```
+## Security
 
-### Cloudflare Worker
-
-No Worker change is required for `v3.3.7`.
-
-If you intentionally change `worker/index.js`, redeploy with:
-
-```bash
-cd C:\Users\lukew\OneDrive\Desktop\Nvidaapp\nvidia-ai-proxy\nvidia-ai-proxy
-npx wrangler deploy
-```
-
-## Final Smoke Test
-
-1. Open the app on iPhone Safari and desktop.
-2. Go to Settings and confirm your API key and Worker URL are still saved.
-3. Change the display name and confirm chat bubbles and sidebar update.
-4. Tap `Refresh Models` and confirm live NVIDIA models load.
-5. Type a long prompt on iOS and confirm the composer grows downward and wraps.
-6. Create two chats, open the sidebar, delete one with the X button, and confirm it disappears.
-7. Send a prompt to Kimi K2.6 or another known-working model.
-8. Attach a supported file and confirm it appears as an attachment card.
-9. Ask for a downloadable file and confirm Copy/Download/ZIP actions work.
-10. Open Diagnostics and run Worker/model tests.
-
-## Troubleshooting
-
-- Old version still appears: Settings -> Diagnostics -> `Clear cache & reload latest`.
-- Models do not load: check NVIDIA API key, Worker URL, and Worker availability.
-- A model hangs: try another free endpoint. Some NVIDIA endpoints can be slow or temporarily unavailable.
-- Image upload fails: use a vision-capable model and a supported image type (`png`, `jpg`, `jpeg`, `webp`, `gif`).
-- Web Search fails: check Brave/Tavily key or Worker secret configuration.
-
-Built by **Wigglez + Claude + ChatGPT Codex**
+- API keys stored only in browser localStorage
+- All requests use HTTPS
+- Keys only sent to NVIDIA API (or your own Worker)
