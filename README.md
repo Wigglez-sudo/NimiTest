@@ -1,8 +1,8 @@
-# NViMi AI v5.0.0
+# NViMi AI v5.0.1
 
 A premium NVIDIA model chat experience built as a single-page web app. Talk to NVIDIA AI models through a clean, modern interface with streaming responses, file uploads, code generation, and more.
 
-## What's New in v5.0.0
+## What's New in v5.0.1
 
 This is a complete ground-up rebuild focusing on mobile stability, UI polish, and reliability.
 
@@ -87,6 +87,7 @@ Deploy `index.js` (the Worker file) to Cloudflare Workers for CORS proxying.
 
 ## Version History
 
+- **v5.0.1** — Stream timeout increased so long file rewrites complete more reliably
 - **v5.0.0** — Complete rebuild. Better mobile, iOS keyboard fixes, redesigned model browser, cleaner UI
 - **v4.0.1** — Max tokens fix, history icon sizing
 - **v4.0.0** — Initial redesign with dark theme, model picker, file uploads

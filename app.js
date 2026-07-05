@@ -3,7 +3,7 @@
    Premium NVIDIA model chat experience
    ================================================================ */
 
-const APP_VERSION = '5.0.0';
+const APP_VERSION = '5.0.1';
 const BUILD_ID = '2026-07-v5-rebuild';
 const NVIDIA_DIRECT_BASE = 'https://integrate.api.nvidia.com/v1';
 const DEFAULT_PROXY_URL = 'https://nvidia-ai-proxy.lukewai.workers.dev';

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nvidia-ai-desktop-cache-v5-0';
+const CACHE_NAME = 'nvidia-ai-desktop-cache-v5-0-1';
 const STATIC_ASSETS = [
   './',
   './index.html',
