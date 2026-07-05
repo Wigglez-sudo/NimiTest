@@ -1,9 +1,9 @@
 /* ================================================================
-   NViMi AI v5.0.4 — Complete Rebuild
+   NViMi AI v5.0.5 — Complete Rebuild
    Premium NVIDIA model chat experience
    ================================================================ */
 
-const APP_VERSION = '5.0.4';
+const APP_VERSION = '5.0.5';
 const BUILD_ID = '2026-07-v5-rebuild';
 const NVIDIA_DIRECT_BASE = 'https://integrate.api.nvidia.com/v1';
 const DEFAULT_PROXY_URL = 'https://nvidia-ai-proxy.lukewai.workers.dev';
@@ -1167,7 +1167,18 @@ async function callStreaming(assistant,model,allMsgs){
         const directUrl=`${NVIDIA_DIRECT_BASE}/chat/completions`;
         const directHeaders=directApiHeaders(!!payload.stream);
         const directResp=await fetchTimeout(directUrl,{method:'POST',headers:directHeaders,body:JSON.stringify(payload)},payload.stream?STREAM_FIRST_TOKEN_TIMEOUT_MS:NON_STREAM_RETRY_TIMEOUT_MS);
-        if(!directResp.ok){const dt=await directResp.text().catch(()=>'');throw new Error(`Direct retry failed: ${directResp.status} - ${dt.slice(0,200)}`);}
+        if(!directResp.ok){
+          const dt=await directResp.text().catch(()=>'');
+          if(payload.stream && isRetryableHttpStatus(directResp.status)){
+            recordEvent(assistant,'Retry','Direct non-stream fallback');
+            const directAlt={...payload,stream:false};delete directAlt.stream;
+            const directAltResp=await fetchTimeout(directUrl,{method:'POST',headers:directApiHeaders(false),body:JSON.stringify(directAlt)},NON_STREAM_RETRY_TIMEOUT_MS);
+            if(!directAltResp.ok){const dat=await directAltResp.text().catch(()=> '');throw new Error(`Direct retry failed: ${directAltResp.status} - ${dat.slice(0,200)}`);}
+            await handleResponse(directAltResp,assistant,false,model);
+            return;
+          }
+          throw new Error(`Direct retry failed: ${directResp.status} - ${dt.slice(0,200)}`);
+        }
         await handleResponse(directResp,assistant,!!payload.stream,model);
         return;
       }
@@ -1187,7 +1198,12 @@ async function callStreaming(assistant,model,allMsgs){
         const delay=retryAfter>0?Math.min(30000,retryAfter*1000):1500;
         await new Promise(r=>setTimeout(r,delay));
         const retryResp=await fetchTimeout(url,{method:'POST',headers:apiHeaders(!!payload.stream),body:JSON.stringify(payload)},payload.stream?STREAM_FIRST_TOKEN_TIMEOUT_MS:NON_STREAM_RETRY_TIMEOUT_MS);
-        if(!retryResp.ok){const rt=await retryResp.text().catch(()=> '');throw new Error(`Retry failed: ${retryResp.status} - ${rt.slice(0,200)}`);}
+        if(!retryResp.ok){
+          const rt=await retryResp.text().catch(()=> '');
+          throw new Error(retryResp.status===524
+            ? `Still waiting on NVIDIA after retries. The model may be slow or the endpoint may be overloaded.`
+            : `Retry failed: ${retryResp.status} - ${rt.slice(0,200)}`);
+        }
         await handleResponse(retryResp,assistant,!!payload.stream,model);
         return;
       }
@@ -1200,7 +1216,12 @@ async function callStreaming(assistant,model,allMsgs){
       recordEvent(assistant,'Retry','Without reasoning');
       const clean=stripReasoning(payload);
       const fb=await fetchTimeout(url,{method:'POST',headers:apiHeaders(!!clean.stream),body:JSON.stringify(clean)},clean.stream?STREAM_FIRST_TOKEN_TIMEOUT_MS:NON_STREAM_RETRY_TIMEOUT_MS);
-      if(!fb.ok){const ft=await fb.text().catch(()=>'');throw new Error(`Retry failed: ${fb.status} - ${ft.slice(0,200)}`);}
+      if(!fb.ok){
+        const ft=await fb.text().catch(()=>'');
+        throw new Error(fb.status===524
+          ? 'Still waiting on NVIDIA after retries. Try again in a moment or switch to a different model.'
+          : `Retry failed: ${fb.status} - ${ft.slice(0,200)}`);
+      }
       await handleResponse(fb,assistant,!!clean.stream,model);
       return;
     }
