@@ -1,9 +1,9 @@
 /* ================================================================
-   NViMi AI v5.0.3 — Complete Rebuild
+   NViMi AI v5.0.4 — Complete Rebuild
    Premium NVIDIA model chat experience
    ================================================================ */
 
-const APP_VERSION = '5.0.3';
+const APP_VERSION = '5.0.4';
 const BUILD_ID = '2026-07-v5-rebuild';
 const NVIDIA_DIRECT_BASE = 'https://integrate.api.nvidia.com/v1';
 const DEFAULT_PROXY_URL = 'https://nvidia-ai-proxy.lukewai.workers.dev';
@@ -292,7 +292,7 @@ function modelProfile(m){
 }
 
 function stripReasoning(p){const{include_reasoning,chat_template_kwargs,thinking_token_budget,...r}=p||{};return r;}
-function isRetryableHttpStatus(status){return [404,500,502,503,504,524].includes(Number(status));}
+function isRetryableHttpStatus(status){return [404,429,500,502,503,504,524].includes(Number(status));}
 
 function badgeLabel(c){const map={chat:'Chat',reasoning:'Reasoning',coding:'Coding',vision:'Vision',image:'Image',speech:'Speech',long:'Long Ctx',fast:'Fast',free_endpoint:'Free',free:'Free',paid:'Paid',api:'API',catalog:'Catalog',live:'Live'};return map[c]||c;}
 function capHtml(m){
@@ -329,6 +329,10 @@ async function fetchWithRetry(url,opts={},attempts=3,timeoutMs=120000,baseDelay=
     try{
       const resp=await fetchTimeout(url,opts,timeoutMs);
       if(resp?.ok||!isRetryableHttpStatus(resp?.status))return resp;
+      const retryAfter=Number(resp.headers?.get?.('retry-after')||resp.headers?.get?.('Retry-After')||0);
+      if(retryAfter>0 && i<attempts-1){
+        await new Promise(r=>setTimeout(r,Math.min(30000,retryAfter*1000)));
+      }
       lastErr=new Error(`HTTP ${resp.status}`);
     }catch(err){lastErr=err;}
     if(i<attempts-1){
@@ -1173,6 +1177,18 @@ async function callStreaming(assistant,model,allMsgs){
         const altResp=await fetchTimeout(url,{method:'POST',headers:apiHeaders(false),body:JSON.stringify(alt)},NON_STREAM_RETRY_TIMEOUT_MS);
         if(!altResp.ok){const at=await altResp.text().catch(()=>'');throw new Error(`Fallback failed: ${altResp.status} - ${at.slice(0,200)}`);}
         await handleResponse(altResp,assistant,false,model);
+        return;
+      }
+      if(resp.status===429){
+        const retryAfter=Number(resp.headers?.get?.('retry-after')||resp.headers?.get?.('Retry-After')||0);
+        const waitMsg=retryAfter>0?`Rate limited. Waiting ${retryAfter}s and retrying...`:'Rate limited. Retrying shortly...';
+        recordEvent(assistant,'Retry',waitMsg);
+        showToast('Rate limited by NVIDIA. Retrying...','warning');
+        const delay=retryAfter>0?Math.min(30000,retryAfter*1000):1500;
+        await new Promise(r=>setTimeout(r,delay));
+        const retryResp=await fetchTimeout(url,{method:'POST',headers:apiHeaders(!!payload.stream),body:JSON.stringify(payload)},payload.stream?STREAM_FIRST_TOKEN_TIMEOUT_MS:NON_STREAM_RETRY_TIMEOUT_MS);
+        if(!retryResp.ok){const rt=await retryResp.text().catch(()=> '');throw new Error(`Retry failed: ${retryResp.status} - ${rt.slice(0,200)}`);}
+        await handleResponse(retryResp,assistant,!!payload.stream,model);
         return;
       }
       throw new Error(`HTTP ${resp.status}: ${text.slice(0,300)}`);

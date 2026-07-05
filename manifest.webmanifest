@@ -2,7 +2,7 @@
   "name": "NViMi AI",
   "short_name": "NViMi",
   "description": "Premium NVIDIA model chat experience",
-  "version": "5.0.3",
+  "version": "5.0.4",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#0a0a0b",
