@@ -6,6 +6,7 @@
   --nvidia-green: #76B900; --nvidia-green-hover: #8bc34a; --nvidia-green-dim: rgba(118,185,0,0.15);
   --accent-blue: #4a9eff; --accent-purple: #a855f7; --accent-orange: #f97316; --accent-pink: #ec4899;
   --danger: #ef4444; --success: #22c55e; --warning: #f59e0b;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
   --radius-sm: 6px; --radius-md: 10px; --radius-lg: 14px;
   --shadow: 0 4px 20px rgba(0,0,0,0.5); --transition: all 0.2s ease;
   --app-height: 100dvh; --vv-top: 0px; --browser-top-pad: 0px; --composer-height: 112px;
@@ -361,8 +362,6 @@ body {
   padding: 14px; font-size: 13px; line-height: 1.7;
   color: var(--text-secondary); font-style: italic; display: none;
 }
-.thinking-block.expanded .thinking-body { display: block; }
-
 .input-area {
   border-top: 1px solid var(--border-color); background: var(--bg-secondary); padding: 16px 20px 20px;
 }

@@ -1,5 +1,5 @@
 /* NVIDIA AI Desktop - GitHub Pages / Cloudflare Worker build */
-const APP_VERSION = '3.2.7';
+const APP_VERSION = '3.2.8';
 const BUILD_ID = '2026-07-final-release';
 const NVIDIA_DIRECT_BASE = 'https://integrate.api.nvidia.com/v1';
 const DEFAULT_PROXY_URL = 'https://nvidia-ai-proxy.lukewai.workers.dev';
@@ -1122,14 +1122,45 @@ function renderMarkdown(text, options = {}) {
   if (options.hideGeneratedFiles) {
     src = src.replace(/^\s*(?:filename|file|path)\s*[:=]\s*`?[^`\n]+`?\s*$/gmi, '');
   }
-  let html = escapeHtml(src)
-    .replace(/^### (.*)$/gm, '<h3>$1</h3>')
-    .replace(/^## (.*)$/gm, '<h2>$1</h2>')
-    .replace(/^# (.*)$/gm, '<h1>$1</h1>')
+  const formatInline = (value) => String(value || '')
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/(^|[^*])\*(?!\s)(.*?)\*(?!\*)/g, '$1<em>$2</em>')
     .replace(/`([^`]+)`/g, '<code>$1</code>')
-    .replace(/\n/g, '<br>');
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noreferrer">$1</a>');
+
+  const isTableBlock = (lines) => lines.length >= 2
+    && /^\s*\|?.+\|.+\|?\s*$/.test(lines[0])
+    && /^\s*\|?(?:\s*:?-{3,}:?\s*\|)+\s*:?-{3,}:?\s*\|?\s*$/.test(lines[1]);
+
+  const renderTableBlock = (lines) => {
+    const cells = (line) => line.replace(/^\s*\|/, '').replace(/\|\s*$/, '').split('|').map(cell => formatInline(cell.trim()));
+    const header = cells(lines[0]);
+    const rows = lines.slice(2).filter(Boolean).map(row => cells(row));
+    return `<table><thead><tr>${header.map(cell => `<th>${cell}</th>`).join('')}</tr></thead><tbody>${rows.map(row => `<tr>${row.map(cell => `<td>${cell}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+  };
+
+  let html = escapeHtml(src).split(/\n{2,}/).map(block => {
+    const trimmed = block.trim();
+    if (!trimmed) return '';
+    const lines = trimmed.split('\n').map(line => line.trimEnd());
+
+    if (isTableBlock(lines)) return renderTableBlock(lines);
+
+    const first = lines[0];
+    if (/^###\s+/.test(first)) return `<h3>${formatInline(first.replace(/^###\s+/, ''))}</h3>`;
+    if (/^##\s+/.test(first)) return `<h2>${formatInline(first.replace(/^##\s+/, ''))}</h2>`;
+    if (/^#\s+/.test(first)) return `<h1>${formatInline(first.replace(/^#\s+/, ''))}</h1>`;
+
+    const bulletList = lines.every(line => /^[-*+]\s+/.test(line));
+    const orderedList = lines.every(line => /^\d+\.\s+/.test(line));
+    if (bulletList || orderedList) {
+      const tag = orderedList ? 'ol' : 'ul';
+      const items = lines.map(line => line.replace(/^(?:[-*+]\s+|\d+\.\s+)/, '').trim());
+      return `<${tag}>${items.map(item => `<li>${formatInline(item)}</li>`).join('')}</${tag}>`;
+    }
+
+    return `<p>${lines.map(line => formatInline(line)).join('<br>')}</p>`;
+  }).join('');
   html = html.replace(/@@CODEBLOCK_(\d+)@@/g, (_, n) => codeBlockHtml(codeBlocks[Number(n)]));
   return html;
 }
@@ -2151,12 +2182,6 @@ function applyFinishReason(msg, finishReason) {
   if (msg.finishReason === 'length') msg.status = 'Completed but hit output limit';
 }
 
-function applyFinishReason(msg, finishReason) {
-  if (!msg || !finishReason) return;
-  msg.finishReason = String(finishReason);
-  if (msg.finishReason === 'length') msg.status = 'Completed but hit output limit';
-}
-
 function updateAssistantDom(msg) {
   const body = document.getElementById(`body_${msg.id}`);
   const container = document.getElementById('chatContainer');
@@ -3084,11 +3109,6 @@ async function addFilesToPending(fileList) {
   const files = Array.from(fileList || []).filter(Boolean);
   if (!files.length) return;
 
-  if (!state.settings.plugins.fileReader) {
-    showToast('File Reader plugin is off. Enable it in Plugins first.', 'error');
-    return;
-  }
-
   const supportedHint = 'Supported: images, ZIP archives, and text/code/CSV/Markdown files.';
   let added = 0;
   const skipped = [];
@@ -3162,6 +3182,11 @@ async function addFilesToPending(fileList) {
 
     if (!isSupportedTextFile(file)) {
       skipped.push(`${name} (unsupported file type)`);
+      continue;
+    }
+
+    if (!state.settings.plugins.fileReader) {
+      skipped.push(`${name} (enable File Reader to attach text/code files)`);
       continue;
     }
 
