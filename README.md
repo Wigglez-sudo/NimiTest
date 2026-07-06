@@ -1,8 +1,8 @@
-# NViMi AI v5.0.5
+# NViMi AI v5.0.6
 
 A premium NVIDIA model chat experience built as a single-page web app. Talk to NVIDIA AI models through a clean, modern interface with streaming responses, file uploads, code generation, and more.
 
-## What's New in v5.0.5
+## What's New in v5.0.6
 
 - iPhone layout now tracks the visual viewport more closely so the composer stays visible above the keyboard
 - Model refresh uses retry/backoff and auto-refreshes when the tab becomes visible again

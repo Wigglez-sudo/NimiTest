@@ -1,9 +1,9 @@
 /* ================================================================
-   NViMi AI v5.0.5 — Complete Rebuild
+   NViMi AI v5.0.6 — Complete Rebuild
    Premium NVIDIA model chat experience
    ================================================================ */
 
-const APP_VERSION = '5.0.5';
+const APP_VERSION = '5.0.6';
 const BUILD_ID = '2026-07-v5-rebuild';
 const NVIDIA_DIRECT_BASE = 'https://integrate.api.nvidia.com/v1';
 const DEFAULT_PROXY_URL = 'https://nvidia-ai-proxy.lukewai.workers.dev';
@@ -1672,13 +1672,22 @@ async function fetchModels(){
   const proxy=stripSlash(state.settings.proxyUrl);
   const directUrl=`${NVIDIA_DIRECT_BASE}/models`;
   const proxyUrl=proxy?`${proxy}/v1/models`:null;
+  const catalogUrl=proxy?`${proxy}/v1/build-models`:null;
   const dp=fetchWithRetry(directUrl,{method:'GET',headers:{Authorization:`Bearer ${state.settings.apiKey||''}`}},3,120000,500).then(async r=>{if(!r.ok)throw new Error(`Direct ${r.status}`);return(await r.json()).data||[];});
   const pp=proxyUrl?fetchWithRetry(proxyUrl,{method:'GET',headers:{Authorization:`Bearer ${state.settings.apiKey||''}`,'X-Nvidia-Api-Key':state.settings.apiKey||''}},3,120000,500).then(async r=>{if(!r.ok)throw new Error(`Proxy ${r.status}`);return(await r.json()).data||[]}):Promise.resolve([]);
+  const cp=catalogUrl?fetchWithRetry(catalogUrl,{method:'GET'},3,120000,500).then(async r=>{if(!r.ok)throw new Error(`Catalog ${r.status}`);const j=await r.json();return Array.isArray(j.models)?j.models:(Array.isArray(j.data)?j.data:[]);}):Promise.resolve([]);
   let dr=[],pr=[],de=null,pe=null;
-  try{dr=await dp;}catch(e){de=e;}try{pr=await pp;}catch(e){pe=e;}
-  if(!dr.length&&!pr.length){if(de&&pe)throw new Error(`Direct: ${de.message}, Proxy: ${pe.message}`);if(de)throw de;if(pe)throw pe;throw new Error('No models returned');}
+  let cr=[],ce=null;
+  try{dr=await dp;}catch(e){de=e;}try{pr=await pp;}catch(e){pe=e;}try{cr=await cp;}catch(e){ce=e;}
+  if(!dr.length&&!pr.length&&!cr.length){
+    if(ce)return cr;
+    if(de&&pe)throw new Error(`Direct: ${de.message}, Proxy: ${pe.message}`);
+    if(de)throw de;
+    if(pe)throw pe;
+    throw new Error('No models returned');
+  }
   const seen=new Set();const merged=[];
-  for(const m of[...dr,...pr]){const id=m.id||m.name||m.model||m.modelId;if(!id||seen.has(id))continue;seen.add(id);const fromProxy=pr.includes(m);m.source=fromProxy?(dr.some(d=>d.id===id)?'api+catalog':'api'):'catalog';merged.push(m);}
+  for(const m of[...dr,...pr,...cr]){const id=m.id||m.name||m.model||m.modelId;if(!id||seen.has(id))continue;seen.add(id);const fromProxy=pr.includes(m);const fromCatalog=cr.includes(m);m.source=fromProxy?(dr.some(d=>d.id===id)?'api+catalog':'api'):(fromCatalog?'catalog':'catalog');merged.push(m);}
   return merged;
 }
 
